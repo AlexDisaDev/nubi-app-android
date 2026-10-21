@@ -234,17 +234,31 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
 }
 
 // =====================================================================
-// Pestaña Hoy
+// Pestaña Hoy — resumen del día.
+//
+// Aquí NO se registra nada: en iOS (VistaInicio.swift) esta pantalla son
+// tarjetas de resumen y la etapa del bebé. Los botones de apuntar viven
+// en la pestaña Día.
 // =====================================================================
 private val formatoHora: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
-@Composable
-fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
+private fun registrosDeHoy(registros: List<Registro>): List<Registro> {
     val hoy = LocalDate.now(ZoneId.systemDefault())
-    val deHoy = registros
+    return registros
         .filter { it.inicio.atZone(ZoneId.systemDefault()).toLocalDate() == hoy }
         .sortedByDescending { it.inicio }
+}
+
+@Composable
+fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
+    val deHoy = registrosDeHoy(registros)
+
+    val minutosSueno = deHoy
+        .filter { it.tipo.esSueno }
+        .sumOf { (it.duracionSegundos ?: 0L) / 60 }
+    val tomas = deHoy.count { it.tipo.esAlimentacion }
+    val panales = deHoy.count { it.tipo == TipoRegistro.PANAL }
 
     Column(
         modifier = Modifier
@@ -258,16 +272,97 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
             color = NubiTheme.colores.tintaSuave
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TarjetaResumen("Sueño", textoDuracion(minutosSueno),
+                NubiTheme.colores.lila, Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            TarjetaResumen("Tomas", "$tomas",
+                NubiTheme.colores.melocoton, Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            TarjetaResumen("Pañales", "$panales",
+                NubiTheme.colores.cielo, Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radio),
+            colors = CardDefaults.cardColors(containerColor = NubiTheme.colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Etapa", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Pendiente de portar desde iOS (MotorEtapas.swift).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = NubiTheme.colores.tintaTenue
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaResumen(
+    titulo: String,
+    valor: String,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = color),
+        modifier = modifier
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(titulo, style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(4.dp))
+            Text(valor, style = MaterialTheme.typography.titleLarge)
+        }
+    }
+}
+
+private fun textoDuracion(minutos: Long): String = when {
+    minutos <= 0L -> "—"
+    minutos < 60L -> "$minutos min"
+    minutos % 60L == 0L -> "${minutos / 60} h"
+    else -> "${minutos / 60} h ${minutos % 60} min"
+}
+
+// =====================================================================
+// Pestaña Día — aquí sí se apunta.
+//
+// Versión mínima de VistaLinea.swift (1.698 líneas): la botonera rápida y
+// lo apuntado hoy. Faltan la línea de tiempo vertical, la barra de sueño
+// de 24 h y las hojas de edición con hora.
+// =====================================================================
+@Composable
+fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
+    val deHoy = registrosDeHoy(registros)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(NubiGeometria.margen)
+    ) {
         Text("Apuntar", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         Row(modifier = Modifier.fillMaxWidth()) {
             BotonRapido("Siesta", TipoRegistro.SIESTA, bebe.id, Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
+            BotonRapido("Noche", TipoRegistro.NOCHE, bebe.id, Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
             BotonRapido("Biberón", TipoRegistro.BIBERON, bebe.id, Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            BotonRapido("Pecho", TipoRegistro.PECHO, bebe.id, Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
             BotonRapido("Pañal", TipoRegistro.PANAL, bebe.id, Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            BotonRapido("Baño", TipoRegistro.BANO, bebe.id, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(24.dp))
