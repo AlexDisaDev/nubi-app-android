@@ -37,7 +37,8 @@ import kotlin.math.sin
 enum class IconoNubi {
     NUBE, RELOJ, CRECE, MALETIN, LIBRETA,
     BIBERON, CRONOMETRO, ONDAS,
-    SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON
+    SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
+    MEDICINA, BANO, EQUIS
 }
 
 @Composable
@@ -64,6 +65,9 @@ fun Icono(
             IconoNubi.BOMBILLA -> dibujarBombilla(tint)
             IconoNubi.CONTROLES -> dibujarControles(tint)
             IconoNubi.CHEVRON -> dibujarChevron(tint)
+            IconoNubi.MEDICINA -> dibujarMedicina(tint)
+            IconoNubi.BANO -> dibujarBano(tint)
+            IconoNubi.EQUIS -> dibujarEquis(tint)
         }
     }
 }
@@ -359,6 +363,70 @@ private fun DrawScope.dibujarControles(color: Color) {
         )
         drawCircle(color, radius = w * 0.09f, center = Offset(w * fx, h * nudos[i]))
     }
+}
+
+private fun DrawScope.dibujarMedicina(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.09f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.36f, h * 0.3f),
+        size = Size(w * 0.28f, h * 0.42f),
+        cornerRadius = CornerRadius(w * 0.08f),
+        style = Stroke(width = grosor)
+    )
+    drawLine(
+        color, Offset(w * 0.32f, h * 0.22f), Offset(w * 0.68f, h * 0.22f),
+        strokeWidth = grosor * 0.9f, cap = StrokeCap.Round
+    )
+    listOf(0.42f, 0.54f).forEach { fy ->
+        drawLine(
+            color, Offset(w * 0.4f, h * fy), Offset(w * 0.48f, h * fy),
+            strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
+        )
+    }
+    drawLine(
+        color, Offset(w * 0.4f, h * 0.72f), Offset(w * 0.22f, h * 0.88f),
+        strokeWidth = grosor * 0.8f, cap = StrokeCap.Round
+    )
+}
+
+private fun DrawScope.dibujarBano(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.09f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.14f, h * 0.42f),
+        size = Size(w * 0.72f, h * 0.36f),
+        cornerRadius = CornerRadius(w * 0.16f),
+        style = Stroke(width = grosor)
+    )
+    drawLine(
+        color, Offset(w * 0.2f, h * 0.42f), Offset(w * 0.8f, h * 0.42f),
+        strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
+    )
+    listOf(0.24f, 0.76f).forEach { fx ->
+        drawLine(
+            color, Offset(w * fx, h * 0.8f), Offset(w * fx, h * 0.86f),
+            strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
+        )
+    }
+}
+
+private fun DrawScope.dibujarEquis(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.12f
+    drawLine(
+        color, Offset(w * 0.26f, h * 0.26f), Offset(w * 0.74f, h * 0.74f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
+    drawLine(
+        color, Offset(w * 0.74f, h * 0.26f), Offset(w * 0.26f, h * 0.74f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
 }
 
 private fun DrawScope.dibujarChevron(color: Color) {

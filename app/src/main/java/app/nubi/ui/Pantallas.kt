@@ -1,18 +1,24 @@
 package app.nubi.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -32,8 +38,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
@@ -53,6 +65,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 // =====================================================================
 // Canjear código — se usa en dos sitios: al entrar por primera vez y
@@ -249,13 +263,6 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
 private val formatoHora: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
-private fun registrosDeHoy(registros: List<Registro>): List<Registro> {
-    val hoy = LocalDate.now(ZoneId.systemDefault())
-    return registros
-        .filter { it.inicio.atZone(ZoneId.systemDefault()).toLocalDate() == hoy }
-        .sortedByDescending { it.inicio }
-}
-
 @Composable
 fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
     val colores = NubiTheme.colores
@@ -266,7 +273,11 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
         .filter { it.tipo == TipoRegistro.NOCHE && it.fin == null }
         .maxByOrNull { it.inicio }
 
-    val ultimaToma = registros.filter { it.tipo.esAlimentacion }.maxByOrNull { it.inicio }
+    // Biberón y pecho se muestran los dos, no solo el que se apuntó en
+    // último lugar: si el bebé toma pecho y biberón, las dos tienen que
+    // verse aquí (antes solo salía una).
+    val ultimoBiberon = registros.filter { it.tipo == TipoRegistro.BIBERON }.maxByOrNull { it.inicio }
+    val ultimoPecho = registros.filter { it.tipo == TipoRegistro.PECHO }.maxByOrNull { it.inicio }
     val ultimoPanal = registros.filter { it.tipo == TipoRegistro.PANAL }.maxByOrNull { it.inicio }
 
     Column(
@@ -382,12 +393,22 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
 
         Spacer(Modifier.height(14.dp))
 
-        ultimaToma?.let { registro ->
+        ultimoBiberon?.let { registro ->
             FilaResumenHoy(
-                titulo = "Última toma · ${hace(registro.inicio)}",
-                subtitulo = "${nombreTipo(registro.tipo)} · ${formatoHora.format(registro.inicio)}",
-                icono = if (registro.tipo == TipoRegistro.BIBERON) IconoNubi.BIBERON else IconoNubi.CORAZON,
-                colorBadge = if (registro.tipo == TipoRegistro.BIBERON) colores.mantequilla else colores.rosa
+                titulo = "Último biberón · ${hace(registro.inicio)}",
+                subtitulo = formatoHora.format(registro.inicio),
+                icono = IconoNubi.BIBERON,
+                colorBadge = colores.mantequilla
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
+        ultimoPecho?.let { registro ->
+            FilaResumenHoy(
+                titulo = "Último pecho · ${hace(registro.inicio)}",
+                subtitulo = formatoHora.format(registro.inicio),
+                icono = IconoNubi.CORAZON,
+                colorBadge = colores.melocoton
             )
             Spacer(Modifier.height(10.dp))
         }
@@ -538,110 +559,427 @@ private fun textoDuracion(minutos: Long): String = when {
 }
 
 // =====================================================================
-// Pestaña Día — aquí sí se apunta.
+// Pestaña Día — aquí sí se apunta. Portado sobre la captura real de
+// VistaLinea.swift: título "Su día", navegador de días, el reloj, la
+// barra de sueño de 24 h, la botonera de 8 iconos y la lista completa del
+// día con línea de tiempo y borrado.
 //
-// Versión mínima de VistaLinea.swift (1.698 líneas): la botonera rápida y
-// lo apuntado hoy. Faltan la línea de tiempo vertical, la barra de sueño
-// de 24 h y las hojas de edición con hora.
+// Sigue faltando poder tocar un registro para editarlo (de momento el
+// toque solo sirve para borrar) y las hojas con selector de hora propio
+// (HojaSueño, HojaHora...): tocar un botón de la botonera apunta "ahora
+// mismo", no deja elegir otra hora todavía.
 // =====================================================================
+private val formatoHoraCorta: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("H:mm").withZone(ZoneId.systemDefault())
+
+private val zonaLocal = ZoneId.systemDefault()
+
+private fun horaDecimalDe(instante: Instant): Double {
+    val t = instante.atZone(zonaLocal)
+    return t.hour + t.minute / 60.0
+}
+
+private fun textoDuracionCompacta(minutos: Long): String {
+    val h = minutos / 60
+    val m = minutos % 60
+    return "${h}h%02d".format(m)
+}
+
+private fun textoFechaDia(dia: LocalDate): String {
+    val hoy = LocalDate.now(zonaLocal)
+    return when (dia) {
+        hoy -> "Hoy"
+        hoy.minusDays(1) -> "Ayer"
+        else -> {
+            val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+            val nombreMes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+            "$nombreDia ${dia.dayOfMonth} $nombreMes".lowercase()
+        }
+    }
+}
+
+private fun textoEdadCorta(bebe: Bebe, hasta: Instant): String {
+    val dias = bebe.edadEnDias(hasta)
+    return when {
+        dias < 14 -> "$dias d de vida"
+        dias < 61 -> "${dias / 7} sem de vida"
+        else -> "${(dias / 30.44).toInt()} m de vida"
+    }
+}
+
 @Composable
 fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
-    val deHoy = registrosDeHoy(registros)
+    val colores = NubiTheme.colores
+    var diaSeleccionado by remember { mutableStateOf(LocalDate.now(zonaLocal)) }
+    val hoy = LocalDate.now(zonaLocal)
+
+    // Todo lo que pertenece a este día: los sueños se recortan por si
+    // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
+    val suenosDelDia = registros
+        .filter { it.tipo.esSueno && it.fin != null }
+        .mapNotNull { r -> tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { r to it } }
+    val eventosDelDia = registros.filter {
+        !it.tipo.esSueno && it.inicio.atZone(zonaLocal).toLocalDate() == diaSeleccionado
+    }
+    val minutosSueno = suenosDelDia.sumOf { (_, tramo) -> ((tramo.second - tramo.first) * 60).toLong() }
+    val tomas = eventosDelDia.count { it.tipo.esAlimentacion }
+
+    // La lista completa, en orden cronológico: los sueños con el inicio
+    // real (aunque sea de ayer, para el chip "noche anterior") y el resto
+    // de eventos del día.
+    val listaCompleta = (suenosDelDia.map { it.first } + eventosDelDia).sortedBy { it.inicio }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        // La distribución de esta pantalla todavía no es la de iOS: falta
-        // ver una captura de VistaLinea para colocar reloj, barra de sueño
-        // de 24 h y botonera como van allí.
-        RelojDelDia(registros = registros)
+        Text("Su día", style = MaterialTheme.typography.displaySmall)
+        Text(
+            "${textoDuracion(minutosSueno)} de sueño · $tomas tomas",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colores.tintaSuave
+        )
 
         Spacer(Modifier.height(16.dp))
-        Text("Apuntar", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            BotonRapido("Siesta", TipoRegistro.SIESTA, bebe.id, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            BotonRapido("Noche", TipoRegistro.NOCHE, bebe.id, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            BotonRapido("Biberón", TipoRegistro.BIBERON, bebe.id, Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BotonFlechaDia(mirar = true) {
+                diaSeleccionado = diaSeleccionado.minusDays(1)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(textoFechaDia(diaSeleccionado), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    textoEdadCorta(bebe, diaSeleccionado.atTime(12, 0).atZone(zonaLocal).toInstant()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaTenue
+                )
+            }
+            BotonFlechaDia(mirar = false, habilitado = diaSeleccionado < hoy) {
+                if (diaSeleccionado < hoy) diaSeleccionado = diaSeleccionado.plusDays(1)
+            }
         }
-        Spacer(Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            BotonRapido("Pecho", TipoRegistro.PECHO, bebe.id, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            BotonRapido("Pañal", TipoRegistro.PANAL, bebe.id, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            BotonRapido("Baño", TipoRegistro.BANO, bebe.id, Modifier.weight(1f))
+
+        Spacer(Modifier.height(16.dp))
+        RelojDelDia(registros = registros, dia = diaSeleccionado)
+
+        Spacer(Modifier.height(20.dp))
+        BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno)
+
+        Spacer(Modifier.height(16.dp))
+        BotoneraDia(bebe.id)
+
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "TODO LO DEL DÍA",
+            style = MaterialTheme.typography.labelMedium,
+            color = colores.tintaTenue
+        )
+        Text(
+            "Toca un registro para editarlo · X para borrarlo",
+            style = MaterialTheme.typography.bodySmall,
+            color = colores.tintaTenue
+        )
+        Spacer(Modifier.height(10.dp))
+
+        if (listaCompleta.isEmpty()) {
+            Text(
+                "Todavía no hay nada apuntado.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colores.tintaTenue
+            )
+        } else {
+            listaCompleta.forEachIndexed { indice, registro ->
+                FilaTimeline(
+                    registro = registro,
+                    diaMostrado = diaSeleccionado,
+                    esUltimo = indice == listaCompleta.lastIndex,
+                    onBorrar = { Repositorio.borrarRegistro(registro.id) }
+                )
+
+                // Entre dos sueños seguidos, cuánto tiempo pasó despierto.
+                val siguiente = listaCompleta.getOrNull(indice + 1)
+                if (registro.tipo.esSueno && registro.fin != null &&
+                    siguiente != null && siguiente.tipo.esSueno
+                ) {
+                    val despierto = Duration.between(registro.fin, siguiente.inicio)
+                    if (!despierto.isNegative && !despierto.isZero) {
+                        Text(
+                            "${textoDuracion(despierto.toMinutes())} despierto",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 52.dp, top = 2.dp, bottom = 2.dp)
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(Modifier.height(24.dp))
-        Text("Hoy", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
+    }
+}
 
-        if (deHoy.isEmpty()) {
-            Text(
-                "Todavía no hay nada apuntado hoy.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = NubiTheme.colores.tintaTenue
-            )
-        } else {
-            LazyColumn {
-                items(deHoy, key = { it.id }) { registro ->
-                    Card(
-                        shape = RoundedCornerShape(NubiGeometria.radioChico),
-                        colors = CardDefaults.cardColors(
-                            containerColor = NubiTheme.colores.superficie
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                nombreTipo(registro.tipo),
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                formatoHora.format(registro.inicio),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = NubiTheme.colores.tintaSuave
-                            )
-                        }
+@Composable
+private fun BotonFlechaDia(mirar: Boolean, habilitado: Boolean = true, onClick: () -> Unit) {
+    val colores = NubiTheme.colores
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(colores.lienzoAlto)
+            .clickable(enabled = habilitado, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icono(
+            IconoNubi.CHEVRON,
+            tint = if (habilitado) colores.tintaSuave else colores.tintaTenue,
+            tamano = 16.dp,
+            modifier = if (mirar) Modifier.graphicsLayer(scaleX = -1f) else Modifier
+        )
+    }
+}
+
+/**
+ * La barra horizontal de 0h a 24h con los tramos de sueño de este día, y
+ * el total en una insignia con borde de color encima — aproximación de la
+ * barra de VistaLinea.swift, a falta de medir la captura con precisión.
+ */
+@Composable
+private fun BarraSuenoDia(
+    suenos: List<Pair<Registro, Pair<Double, Double>>>,
+    dia: LocalDate,
+    minutosTotales: Long
+) {
+    val colores = NubiTheme.colores
+    val esHoy = dia == LocalDate.now(zonaLocal)
+    val fraccionAhora = if (esHoy) (horaDecimalDe(Instant.now()) / 24.0) else 0.5
+    val bias = (fraccionAhora * 2 - 1).toFloat().coerceIn(-1f, 1f)
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radio),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("SUEÑO DE HOY", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+            Spacer(Modifier.height(16.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+            ) {
+                Canvas(Modifier.matchParentSize()) {
+                    drawRoundRect(
+                        color = colores.lienzoAlto,
+                        size = size,
+                        cornerRadius = CornerRadius(size.height / 2f)
+                    )
+                    suenos.forEach { (registro, tramo) ->
+                        val (desde, hasta) = tramo
+                        val x0 = (desde / 24.0 * size.width).toFloat()
+                        val ancho = ((hasta - desde) / 24.0 * size.width).toFloat().coerceAtLeast(4f)
+                        drawRoundRect(
+                            color = if (registro.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta,
+                            topLeft = Offset(x0, 0f),
+                            size = Size(ancho, size.height),
+                            cornerRadius = CornerRadius(size.height / 2f)
+                        )
                     }
                 }
+                Box(
+                    modifier = Modifier
+                        .align(BiasAlignment(bias, 0f))
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(colores.superficie)
+                        .border(2.5.dp, colores.coral, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        textoDuracionCompacta(minutosTotales),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colores.tinta
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("0h", style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
+                Text("12h", style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
+                Text("24h", style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
             }
         }
     }
 }
 
+/** La botonera: un círculo de color por tipo, igual que en la lista y el
+ *  reloj — ocho tipos en vez de los seis de antes (faltaban despertar
+ *  nocturno, medicina y baño). */
 @Composable
-private fun BotonRapido(
-    texto: String,
-    tipo: TipoRegistro,
-    bebeId: String,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = {
-            Repositorio.guardarRegistro(
-                Registro(bebeId = bebeId, tipo = tipo, inicio = Instant.now())
-            )
-        },
-        shape = RoundedCornerShape(NubiGeometria.radioChico),
-        modifier = modifier
+private fun BotoneraDia(bebeId: String) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radio),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(texto, style = MaterialTheme.typography.labelLarge)
+        Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            TipoRegistro.entries.chunked(4).forEach { fila ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    fila.forEach { tipo -> BotonCircular(tipo, bebeId) }
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+            Text(
+                "Toca para apuntarlo ahora",
+                style = MaterialTheme.typography.bodySmall,
+                color = colores.tintaTenue
+            )
+        }
     }
+}
+
+@Composable
+private fun BotonCircular(tipo: TipoRegistro, bebeId: String) {
+    val colores = NubiTheme.colores
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(CircleShape)
+            .background(colorDeTipo(tipo, colores))
+            .clickable {
+                Repositorio.guardarRegistro(Registro(bebeId = bebeId, tipo = tipo, inicio = Instant.now()))
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 24.dp)
+    }
+}
+
+/** Una fila de la lista "Todo lo del día": insignia + línea que conecta
+ *  con la siguiente, título con sus chips, subtítulo, y una X para borrar. */
+@Composable
+private fun FilaTimeline(
+    registro: Registro,
+    diaMostrado: LocalDate,
+    esUltimo: Boolean,
+    onBorrar: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier.width(40.dp).height(if (esUltimo) 40.dp else 64.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (!esUltimo) {
+                Box(
+                    Modifier
+                        .padding(top = 40.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colores.separador)
+                )
+            }
+            BadgeIcono(
+                iconoDeTipo(registro.tipo),
+                colorFondo = colorDeTipo(registro.tipo, colores),
+                colorIcono = colores.tinta,
+                tamano = 40.dp,
+                tamanoIcono = 18.dp
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(nombreTipo(registro.tipo), style = MaterialTheme.typography.bodyLarge)
+                val esDeAyer = registro.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado
+                if (esDeAyer) {
+                    Spacer(Modifier.width(8.dp))
+                    ChipTexto("noche anterior")
+                }
+                registro.duracionSegundos?.let { seg ->
+                    Spacer(Modifier.width(8.dp))
+                    ChipTexto(textoDuracion(seg / 60))
+                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(
+                subtituloRegistro(registro),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colores.tintaSuave
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onBorrar),
+            contentAlignment = Alignment.Center
+        ) {
+            Icono(IconoNubi.EQUIS, tint = colores.tintaTenue, tamano = 12.dp)
+        }
+    }
+}
+
+@Composable
+private fun ChipTexto(texto: String) {
+    val colores = NubiTheme.colores
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(colores.lienzoAlto)
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+    ) {
+        Text(texto, style = MaterialTheme.typography.labelSmall, color = colores.tintaSuave)
+    }
+}
+
+private fun subtituloRegistro(registro: Registro): String = when (registro.tipo) {
+    TipoRegistro.NOCHE, TipoRegistro.SIESTA ->
+        if (registro.fin != null) {
+            "${formatoHoraCorta.format(registro.inicio)} – ${formatoHoraCorta.format(registro.fin)}"
+        } else {
+            "Desde las ${formatoHoraCorta.format(registro.inicio)}"
+        }
+
+    TipoRegistro.BIBERON -> {
+        val partes = mutableListOf(formatoHoraCorta.format(registro.inicio))
+        registro.cantidadBiberon?.let { cantidad ->
+            val unidad = registro.unidadBiberon?.etiqueta ?: "ml"
+            partes.add("${cantidad.toInt()} $unidad")
+        }
+        registro.tipoLeche?.let { partes.add(if (it.name == "MATERNA") "Materna" else "Fórmula") }
+        partes.joinToString(" · ")
+    }
+
+    TipoRegistro.PECHO -> {
+        val partes = mutableListOf(formatoHoraCorta.format(registro.inicio))
+        registro.lado?.let { partes.add(if (it.name == "IZQUIERDA") "Izquierdo" else "Derecho") }
+        partes.joinToString(" · ")
+    }
+
+    TipoRegistro.PANAL -> {
+        val detalle = when {
+            registro.panalPis == true && registro.panalCaca == true -> "Pis y caca"
+            registro.panalCaca == true -> "Caca"
+            registro.panalPis == true -> "Pis"
+            else -> null
+        }
+        listOfNotNull(formatoHoraCorta.format(registro.inicio), detalle).joinToString(" · ")
+    }
+
+    else -> formatoHoraCorta.format(registro.inicio)
 }
 
 private fun nombreTipo(tipo: TipoRegistro): String = when (tipo) {
