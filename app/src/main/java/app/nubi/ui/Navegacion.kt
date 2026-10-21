@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -48,8 +48,9 @@ private enum class Pestana(val titulo: String) {
 }
 
 /**
- * La barra superior de iOS (enum VistaSuperior): las tres secciones de
- * premium. Se abren encima de la pestaña actual, no la sustituyen.
+ * La barra de arriba (enum VistaSuperior en iOS): las tres secciones de
+ * premium. Funcionan igual que las de abajo — se selecciona una y se ve
+ * su pantalla — solo que están arriba.
  */
 private enum class VistaSuperior(val titulo: String) {
     BANCO("Banco"),
@@ -58,12 +59,20 @@ private enum class VistaSuperior(val titulo: String) {
 }
 
 /**
+ * Qué se está viendo: una pestaña de abajo o una de arriba. Al ser una
+ * sola variable, seleccionar arriba deselecciona abajo y al revés, sin
+ * que haya que cerrar nada a mano.
+ */
+private sealed interface Destino {
+    data class Abajo(val pestana: Pestana) : Destino
+    data class Arriba(val vista: VistaSuperior) : Destino
+}
+
+/**
  * Color de cada pestaña, de la paleta de Nubi.
  *
  * Provisional en cuanto a forma: en iOS cada pestaña tiene su dibujo
- * (Ilustraciones.swift) y aquí de momento es un punto de color. El paquete
- * de iconos de Material está deprecado y no se usa a propósito: los iconos
- * definitivos serán los de Nubi portados a vectores.
+ * (Ilustraciones.swift) y aquí de momento es un punto de color.
  */
 private fun colorDe(p: Pestana, c: NubiColores): Color = when (p) {
     Pestana.HOY -> c.menta
@@ -77,15 +86,13 @@ private fun colorDe(p: Pestana, c: NubiColores): Color = when (p) {
 @Composable
 fun Navegacion(alCerrarSesion: () -> Unit) {
     val datos by Repositorio.local.datos.collectAsState()
-    var pestana by remember { mutableStateOf(Pestana.HOY) }
-    var superior by remember { mutableStateOf<VistaSuperior?>(null) }
+    var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
     val colores = NubiTheme.colores
 
-    // Título de lo que se está viendo ahora mismo.
     val titulo = when {
         enAjustes -> "Ajustes"
-        superior != null -> superior!!.titulo
+        destino is Destino.Arriba -> (destino as Destino.Arriba).vista.titulo
         else -> "Nubi"
     }
 
@@ -99,30 +106,29 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                         titleContentColor = colores.tinta
                     ),
                     actions = {
-                        if (superior != null) {
-                            TextButton(onClick = { superior = null }) { Text("Cerrar") }
-                        } else {
-                            TextButton(onClick = { enAjustes = !enAjustes }) {
-                                Text(if (enAjustes) "Cerrar" else "Ajustes")
-                            }
+                        TextButton(onClick = { enAjustes = !enAjustes }) {
+                            Text(if (enAjustes) "Cerrar" else "Ajustes")
                         }
                     }
                 )
 
-                // Barra superior premium: Banco, Alimentación, Sonidos.
-                if (!enAjustes && superior == null) {
+                if (!enAjustes) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = NubiGeometria.margen, vertical = 4.dp)
                     ) {
                         VistaSuperior.entries.forEach { v ->
-                            AssistChip(
-                                onClick = { superior = v },
+                            val seleccionada = (destino as? Destino.Arriba)?.vista == v
+                            FilterChip(
+                                selected = seleccionada,
+                                onClick = { destino = Destino.Arriba(v) },
                                 label = { Text(v.titulo) },
-                                colors = AssistChipDefaults.assistChipColors(
+                                colors = FilterChipDefaults.filterChipColors(
                                     containerColor = colores.lienzoAlto,
-                                    labelColor = colores.tintaSuave
+                                    labelColor = colores.tintaSuave,
+                                    selectedContainerColor = colores.lila,
+                                    selectedLabelColor = colores.tinta
                                 )
                             )
                             Spacer(Modifier.width(8.dp))
@@ -132,16 +138,17 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
             }
         },
         bottomBar = {
-            if (!enAjustes && superior == null) {
+            if (!enAjustes) {
                 NavigationBar(containerColor = colores.superficie) {
                     Pestana.entries.forEach { p ->
                         NavigationBarItem(
-                            selected = pestana == p,
-                            onClick = { pestana = p },
+                            selected = (destino as? Destino.Abajo)?.pestana == p,
+                            onClick = { destino = Destino.Abajo(p) },
                             icon = {
+                                val activa = (destino as? Destino.Abajo)?.pestana == p
                                 Box(
                                     Modifier
-                                        .size(if (pestana == p) 14.dp else 10.dp)
+                                        .size(if (activa) 14.dp else 10.dp)
                                         .clip(CircleShape)
                                         .background(colorDe(p, colores))
                                 )
@@ -157,17 +164,20 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
             when {
                 enAjustes -> PantallaAjustes(
                     bebe = datos.bebe,
+                    tema = datos.tema,
                     alCerrarSesion = alCerrarSesion
                 )
 
-                superior != null -> PantallaEnObras(superior!!.titulo)
+                else -> when (val d = destino) {
+                    is Destino.Arriba -> PantallaEnObras(d.vista.titulo)
 
-                else -> when (pestana) {
-                    Pestana.HOY -> datos.bebe?.let { PantallaHoy(it, datos.registros) }
-                    Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
-                    Pestana.CRECE -> PantallaEnObras("Crece")
-                    Pestana.SALUD -> PantallaEnObras("Salud")
-                    Pestana.DIARIO -> PantallaEnObras("Diario")
+                    is Destino.Abajo -> when (d.pestana) {
+                        Pestana.HOY -> datos.bebe?.let { PantallaHoy(it, datos.registros) }
+                        Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
+                        Pestana.CRECE -> PantallaEnObras("Crece")
+                        Pestana.SALUD -> PantallaEnObras("Salud")
+                        Pestana.DIARIO -> PantallaEnObras("Diario")
+                    }
                 }
             }
         }

@@ -44,6 +44,12 @@ data class DatosNubi(
     /** Hora del despertar marcado a mano (iOS: despertarManual). */
     val despertarManual: Fecha? = null,
 
+    /**
+     * Tema elegido en Ajustes: "sistema", "claro" u "oscuro".
+     * Es una preferencia de este móvil, no se sincroniza.
+     */
+    val tema: String = "sistema",
+
     /** Última vez que se tocó algo en este móvil. */
     val modificado: Fecha? = null,
 

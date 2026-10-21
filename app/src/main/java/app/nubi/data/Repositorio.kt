@@ -50,6 +50,11 @@ object Repositorio {
     // sin bloquear a quien llama.
     // -----------------------------------------------------------------
 
+    /** Tema claro/oscuro. No se marca como pendiente: es de este móvil. */
+    fun guardarTema(valor: String) {
+        ambito.launch { local.modificar { it.copy(tema = valor) } }
+    }
+
     fun guardarBebe(bebe: Bebe) {
         ambito.launch {
             local.modificar { it.copy(bebe = bebe.copy(actualizadoEn = Instant.now())) }

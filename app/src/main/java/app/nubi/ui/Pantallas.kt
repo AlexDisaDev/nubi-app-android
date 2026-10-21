@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -272,7 +273,10 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
             color = NubiTheme.colores.tintaSuave
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
+        RelojDelDia(registros = registros)
+
+        Spacer(Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             TarjetaResumen("Sueño", textoDuracion(minutosSueno),
                 NubiTheme.colores.lila, Modifier.weight(1f))
@@ -473,7 +477,7 @@ fun PantallaEnObras(nombre: String) {
 // Ajustes
 // =====================================================================
 @Composable
-fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
+fun PantallaAjustes(bebe: Bebe?, tema: String, alCerrarSesion: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -490,6 +494,30 @@ fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
                 color = NubiTheme.colores.tintaSuave
             )
         }
+
+        Spacer(Modifier.height(28.dp))
+        Text("Aspecto", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        Row {
+            listOf(
+                "sistema" to "Automático",
+                "claro" to "Modo día",
+                "oscuro" to "Modo noche"
+            ).forEach { (valor, etiqueta) ->
+                FilterChip(
+                    selected = tema == valor,
+                    onClick = { Repositorio.guardarTema(valor) },
+                    label = { Text(etiqueta) }
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Automático sigue lo que tenga el móvil.",
+            style = MaterialTheme.typography.bodySmall,
+            color = NubiTheme.colores.tintaTenue
+        )
 
         Spacer(Modifier.height(28.dp))
         Text("Canjear código de regalo", style = MaterialTheme.typography.titleMedium)
