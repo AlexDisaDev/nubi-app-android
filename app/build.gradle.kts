@@ -51,6 +51,12 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 
+    // Material Components "clásico": aporta los estilos XML (p.ej.
+    // Theme.Material3.DayNight.NoActionBar) que usa res/values/themes.xml
+    // para el tema base de la app fuera de Compose. Distinto de
+    // androidx.compose.material3 (ese es solo para las pantallas en Compose).
+    implementation("com.google.android.material:material:1.13.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
