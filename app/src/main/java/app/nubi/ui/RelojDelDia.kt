@@ -255,9 +255,12 @@ fun RelojDelDia(
         // (biberón, pecho, pañal, medicina, baño...) — claramente dentro,
         // ni encima del aro de color ni fuera de él.
         //
-        // Dos eventos casi a la misma hora (p. ej. biberón y pañal juntos)
-        // caerían exactamente en el mismo punto y uno taparía al otro, así
-        // que los agrupamos por cercanía y los separamos un poco en radio.
+        // Nunca se tienen que solapar entre sí, así que esto pasa en dos
+        // pasos: primero se agrupan los que están casi a la misma hora
+        // (p. ej. biberón y pañal juntos) para apilarlos en radio; luego,
+        // el hueco angular entre un grupo y el siguiente se fuerza a ser
+        // al menos el ancho de una insignia — aunque eso signifique mover
+        // el ángulo un poco respecto a la hora exacta.
         val gruposEventos = mutableListOf<MutableList<Registro>>()
         eventos.sortedBy { it.inicio }.forEach { evento ->
             val horaEvento = horaDecimal(evento.inicio)
@@ -266,9 +269,19 @@ fun RelojDelDia(
             }
             if (grupoActual != null) grupoActual.add(evento) else gruposEventos.add(mutableListOf(evento))
         }
-        gruposEventos.forEach { grupo ->
-            val anguloBase = horaDecimal(grupo.first().inicio)
-            val angulo = (anguloBase / 24.0 * 2 * PI) - PI / 2
+
+        val huecoAngularMinimo = ((tamanoEventoPx + dp(6)) / radioInterior).toDouble()
+        var anguloPrevio: Double? = null
+        val gruposConAngulo = gruposEventos.map { grupo ->
+            val anguloCrudo = horaDecimal(grupo.first().inicio) / 24.0 * 2 * PI
+            val angulo = anguloPrevio?.let { previo ->
+                if (anguloCrudo - previo < huecoAngularMinimo) previo + huecoAngularMinimo else anguloCrudo
+            } ?: anguloCrudo
+            anguloPrevio = angulo
+            grupo to (angulo - PI / 2)
+        }
+
+        gruposConAngulo.forEach { (grupo, angulo) ->
             grupo.forEachIndexed { indice, evento ->
                 val desplazamiento = (indice - (grupo.size - 1) / 2f) * dp(18)
                 val radio = radioInterior + desplazamiento
