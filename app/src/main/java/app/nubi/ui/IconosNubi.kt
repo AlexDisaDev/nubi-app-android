@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.unit.Dp
@@ -38,7 +39,8 @@ enum class IconoNubi {
     NUBE, RELOJ, CRECE, MALETIN, LIBRETA,
     BIBERON, CRONOMETRO, ONDAS,
     SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
-    MEDICINA, BANO, EQUIS
+    MEDICINA, BANO, EQUIS,
+    MAS, BASCULA, REGLA, PAPELERA
 }
 
 @Composable
@@ -68,6 +70,10 @@ fun Icono(
             IconoNubi.MEDICINA -> dibujarMedicina(tint)
             IconoNubi.BANO -> dibujarBano(tint)
             IconoNubi.EQUIS -> dibujarEquis(tint)
+            IconoNubi.MAS -> dibujarMas(tint)
+            IconoNubi.BASCULA -> dibujarBascula(tint)
+            IconoNubi.REGLA -> dibujarRegla(tint)
+            IconoNubi.PAPELERA -> dibujarPapelera(tint)
         }
     }
 }
@@ -427,6 +433,96 @@ private fun DrawScope.dibujarEquis(color: Color) {
         color, Offset(w * 0.74f, h * 0.26f), Offset(w * 0.26f, h * 0.74f),
         strokeWidth = grosor, cap = StrokeCap.Round
     )
+}
+
+private fun DrawScope.dibujarMas(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.12f
+    drawLine(
+        color, Offset(w * 0.5f, h * 0.2f), Offset(w * 0.5f, h * 0.8f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
+    drawLine(
+        color, Offset(w * 0.2f, h * 0.5f), Offset(w * 0.8f, h * 0.5f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
+}
+
+/** Báscula: una base redondeada y una esfera con una aguja, para "peso". */
+private fun DrawScope.dibujarBascula(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.1f, h * 0.56f),
+        size = Size(w * 0.8f, h * 0.34f),
+        cornerRadius = CornerRadius(w * 0.1f),
+        style = Stroke(width = grosor)
+    )
+    val c = Offset(w * 0.5f, h * 0.36f)
+    val r = w * 0.26f
+    drawCircle(color, radius = r, center = c, style = Stroke(width = grosor * 0.85f))
+    drawLine(
+        color, c, Offset(c.x + r * 0.5f, c.y - r * 0.4f),
+        strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
+    )
+}
+
+/** Regla inclinada con marcas, para "estatura". */
+private fun DrawScope.dibujarRegla(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.09f
+    rotate(degrees = -45f) {
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * 0.12f, h * 0.4f),
+            size = Size(w * 0.76f, h * 0.2f),
+            cornerRadius = CornerRadius(w * 0.04f),
+            style = Stroke(width = grosor)
+        )
+        listOf(0.28f, 0.44f, 0.6f, 0.76f).forEach { fx ->
+            drawLine(
+                color,
+                Offset(w * fx, h * 0.4f),
+                Offset(w * fx, h * 0.4f + h * 0.1f),
+                strokeWidth = grosor * 0.7f
+            )
+        }
+    }
+}
+
+/** Papelera: cubo con tapa y tres rayas dentro, para "borrar". */
+private fun DrawScope.dibujarPapelera(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawLine(
+        color, Offset(w * 0.22f, h * 0.26f), Offset(w * 0.78f, h * 0.26f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
+    drawLine(
+        color, Offset(w * 0.4f, h * 0.18f), Offset(w * 0.6f, h * 0.18f),
+        strokeWidth = grosor, cap = StrokeCap.Round
+    )
+    drawPath(
+        Path().apply {
+            moveTo(w * 0.28f, h * 0.3f)
+            lineTo(w * 0.34f, h * 0.88f)
+            lineTo(w * 0.66f, h * 0.88f)
+            lineTo(w * 0.72f, h * 0.3f)
+        },
+        color,
+        style = Stroke(width = grosor * 0.85f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    listOf(0.42f, 0.5f, 0.58f).forEach { fx ->
+        drawLine(
+            color, Offset(w * fx, h * 0.4f), Offset(w * fx, h * 0.76f),
+            strokeWidth = grosor * 0.55f, cap = StrokeCap.Round
+        )
+    }
 }
 
 private fun DrawScope.dibujarChevron(color: Color) {

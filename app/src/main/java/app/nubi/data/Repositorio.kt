@@ -81,4 +81,23 @@ object Repositorio {
             sincronizador.sincronizar()
         }
     }
+
+    fun guardarMedida(medida: Medida) {
+        ambito.launch {
+            val actualizada = medida.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(medidas = d.medidas.filterNot { it.id == actualizada.id } + actualizada)
+            }
+            local.marcarPendiente(Tablas.MEDIDAS, actualizada.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarMedida(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(medidas = d.medidas.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.MEDIDAS, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
 }

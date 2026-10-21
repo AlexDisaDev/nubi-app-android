@@ -191,7 +191,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                             PantallaHoy(it, datos.registros, alAbrirAjustes = { enAjustes = true })
                         }
                         Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
-                        Pestana.CRECE -> PantallaEnObras("Crece")
+                        Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
                         Pestana.SALUD -> PantallaEnObras("Salud")
                         Pestana.DIARIO -> PantallaEnObras("Diario")
                     }
