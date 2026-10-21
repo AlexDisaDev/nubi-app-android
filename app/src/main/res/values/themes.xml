@@ -2,6 +2,11 @@
     <!-- Tema base de la plataforma. El contenido real lo pinta Compose
          (ver app/src/main/java/app/nubi/ui/theme/Theme.kt); esto solo hace
          falta para que el sistema sepa qué arranque/estilo usar fuera de
-         Compose (splash, barras del sistema, etc.). -->
-    <style name="Theme.Nubi" parent="Theme.Material3.DayNight.NoActionBar" />
+         Compose (splash, barras del sistema, etc.).
+
+         El windowBackground en el lienzo de Nubi evita el fogonazo blanco
+         (o negro) entre que se abre la ventana y Compose dibuja. -->
+    <style name="Theme.Nubi" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/lienzo</item>
+    </style>
 </resources>

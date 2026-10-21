@@ -1,5 +1,11 @@
 <resources>
-    <!-- Marcador de posición del icono — sustituir por el icono real de
-         Nubi en la fase 2 (sistema de diseño). -->
-    <color name="ic_launcher_background">#FDE8F0</color>
+    <!-- Colores en XML. Solo hacen falta para lo que se pinta fuera de
+         Compose: el fondo de la ventana antes de que la app dibuje, y el
+         icono. El resto de la paleta vive en ui/theme/Color.kt. -->
+
+    <!-- Theme.lienzo (claro) — evita el fogonazo blanco al abrir -->
+    <color name="lienzo">#F7F4FB</color>
+
+    <!-- Fondo del icono adaptativo -->
+    <color name="ic_launcher_background">#F7F4FB</color>
 </resources>
