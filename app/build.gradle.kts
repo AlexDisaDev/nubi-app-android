@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -52,4 +53,13 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Supabase: cuenta compartida + estado de suscripción/plazo de gracia
+    // (mismo backend que iOS y la web — ver README, fase 1).
+    // NOTA: "3.8.0" es la última versión estable verificada al escribir esto;
+    // si Android Studio avisa de una más nueva al sincronizar, acéptala.
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.8.0"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.ktor:ktor-client-okhttp:3.1.2")
 }
