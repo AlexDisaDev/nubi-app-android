@@ -30,11 +30,13 @@ import androidx.compose.ui.unit.dp
 import app.nubi.data.Supabase
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,9 +129,6 @@ fun PantallaLogin() {
     }
 }
 
-@Serializable
-private data class ParametrosCanjeo(val p_codigo: String)
-
 /**
  * Pantalla provisional del esqueleto, ahora con la comprobación real de
  * acceso contra Supabase y un cuadro para probar el canjeo de códigos de
@@ -179,9 +178,11 @@ fun PantallaPrincipal() {
                 onClick = {
                     scope.launch {
                         mensajeCanjeo = try {
+                            // Los parámetros de un rpc van como JsonObject,
+                            // no como data class (API de postgrest-kt).
                             Supabase.client.postgrest.rpc(
                                 "canjear_codigo_regalo",
-                                ParametrosCanjeo(p_codigo = codigo)
+                                buildJsonObject { put("p_codigo", codigo) }
                             )
                             comprobarAcceso()
                             "Código canjeado correctamente."
