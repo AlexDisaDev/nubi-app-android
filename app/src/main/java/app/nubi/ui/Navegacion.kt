@@ -192,7 +192,17 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                         }
                         Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
                         Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
-                        Pestana.SALUD -> PantallaEnObras("Salud")
+                        Pestana.SALUD -> datos.bebe?.let {
+                            PantallaSalud(
+                                bebe = it,
+                                citas = datos.citas,
+                                vacunas = datos.vacunas,
+                                gruposVacunas = datos.gruposVacunas,
+                                vacunasPropias = datos.vacunasPropias,
+                                enfermedades = datos.enfermedades,
+                                comunidadGuardada = datos.comunidad
+                            )
+                        }
                         Pestana.DIARIO -> PantallaEnObras("Diario")
                     }
                 }

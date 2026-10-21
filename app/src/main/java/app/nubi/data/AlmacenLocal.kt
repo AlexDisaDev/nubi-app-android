@@ -50,6 +50,13 @@ data class DatosNubi(
      */
     val tema: String = "sistema",
 
+    /**
+     * Comunidad autónoma elegida para el calendario vacunal (nombre del
+     * enum Comunidad, p. ej. "MADRID"). Igual que el tema, es una
+     * preferencia de este móvil: no hay columna para esto en Supabase.
+     */
+    val comunidad: String = "COMUN",
+
     /** Última vez que se tocó algo en este móvil. */
     val modificado: Fecha? = null,
 

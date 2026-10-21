@@ -40,7 +40,8 @@ enum class IconoNubi {
     BIBERON, CRONOMETRO, ONDAS,
     SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
     MEDICINA, BANO, EQUIS,
-    MAS, BASCULA, REGLA, PAPELERA
+    MAS, BASCULA, REGLA, PAPELERA,
+    JERINGA, CALENDARIO, BOTIQUIN, CHECK
 }
 
 @Composable
@@ -74,6 +75,10 @@ fun Icono(
             IconoNubi.BASCULA -> dibujarBascula(tint)
             IconoNubi.REGLA -> dibujarRegla(tint)
             IconoNubi.PAPELERA -> dibujarPapelera(tint)
+            IconoNubi.JERINGA -> dibujarJeringa(tint)
+            IconoNubi.CALENDARIO -> dibujarCalendario(tint)
+            IconoNubi.BOTIQUIN -> dibujarBotiquin(tint)
+            IconoNubi.CHECK -> dibujarCheck(tint)
         }
     }
 }
@@ -532,6 +537,111 @@ private fun DrawScope.dibujarChevron(color: Color) {
         moveTo(w * 0.34f, h * 0.18f)
         lineTo(w * 0.7f, h * 0.5f)
         lineTo(w * 0.34f, h * 0.82f)
+    }
+    drawPath(
+        camino, color,
+        style = Stroke(width = w * 0.12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+}
+
+/** Jeringa: cuerpo, émbolo y una gota en la aguja — para las vacunas. */
+private fun DrawScope.dibujarJeringa(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    rotate(degrees = 45f) {
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * 0.3f, h * 0.22f),
+            size = Size(w * 0.4f, h * 0.4f),
+            cornerRadius = CornerRadius(w * 0.05f),
+            style = Stroke(width = grosor)
+        )
+        drawLine(
+            color, Offset(w * 0.5f, h * 0.14f), Offset(w * 0.5f, h * 0.22f),
+            strokeWidth = grosor, cap = StrokeCap.Round
+        )
+        drawLine(
+            color, Offset(w * 0.5f, h * 0.62f), Offset(w * 0.5f, h * 0.9f),
+            strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
+        )
+        drawLine(
+            color, Offset(w * 0.38f, h * 0.14f), Offset(w * 0.62f, h * 0.14f),
+            strokeWidth = grosor, cap = StrokeCap.Round
+        )
+        listOf(0.34f, 0.44f).forEach { fy ->
+            drawLine(
+                color, Offset(w * 0.3f, h * fy), Offset(w * 0.38f, h * fy),
+                strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
+            )
+        }
+    }
+}
+
+/** Calendario: marco con dos anillas arriba y una línea de cabecera. */
+private fun DrawScope.dibujarCalendario(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.14f, h * 0.2f),
+        size = Size(w * 0.72f, h * 0.66f),
+        cornerRadius = CornerRadius(w * 0.1f),
+        style = Stroke(width = grosor)
+    )
+    drawLine(
+        color, Offset(w * 0.14f, h * 0.4f), Offset(w * 0.86f, h * 0.4f),
+        strokeWidth = grosor * 0.8f
+    )
+    listOf(0.32f, 0.68f).forEach { fx ->
+        drawLine(
+            color, Offset(w * fx, h * 0.12f), Offset(w * fx, h * 0.28f),
+            strokeWidth = grosor, cap = StrokeCap.Round
+        )
+    }
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.32f, h * 0.58f))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.5f, h * 0.58f))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.68f, h * 0.58f))
+}
+
+/** Botiquín: caja con una cruz — para enfermedades / medicación. */
+private fun DrawScope.dibujarBotiquin(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.09f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.14f, h * 0.3f),
+        size = Size(w * 0.72f, h * 0.56f),
+        cornerRadius = CornerRadius(w * 0.1f),
+        style = Stroke(width = grosor)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.36f, h * 0.18f),
+        size = Size(w * 0.28f, h * 0.16f),
+        cornerRadius = CornerRadius(w * 0.04f),
+        style = Stroke(width = grosor * 0.85f)
+    )
+    drawLine(
+        color, Offset(w * 0.5f, h * 0.46f), Offset(w * 0.5f, h * 0.7f),
+        strokeWidth = grosor * 0.85f, cap = StrokeCap.Round
+    )
+    drawLine(
+        color, Offset(w * 0.38f, h * 0.58f), Offset(w * 0.62f, h * 0.58f),
+        strokeWidth = grosor * 0.85f, cap = StrokeCap.Round
+    )
+}
+
+/** Marca de verificación — para casillas marcadas. */
+private fun DrawScope.dibujarCheck(color: Color) {
+    val w = size.width
+    val h = size.height
+    val camino = Path().apply {
+        moveTo(w * 0.2f, h * 0.52f)
+        lineTo(w * 0.42f, h * 0.74f)
+        lineTo(w * 0.8f, h * 0.3f)
     }
     drawPath(
         camino, color,
