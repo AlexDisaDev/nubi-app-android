@@ -32,6 +32,7 @@ import app.nubi.data.Supabase
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
@@ -83,7 +84,14 @@ fun PantallaRaiz() {
 }
 
 /**
- * Login por email con enlace mágico (sin contraseña) — ver README, fase 1.
+ * Login. Google es el método principal: no depende de servidor de correo
+ * propio ni de límites de envío, y vuelve a la app por el mismo enlace
+ * app.nubi://login-callback que usa el enlace mágico.
+ *
+ * El email con enlace mágico se mantiene abajo como alternativa, pero el
+ * servicio de correo de serie de Supabase solo envía 2 correos/hora y solo
+ * a direcciones del equipo del proyecto, así que no sirve para usuarios
+ * reales mientras no haya SMTP propio.
  */
 @Composable
 fun PantallaLogin() {
@@ -101,7 +109,30 @@ fun PantallaLogin() {
             verticalArrangement = Arrangement.Center
         ) {
             Text("Nubi", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        try {
+                            Supabase.client.auth.signInWith(Google)
+                            error = null
+                        } catch (e: Exception) {
+                            error = "No se pudo entrar con Google: ${e.message}"
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Entrar con Google")
+            }
+
+            Spacer(Modifier.height(32.dp))
+            Text(
+                "o con tu email",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(8.dp))
 
             if (enlaceEnviado) {
                 Text("Te hemos enviado un enlace a $correo. Ábrelo desde el correo en este móvil para entrar.")
