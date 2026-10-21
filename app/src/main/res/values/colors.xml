@@ -1,0 +1,5 @@
+<resources>
+    <!-- Marcador de posición del icono — sustituir por el icono real de
+         Nubi en la fase 2 (sistema de diseño). -->
+    <color name="ic_launcher_background">#FDE8F0</color>
+</resources>

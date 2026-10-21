@@ -1,0 +1,7 @@
+<resources>
+    <!-- Tema base de la plataforma. El contenido real lo pinta Compose
+         (ver app/src/main/java/app/nubi/ui/theme/Theme.kt); esto solo hace
+         falta para que el sistema sepa qué arranque/estilo usar fuera de
+         Compose (splash, barras del sistema, etc.). -->
+    <style name="Theme.Nubi" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>
