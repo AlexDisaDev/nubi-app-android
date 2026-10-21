@@ -61,9 +61,12 @@ dependencies {
 
     // Supabase: cuenta compartida + estado de suscripción/plazo de gracia
     // (mismo backend que iOS y la web — ver README, fase 1).
-    // NOTA: "3.8.0" es la última versión estable verificada al escribir esto;
-    // si Android Studio avisa de una más nueva al sincronizar, acéptala.
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.8.0"))
+    //
+    // NO SUBIR a 3.7.0+ sin comprobar antes el Kotlin del proyecto: a partir
+    // de ahí Supabase se compila con Kotlin 2.4, y el Kotlin incorporado de
+    // AGP 9.4 es el 2.2.10, que solo lee metadatos hasta 2.3. La 3.6.0
+    // (abril 2026) es la última anterior a ese salto.
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.6.0"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
