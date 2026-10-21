@@ -492,14 +492,14 @@ private fun FilaUltimaToma(ultimoBiberon: Registro?, ultimoPecho: Registro?) {
             FilaTomaTipo(
                 icono = IconoNubi.BIBERON,
                 colorBadge = colores.mantequilla,
-                texto = ultimoBiberon?.let { "Hace ${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
+                texto = ultimoBiberon?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
                     ?: "Sin registros aún"
             )
             Spacer(Modifier.height(10.dp))
             FilaTomaTipo(
                 icono = IconoNubi.CORAZON,
                 colorBadge = colores.melocoton,
-                texto = ultimoPecho?.let { "Hace ${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
+                texto = ultimoPecho?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
                     ?: "Sin registros aún"
             )
         }
@@ -665,7 +665,11 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
     ) {
         Text("Su día", style = MaterialTheme.typography.displaySmall)
         Text(
-            "${textoDuracion(minutosSueno)} de sueño · $tomas tomas",
+            buildString {
+                append(if (minutosSueno <= 0L) "Sin sueño aún" else "${textoDuracion(minutosSueno)} de sueño")
+                append(" · ")
+                append(if (tomas == 1) "1 toma" else "$tomas tomas")
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave
         )

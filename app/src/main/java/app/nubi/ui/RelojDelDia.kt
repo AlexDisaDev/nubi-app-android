@@ -229,18 +229,35 @@ fun RelojDelDia(
         // Dentro del anillo, un círculo pequeño por cada evento suelto
         // (biberón, pecho, pañal, medicina, baño...) — más pequeño que las
         // insignias de sueño, y sobre el propio anillo, no fuera de él.
-        eventos.forEach { evento ->
-            val angulo = (horaDecimal(evento.inicio) / 24.0 * 2 * PI) - PI / 2
-            val x = centro.x + (radioAnillo * cos(angulo)).toFloat()
-            val y = centro.y + (radioAnillo * sin(angulo)).toFloat()
-            BadgeIcono(
-                tipo = iconoDeTipo(evento.tipo),
-                colorFondo = colorDeTipo(evento.tipo, colores),
-                colorIcono = colores.tinta,
-                tamano = 20.dp,
-                tamanoIcono = 10.dp,
-                modifier = Modifier.offsetPx(x - tamanoEventoPx / 2f, y - tamanoEventoPx / 2f)
-            )
+        //
+        // Dos eventos casi a la misma hora (p. ej. biberón y pañal juntos)
+        // caerían exactamente en el mismo punto y uno taparía al otro, así
+        // que los agrupamos por cercanía y los separamos un poco en radio.
+        val gruposEventos = mutableListOf<MutableList<Registro>>()
+        eventos.sortedBy { it.inicio }.forEach { evento ->
+            val horaEvento = horaDecimal(evento.inicio)
+            val grupoActual = gruposEventos.lastOrNull()?.takeIf { grupo ->
+                kotlin.math.abs(horaEvento - horaDecimal(grupo.last().inicio)) < 0.4
+            }
+            if (grupoActual != null) grupoActual.add(evento) else gruposEventos.add(mutableListOf(evento))
+        }
+        gruposEventos.forEach { grupo ->
+            val anguloBase = horaDecimal(grupo.first().inicio)
+            val angulo = (anguloBase / 24.0 * 2 * PI) - PI / 2
+            grupo.forEachIndexed { indice, evento ->
+                val desplazamiento = (indice - (grupo.size - 1) / 2f) * dp(18)
+                val radio = radioAnillo + desplazamiento
+                val x = centro.x + (radio * cos(angulo)).toFloat()
+                val y = centro.y + (radio * sin(angulo)).toFloat()
+                BadgeIcono(
+                    tipo = iconoDeTipo(evento.tipo),
+                    colorFondo = colorDeTipo(evento.tipo, colores),
+                    colorIcono = colores.tinta,
+                    tamano = 20.dp,
+                    tamanoIcono = 10.dp,
+                    modifier = Modifier.offsetPx(x - tamanoEventoPx / 2f, y - tamanoEventoPx / 2f)
+                )
+            }
         }
 
         if (suenosConTramo.isEmpty() && eventos.isEmpty()) {
@@ -301,7 +318,7 @@ fun colorDeTipo(tipo: TipoRegistro, c: NubiColores): Color = when (tipo) {
     TipoRegistro.PECHO -> c.melocoton
     TipoRegistro.PANAL -> c.cielo
     TipoRegistro.DESPERTAR -> c.coral
-    TipoRegistro.MEDICINA -> c.superficie
+    TipoRegistro.MEDICINA -> c.indigo
     TipoRegistro.BANO -> c.rosa
 }
 
