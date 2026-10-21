@@ -273,10 +273,7 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
             color = NubiTheme.colores.tintaSuave
         )
 
-        Spacer(Modifier.height(16.dp))
-        RelojDelDia(registros = registros)
-
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             TarjetaResumen("Sueño", textoDuracion(minutosSueno),
                 NubiTheme.colores.lila, Modifier.weight(1f))
@@ -350,6 +347,12 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
             .fillMaxSize()
             .padding(NubiGeometria.margen)
     ) {
+        // La distribución de esta pantalla todavía no es la de iOS: falta
+        // ver una captura de VistaLinea para colocar reloj, barra de sueño
+        // de 24 h y botonera como van allí.
+        RelojDelDia(registros = registros)
+
+        Spacer(Modifier.height(16.dp))
         Text("Apuntar", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
