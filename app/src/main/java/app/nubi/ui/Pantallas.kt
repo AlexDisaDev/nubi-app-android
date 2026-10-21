@@ -394,23 +394,8 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
 
         Spacer(Modifier.height(14.dp))
 
-        ultimoBiberon?.let { registro ->
-            FilaResumenHoy(
-                titulo = "Último biberón · ${hace(registro.inicio)}",
-                subtitulo = formatoHora.format(registro.inicio),
-                icono = IconoNubi.BIBERON,
-                colorBadge = colores.mantequilla
-            )
-            Spacer(Modifier.height(10.dp))
-        }
-
-        ultimoPecho?.let { registro ->
-            FilaResumenHoy(
-                titulo = "Último pecho · ${hace(registro.inicio)}",
-                subtitulo = formatoHora.format(registro.inicio),
-                icono = IconoNubi.CORAZON,
-                colorBadge = colores.melocoton
-            )
+        if (ultimoBiberon != null || ultimoPecho != null) {
+            FilaUltimaToma(ultimoBiberon, ultimoPecho)
             Spacer(Modifier.height(10.dp))
         }
 
@@ -486,6 +471,48 @@ private fun FilaResumenHoy(
             }
             BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
         }
+    }
+}
+
+/** Biberón y pecho juntos en una sola tarjeta — uno al lado del otro, no
+ *  en filas separadas — porque un bebé puede tomar de los dos. Si solo se
+ *  ha usado uno de los dos, el otro se ve igualmente con "Sin registros
+ *  aún", en vez de desaparecer. */
+@Composable
+private fun FilaUltimaToma(ultimoBiberon: Registro?, ultimoPecho: Registro?) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Última toma", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(12.dp))
+            FilaTomaTipo(
+                icono = IconoNubi.BIBERON,
+                colorBadge = colores.mantequilla,
+                texto = ultimoBiberon?.let { "Hace ${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
+                    ?: "Sin registros aún"
+            )
+            Spacer(Modifier.height(10.dp))
+            FilaTomaTipo(
+                icono = IconoNubi.CORAZON,
+                colorBadge = colores.melocoton,
+                texto = ultimoPecho?.let { "Hace ${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
+                    ?: "Sin registros aún"
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilaTomaTipo(icono: IconoNubi, colorBadge: Color, texto: String) {
+    val colores = NubiTheme.colores
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta, tamano = 36.dp, tamanoIcono = 16.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(texto, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
     }
 }
 
@@ -856,7 +883,7 @@ private fun BotonCircular(tipo: TipoRegistro, bebeId: String) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(44.dp)
             .clip(CircleShape)
             .background(colorDeTipo(tipo, colores))
             .clickable {
@@ -864,7 +891,7 @@ private fun BotonCircular(tipo: TipoRegistro, bebeId: String) {
             },
         contentAlignment = Alignment.Center
     ) {
-        Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 24.dp)
+        Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 18.dp)
     }
 }
 

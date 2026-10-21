@@ -41,8 +41,11 @@ import kotlin.math.sin
  * - Los sueños de verdad (siesta/noche) se resaltan encima, más gruesos,
  *   con un brillo fino en el centro del trazo.
  * - Una aguja desde el centro marca la hora actual.
- * - Cada evento es una insignia con su propio dibujo (antes era un punto),
- *   colocada fuera del anillo, a la hora en la que ocurrió.
+ * - Fuera del anillo solo va el sueño: luna a la hora de acostarse, sol a
+ *   la hora de despertar, nube a la hora de la siesta — cada uno en su
+ *   sitio, no una insignia a mitad del arco.
+ * - Dentro del anillo, un círculo pequeño por cada evento suelto (biberón,
+ *   pecho, pañal, medicina, baño...), más discreto que el sueño.
  *
  * Sigue siendo una versión inicial: faltan las ventanas ideales de sueño,
  * la sugerencia de la próxima siesta y poder tocar un evento para abrirlo.
@@ -84,7 +87,8 @@ fun RelojDelDia(
         val radioAnillo = radioExterior - grosor / 2f
         val radioEtiqueta = radioAnillo + grosor / 2f + dp(22)
         val radioInsignia = radioAnillo + grosor / 2f + dp(22)
-        val tamanoInsigniaPx = dp(34)
+        val tamanoInsigniaPx = dp(30)
+        val tamanoEventoPx = dp(20)
 
         Canvas(Modifier.matchParentSize()) {
             val esquina = Offset(centro.x - radioAnillo, centro.y - radioAnillo)
@@ -188,36 +192,54 @@ fun RelojDelDia(
             )
         }
 
-        // Una insignia por sueño, con su propio dibujo, en el punto medio
-        // del arco — como las nubes/lunas que flotan junto al anillo.
+        // Fuera del anillo solo va el sueño, y cada extremo por separado:
+        // la luna a la hora de acostarse, el sol a la hora de despertar
+        // (no una insignia a mitad del arco). Si el tramo viene truncado
+        // porque el sueño sigue desde ayer o continúa mañana, ese extremo
+        // no es una hora real de hoy y no lleva insignia.
         suenosConTramo.forEach { (sueno, tramo) ->
+            val fin = sueno.fin ?: return@forEach
             val (desde, hasta) = tramo
-            val medio = (desde + (hasta - desde) / 2.0) % 24.0
-            val angulo = (medio / 24.0 * 2 * PI) - PI / 2
-            val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
-            val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
-            BadgeIcono(
-                tipo = if (sueno.tipo == TipoRegistro.NOCHE) IconoNubi.LUNA else IconoNubi.NUBE,
-                colorFondo = if (sueno.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta,
-                colorIcono = colores.tinta,
-                tamano = 30.dp,
-                tamanoIcono = 14.dp,
-                modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
-            )
+            val diaInicioReal = sueno.inicio.atZone(zona).toLocalDate()
+            val diaFinReal = fin.atZone(zona).toLocalDate()
+
+            @Composable
+            fun insigniaSueno(hora: Double, tipo: IconoNubi, colorFondo: Color) {
+                val angulo = (hora / 24.0 * 2 * PI) - PI / 2
+                val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
+                val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
+                BadgeIcono(
+                    tipo = tipo,
+                    colorFondo = colorFondo,
+                    colorIcono = colores.tinta,
+                    tamano = 30.dp,
+                    tamanoIcono = 14.dp,
+                    modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
+                )
+            }
+
+            if (sueno.tipo == TipoRegistro.NOCHE) {
+                if (diaInicioReal == dia) insigniaSueno(desde, IconoNubi.LUNA, colores.lila)
+                if (diaFinReal == dia) insigniaSueno(hasta, IconoNubi.SOL, colores.mantequilla)
+            } else if (diaInicioReal == dia) {
+                insigniaSueno(desde, IconoNubi.NUBE, colores.menta)
+            }
         }
 
-        // Una insignia por evento suelto (biberón, pecho, pañal...).
+        // Dentro del anillo, un círculo pequeño por cada evento suelto
+        // (biberón, pecho, pañal, medicina, baño...) — más pequeño que las
+        // insignias de sueño, y sobre el propio anillo, no fuera de él.
         eventos.forEach { evento ->
             val angulo = (horaDecimal(evento.inicio) / 24.0 * 2 * PI) - PI / 2
-            val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
-            val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
+            val x = centro.x + (radioAnillo * cos(angulo)).toFloat()
+            val y = centro.y + (radioAnillo * sin(angulo)).toFloat()
             BadgeIcono(
                 tipo = iconoDeTipo(evento.tipo),
                 colorFondo = colorDeTipo(evento.tipo, colores),
                 colorIcono = colores.tinta,
-                tamano = 30.dp,
-                tamanoIcono = 14.dp,
-                modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
+                tamano = 20.dp,
+                tamanoIcono = 10.dp,
+                modifier = Modifier.offsetPx(x - tamanoEventoPx / 2f, y - tamanoEventoPx / 2f)
             )
         }
 
