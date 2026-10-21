@@ -296,7 +296,7 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
             BadgeIcono(
                 IconoNubi.SOL,
                 colorFondo = colores.mantequilla,
-                colorIcono = colores.superficie,
+                colorIcono = colores.tinta,
                 tamano = 44.dp,
                 tamanoIcono = 20.dp
             )
@@ -331,7 +331,7 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
                     BadgeIcono(
                         IconoNubi.LUNA,
                         colorFondo = colores.lila,
-                        colorIcono = colores.superficie,
+                        colorIcono = colores.tinta,
                         tamano = 36.dp,
                         tamanoIcono = 16.dp
                     )
@@ -418,7 +418,7 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
                 BadgeIcono(
                     IconoNubi.BOMBILLA,
                     colorFondo = colores.mantequilla,
-                    colorIcono = colores.superficie,
+                    colorIcono = colores.tinta,
                     tamano = 40.dp,
                     tamanoIcono = 18.dp
                 )
@@ -462,7 +462,7 @@ private fun FilaResumenHoy(
                 Text(titulo, style = MaterialTheme.typography.bodyLarge)
                 Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
             }
-            BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.superficie)
+            BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
         }
     }
 }
@@ -479,12 +479,12 @@ private fun BotonAccion(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             containerColor = color,
-            contentColor = NubiTheme.colores.superficie
+            contentColor = NubiTheme.colores.tinta
         ),
         shape = RoundedCornerShape(50),
         modifier = modifier
     ) {
-        Icono(icono, tint = NubiTheme.colores.superficie, tamano = 16.dp)
+        Icono(icono, tint = NubiTheme.colores.tinta, tamano = 16.dp)
         Spacer(Modifier.width(6.dp))
         Text(
             texto,
