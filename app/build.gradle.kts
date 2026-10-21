@@ -42,14 +42,18 @@ android {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    // Versiones puestas al día (estaban ancladas a finales de 2024, de cuando
+    // se creó el esqueleto, y chocaban en tiempo de compilación con Material
+    // 1.13.0 / compileSdk 36 — un "incompatible class" que hacía crashear al
+    // compilador de Kotlin en vez de dar un error claro).
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
 
     // Material Components "clásico": aporta los estilos XML (p.ej.
     // Theme.Material3.DayNight.NoActionBar) que usa res/values/themes.xml
