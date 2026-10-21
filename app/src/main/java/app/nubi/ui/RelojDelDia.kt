@@ -71,8 +71,15 @@ fun RelojDelDia(
     val suenosConTramo = registros
         .filter { it.tipo.esSueno && it.fin != null }
         .mapNotNull { r -> tramoEnDia(r, dia, zona)?.let { r to it } }
+    // El despertar nocturno se trata como el sueño (fuera del anillo, con
+    // su propia insignia): solo biberón/pecho/pañal/medicina/baño van
+    // dentro, como círculos pequeños.
+    val despertares = registros.filter {
+        it.tipo == TipoRegistro.DESPERTAR && it.inicio.atZone(zona).toLocalDate() == dia
+    }
     val eventos = registros.filter {
-        !it.tipo.esSueno && it.inicio.atZone(zona).toLocalDate() == dia
+        !it.tipo.esSueno && it.tipo != TipoRegistro.DESPERTAR &&
+            it.inicio.atZone(zona).toLocalDate() == dia
     }
 
     BoxWithConstraints(modifier.fillMaxWidth().aspectRatio(1f)) {
@@ -87,6 +94,8 @@ fun RelojDelDia(
         val radioAnillo = radioExterior - grosor / 2f
         val radioEtiqueta = radioAnillo + grosor / 2f + dp(22)
         val radioInsignia = radioAnillo + grosor / 2f + dp(22)
+        // Claramente dentro del aro de color, no encima ni fuera de él.
+        val radioInterior = radioAnillo - grosor / 2f - dp(26)
         val tamanoInsigniaPx = dp(30)
         val tamanoEventoPx = dp(20)
 
@@ -226,9 +235,25 @@ fun RelojDelDia(
             }
         }
 
+        // El despertar nocturno se trata igual que el sueño: fuera del
+        // anillo, a la hora en la que ocurrió.
+        despertares.forEach { despertar ->
+            val angulo = (horaDecimal(despertar.inicio) / 24.0 * 2 * PI) - PI / 2
+            val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
+            val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
+            BadgeIcono(
+                tipo = iconoDeTipo(despertar.tipo),
+                colorFondo = colorDeTipo(despertar.tipo, colores),
+                colorIcono = colores.tinta,
+                tamano = 30.dp,
+                tamanoIcono = 14.dp,
+                modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
+            )
+        }
+
         // Dentro del anillo, un círculo pequeño por cada evento suelto
-        // (biberón, pecho, pañal, medicina, baño...) — más pequeño que las
-        // insignias de sueño, y sobre el propio anillo, no fuera de él.
+        // (biberón, pecho, pañal, medicina, baño...) — claramente dentro,
+        // ni encima del aro de color ni fuera de él.
         //
         // Dos eventos casi a la misma hora (p. ej. biberón y pañal juntos)
         // caerían exactamente en el mismo punto y uno taparía al otro, así
@@ -246,7 +271,7 @@ fun RelojDelDia(
             val angulo = (anguloBase / 24.0 * 2 * PI) - PI / 2
             grupo.forEachIndexed { indice, evento ->
                 val desplazamiento = (indice - (grupo.size - 1) / 2f) * dp(18)
-                val radio = radioAnillo + desplazamiento
+                val radio = radioInterior + desplazamiento
                 val x = centro.x + (radio * cos(angulo)).toFloat()
                 val y = centro.y + (radio * sin(angulo)).toFloat()
                 BadgeIcono(
@@ -260,7 +285,7 @@ fun RelojDelDia(
             }
         }
 
-        if (suenosConTramo.isEmpty() && eventos.isEmpty()) {
+        if (suenosConTramo.isEmpty() && despertares.isEmpty() && eventos.isEmpty()) {
             Text(
                 "Sin datos aún",
                 style = MaterialTheme.typography.bodySmall,
