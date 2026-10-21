@@ -48,13 +48,12 @@ data class DatosNubi(
     val modificado: Fecha? = null,
 
     /**
-     * Ids de filas creadas o cambiadas aquí que todavía no se han subido a
-     * Supabase. Mientras haya algo en esta lista, el sincronizador tiene
-     * trabajo pendiente. Se guarda en disco a propósito: si el usuario
+     * Filas creadas, cambiadas o borradas aquí que todavía no se han
+     * mandado a Supabase. Se guarda en disco a propósito: si el usuario
      * apunta una toma en el parque sin cobertura y cierra la app, al
      * volver a abrirla eso sigue pendiente de subir.
      */
-    val pendientesDeSubir: Set<String> = emptySet(),
+    val pendientes: List<CambioPendiente> = emptyList(),
 
     /** Momento del último pull con éxito, para pedir solo lo que cambió. */
     val ultimaSincronizacion: Fecha? = null
@@ -138,8 +137,17 @@ class AlmacenLocal(
         ambito.launch { modificar(bloque) }
     }
 
-    /** Marca filas como pendientes de subir a Supabase. */
-    suspend fun marcarPendientes(vararg ids: String) {
-        modificar { it.copy(pendientesDeSubir = it.pendientesDeSubir + ids) }
+    /**
+     * Marca una fila como pendiente de subir. Si ya había un pendiente para
+     * esa misma fila se sustituye, para no acumular trabajo repetido: lo
+     * que cuenta es el estado final, no cuántas veces se tocó.
+     */
+    suspend fun marcarPendiente(tabla: String, id: String, borrado: Boolean = false) {
+        modificar { d ->
+            d.copy(
+                pendientes = d.pendientes.filterNot { it.tabla == tabla && it.id == id } +
+                    CambioPendiente(tabla, id, borrado)
+            )
+        }
     }
 }

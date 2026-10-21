@@ -57,7 +57,9 @@ data class Bebe(
     val id: String = nuevoId(),
     val nombre: String,
     @SerialName("fecha_nacimiento") val fechaNacimiento: Fecha,
-    @SerialName("semanas_prematuro") val semanasPrematuro: Int = 0
+    @SerialName("semanas_prematuro") val semanasPrematuro: Int = 0,
+    @SerialName("creado_en") val creadoEn: Fecha = Instant.now(),
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     /** Edad corregida por prematuridad, igual que en iOS. */
     fun edadEnDias(ahora: Instant = Instant.now()): Int {
@@ -174,7 +176,8 @@ data class Registro(
     @SerialName("panal_caca") val panalCaca: Boolean? = null,
     @SerialName("tipo_leche") val tipoLeche: TipoLeche? = null,
     @SerialName("bano_contento") val banoContento: Boolean? = null,
-    @SerialName("lugar_sueno") val lugarSueno: LugarSueno? = null
+    @SerialName("lugar_sueno") val lugarSueno: LugarSueno? = null,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     /** Empezado y sin terminar: una siesta en curso, un pecho en marcha. */
     val enCurso: Boolean
@@ -191,7 +194,8 @@ data class Medicina(
     @SerialName("fecha_toma") val fechaToma: Fecha,
     val nombre: String = "",
     val nota: String = "",
-    @SerialName("hora_siguiente") val horaSiguiente: Fecha? = null
+    @SerialName("hora_siguiente") val horaSiguiente: Fecha? = null,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -202,7 +206,8 @@ data class Medida(
     @SerialName("peso_kg") val pesoKg: Double? = null,
     @SerialName("altura_cm") val alturaCm: Double? = null,
     @SerialName("perimetro_cm") val perimetroCm: Double? = null,
-    val nota: String = ""
+    val nota: String = "",
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     val vacia: Boolean get() = pesoKg == null && alturaCm == null && perimetroCm == null
 }
@@ -216,7 +221,8 @@ data class Cita(
     val fecha: Fecha,
     val lugar: String = "",
     val nota: String = "",
-    val recordar: Boolean = true
+    val recordar: Boolean = true,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     fun pasada(ahora: Instant = Instant.now()): Boolean = fecha.isBefore(ahora)
 }
@@ -227,7 +233,8 @@ data class EstadoVacuna(
     val clave: String,
     val puesta: Boolean = false,
     val fecha: Fecha? = null,
-    val nota: String = ""
+    val nota: String = "",
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -235,7 +242,8 @@ data class GrupoVacunas(
     val id: String = nuevoId(),
     @SerialName("bebe_id") val bebeId: String,
     val etiqueta: String,
-    val meses: Double
+    val meses: Double,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -244,7 +252,8 @@ data class VacunaPropia(
     @SerialName("grupo_id") val grupoId: String,
     val nombre: String,
     val puesta: Boolean = false,
-    val fecha: Fecha? = null
+    val fecha: Fecha? = null,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -254,7 +263,8 @@ data class EntradaDiario(
     val fecha: Fecha,
     val titulo: String = "",
     val texto: String = "",
-    val hito: Boolean = false
+    val hito: Boolean = false,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -264,7 +274,8 @@ data class ExtraccionLeche(
     val fecha: Fecha,
     @SerialName("cantidad_ml") val cantidadMl: Double,
     val almacenamiento: AlmacenamientoLeche = AlmacenamientoLeche.CONGELADOR,
-    val nota: String = ""
+    val nota: String = "",
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     val caducidad: Instant
         get() = fecha.plus(java.time.Duration.ofDays(almacenamiento.duracionDias.toLong()))
@@ -276,7 +287,8 @@ data class UsoLeche(
     @SerialName("bebe_id") val bebeId: String,
     val fecha: Fecha,
     @SerialName("cantidad_ml") val cantidadMl: Double,
-    val nota: String = ""
+    val nota: String = "",
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -293,7 +305,8 @@ data class ComidaComplementaria(
      * Aquí son rutas: en local, ficheros del móvil; en Supabase, rutas
      * dentro del bucket de Storage. Máximo 2, como en iOS.
      */
-    val fotos: List<String> = emptyList()
+    val fotos: List<String> = emptyList(),
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
 @Serializable
@@ -304,7 +317,8 @@ data class Enfermedad(
     @SerialName("fecha_inicio") val fechaInicio: Fecha,
     @SerialName("fecha_fin") val fechaFin: Fecha? = null,
     val medicacion: String = "",
-    val notas: String = ""
+    val notas: String = "",
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 ) {
     val activa: Boolean get() = fechaFin == null
 }
