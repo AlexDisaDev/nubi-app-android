@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
@@ -26,9 +25,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // Con el Kotlin incorporado de AGP 9 ya no hace falta el bloque
+    // kotlinOptions: jvmTarget sale de compileOptions.targetCompatibility.
 
     buildTypes {
         release {
@@ -42,11 +40,8 @@ android {
 }
 
 dependencies {
-    // Versiones puestas al día (estaban ancladas a finales de 2024, de cuando
-    // se creó el esqueleto, y chocaban en tiempo de compilación con Material
-    // 1.13.0 / compileSdk 36 — un "incompatible class" que hacía crashear al
-    // compilador de Kotlin en vez de dar un error claro).
-    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    // Versiones alineadas con la plantilla de proyecto nuevo de Android Studio.
+    implementation(platform("androidx.compose:compose-bom:2026.02.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
