@@ -9,4 +9,14 @@
     <style name="Theme.Nubi" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/lienzo</item>
     </style>
+
+    <!-- Pantalla de apertura: el logo de Nubi (nubes + "NUBI") sobre el
+         mismo lienzo de la app, y luego directo al tema normal. Sin
+         windowSplashScreenIconBackgroundColor porque el logo es ancho
+         (nubes + palabra) y no queremos que se recorte en un círculo. -->
+    <style name="Theme.Nubi.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/lienzo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/nubi_logo_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Nubi</item>
+    </style>
 </resources>

@@ -93,7 +93,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
     val titulo = when {
         enAjustes -> "Ajustes"
         destino is Destino.Arriba -> (destino as Destino.Arriba).vista.titulo
-        else -> "Nubi"
+        else -> ""
     }
 
     Scaffold(
@@ -106,8 +106,13 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                         titleContentColor = colores.tinta
                     ),
                     actions = {
-                        TextButton(onClick = { enAjustes = !enAjustes }) {
-                            Text(if (enAjustes) "Cerrar" else "Ajustes")
+                        // El acceso a Ajustes real es el botón de controles
+                        // junto al icono del sol en la cabecera de Hoy; aquí
+                        // solo hace falta un modo de volver a cerrarlo.
+                        if (enAjustes) {
+                            TextButton(onClick = { enAjustes = false }) {
+                                Text("Cerrar")
+                            }
                         }
                     }
                 )
@@ -182,7 +187,9 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                     is Destino.Arriba -> PantallaEnObras(d.vista.titulo)
 
                     is Destino.Abajo -> when (d.pestana) {
-                        Pestana.HOY -> datos.bebe?.let { PantallaHoy(it, datos.registros) }
+                        Pestana.HOY -> datos.bebe?.let {
+                            PantallaHoy(it, datos.registros, alAbrirAjustes = { enAjustes = true })
+                        }
                         Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
                         Pestana.CRECE -> PantallaEnObras("Crece")
                         Pestana.SALUD -> PantallaEnObras("Salud")

@@ -263,7 +263,7 @@ private val formatoHora: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
 @Composable
-fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
+fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Unit = {}) {
     val colores = NubiTheme.colores
     val ahora = Instant.now()
 
@@ -311,13 +311,15 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
                 tamanoIcono = 20.dp
             )
             Spacer(Modifier.width(10.dp))
-            BadgeIcono(
-                IconoNubi.CONTROLES,
-                colorFondo = colores.lienzoAlto,
-                colorIcono = colores.tintaSuave,
-                tamano = 44.dp,
-                tamanoIcono = 18.dp
-            )
+            Box(modifier = Modifier.clickable { alAbrirAjustes() }) {
+                BadgeIcono(
+                    IconoNubi.CONTROLES,
+                    colorFondo = colores.lienzoAlto,
+                    colorIcono = colores.tintaSuave,
+                    tamano = 44.dp,
+                    tamanoIcono = 18.dp
+                )
+            }
         }
 
         Spacer(Modifier.height(20.dp))
