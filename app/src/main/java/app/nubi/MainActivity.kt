@@ -1,5 +1,6 @@
 package app.nubi
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -43,8 +44,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Si la app se abrió desde el enlace mágico del email, esto
-        // completa el login (Supabase lee el token del propio intent).
+        // Si la app se abrió DESDE CERO con el enlace mágico del email,
+        // esto completa el login (Supabase lee el token del propio intent).
         Supabase.client.handleDeeplinks(intent)
 
         setContent {
@@ -57,6 +58,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * El caso normal: la app ya estaba abierta esperando el enlace, así que
+     * Android no pasa por onCreate — entrega el enlace aquí (la Activity es
+     * "singleTop" en el manifiesto). Sin esto, el enlace devuelve a la app
+     * pero la sesión nunca se completa.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Supabase.client.handleDeeplinks(intent)
     }
 }
 
