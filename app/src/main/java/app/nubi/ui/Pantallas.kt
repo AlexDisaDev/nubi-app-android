@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -30,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
@@ -43,6 +47,7 @@ import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -253,73 +258,274 @@ private fun registrosDeHoy(registros: List<Registro>): List<Registro> {
 
 @Composable
 fun PantallaHoy(bebe: Bebe, registros: List<Registro>) {
-    val deHoy = registrosDeHoy(registros)
+    val colores = NubiTheme.colores
+    val ahora = Instant.now()
 
-    val minutosSueno = deHoy
-        .filter { it.tipo.esSueno }
-        .sumOf { (it.duracionSegundos ?: 0L) / 60 }
-    val tomas = deHoy.count { it.tipo.esAlimentacion }
-    val panales = deHoy.count { it.tipo == TipoRegistro.PANAL }
+    // El sueño nocturno en curso, si lo hay (el que no tiene "fin" todavía).
+    val suenoEnCurso = registros
+        .filter { it.tipo == TipoRegistro.NOCHE && it.fin == null }
+        .maxByOrNull { it.inicio }
+
+    val ultimaToma = registros.filter { it.tipo.esAlimentacion }.maxByOrNull { it.inicio }
+    val ultimoPanal = registros.filter { it.tipo == TipoRegistro.PANAL }.maxByOrNull { it.inicio }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
-        Text(
-            textoEdad(bebe),
-            style = MaterialTheme.typography.bodyMedium,
-            color = NubiTheme.colores.tintaSuave
-        )
+        // Cabecera: saludo, nombre, edad, y dos accesos rápidos (aspecto /
+        // ajustes). "Ajustes" también se puede abrir desde arriba en el
+        // resto de pestañas; aquí se repite porque en iOS está a mano
+        // desde Hoy.
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    saludoSegunHora(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colores.tintaSuave
+                )
+                Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
+                Text(
+                    textoEdadDetallada(bebe),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colores.tintaSuave
+                )
+            }
+            BadgeIcono(
+                IconoNubi.SOL,
+                colorFondo = colores.mantequilla,
+                colorIcono = colores.superficie,
+                tamano = 44.dp,
+                tamanoIcono = 20.dp
+            )
+            Spacer(Modifier.width(10.dp))
+            BadgeIcono(
+                IconoNubi.CONTROLES,
+                colorFondo = colores.lienzoAlto,
+                colorIcono = colores.tintaSuave,
+                tamano = 44.dp,
+                tamanoIcono = 18.dp
+            )
+        }
 
-        Spacer(Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            TarjetaResumen("Sueño", textoDuracion(minutosSueno),
-                NubiTheme.colores.lila, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            TarjetaResumen("Tomas", "$tomas",
-                NubiTheme.colores.melocoton, Modifier.weight(1f))
-            Spacer(Modifier.width(8.dp))
-            TarjetaResumen("Pañales", "$panales",
-                NubiTheme.colores.cielo, Modifier.weight(1f))
+        Spacer(Modifier.height(20.dp))
+
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radio),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "SUEÑO NOCTURNO",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colores.tintaTenue
+                    )
+                    BadgeIcono(
+                        IconoNubi.LUNA,
+                        colorFondo = colores.lila,
+                        colorIcono = colores.superficie,
+                        tamano = 36.dp,
+                        tamanoIcono = 16.dp
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+
+                if (suenoEnCurso != null) {
+                    Text(
+                        textoDuracion(Duration.between(suenoEnCurso.inicio, ahora).toMinutes()),
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                    Text(
+                        "Dormido desde ${formatoHora.format(suenoEnCurso.inicio)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colores.tintaSuave
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        BotonAccion(
+                            texto = "Despertar\nnocturno",
+                            icono = IconoNubi.LUNA,
+                            color = colores.coral,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Repositorio.guardarRegistro(
+                                Registro(bebeId = bebe.id, tipo = TipoRegistro.DESPERTAR, inicio = Instant.now())
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        BotonAccion(
+                            texto = "Buenos días",
+                            icono = IconoNubi.SOL,
+                            color = colores.melocoton,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
+                        }
+                    }
+                } else {
+                    Text(
+                        "Sin sueño nocturno en curso.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colores.tintaTenue
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        ultimaToma?.let { registro ->
+            FilaResumenHoy(
+                titulo = "Última toma · ${hace(registro.inicio)}",
+                subtitulo = "${nombreTipo(registro.tipo)} · ${formatoHora.format(registro.inicio)}",
+                icono = if (registro.tipo == TipoRegistro.BIBERON) IconoNubi.BIBERON else IconoNubi.CORAZON,
+                colorBadge = if (registro.tipo == TipoRegistro.BIBERON) colores.mantequilla else colores.rosa
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
+        ultimoPanal?.let { registro ->
+            FilaResumenHoy(
+                titulo = "Pañal · ${hace(registro.inicio)}",
+                subtitulo = "Último a las ${formatoHora.format(registro.inicio)}",
+                icono = IconoNubi.GOTA,
+                colorBadge = colores.cielo
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
+        // "Etapa" (MotorEtapas.swift) todavía no está portado: de momento
+        // es una tarjeta de aviso fija, no consejos de verdad.
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BadgeIcono(
+                    IconoNubi.BOMBILLA,
+                    colorFondo = colores.mantequilla,
+                    colorIcono = colores.superficie,
+                    tamano = 40.dp,
+                    tamanoIcono = 18.dp
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Consejos de esta etapa", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Pendiente de portar (MotorEtapas.swift)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+                Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+            }
         }
 
         Spacer(Modifier.height(24.dp))
-        Card(
-            shape = RoundedCornerShape(NubiGeometria.radio),
-            colors = CardDefaults.cardColors(containerColor = NubiTheme.colores.superficie),
-            modifier = Modifier.fillMaxWidth()
+    }
+}
+
+@Composable
+private fun FilaResumenHoy(
+    titulo: String,
+    subtitulo: String,
+    icono: IconoNubi,
+    colorBadge: Color
+) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Etapa", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Pendiente de portar desde iOS (MotorEtapas.swift).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = NubiTheme.colores.tintaTenue
-                )
+            Column(Modifier.weight(1f)) {
+                Text(titulo, style = MaterialTheme.typography.bodyLarge)
+                Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
             }
+            BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.superficie)
         }
     }
 }
 
 @Composable
-private fun TarjetaResumen(
-    titulo: String,
-    valor: String,
-    color: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier
+private fun BotonAccion(
+    texto: String,
+    icono: IconoNubi,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(NubiGeometria.radioChico),
-        colors = CardDefaults.cardColors(containerColor = color),
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color,
+            contentColor = NubiTheme.colores.superficie
+        ),
+        shape = RoundedCornerShape(50),
         modifier = modifier
     ) {
-        Column(Modifier.padding(14.dp)) {
-            Text(titulo, style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(4.dp))
-            Text(valor, style = MaterialTheme.typography.titleLarge)
+        Icono(icono, tint = NubiTheme.colores.superficie, tamano = 16.dp)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            texto,
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+private fun saludoSegunHora(): String {
+    val hora = LocalTime.now().hour
+    return when {
+        hora < 6 -> "Buenas noches"
+        hora < 12 -> "Buenos días"
+        hora < 20 -> "Buenas tardes"
+        else -> "Buenas noches"
+    }
+}
+
+private fun hace(instante: Instant): String {
+    val minutos = Duration.between(instante, Instant.now()).toMinutes().coerceAtLeast(0)
+    return when {
+        minutos < 1 -> "ahora mismo"
+        minutos < 60 -> "hace $minutos min"
+        else -> {
+            val horas = minutos / 60
+            val resto = minutos % 60
+            if (resto == 0L) "hace $horas h" else "hace $horas h $resto min"
+        }
+    }
+}
+
+private fun textoEdadDetallada(bebe: Bebe): String {
+    val dias = bebe.edadEnDias()
+    return when {
+        dias < 14 -> if (dias == 1) "1 día" else "$dias días"
+        dias < 61 -> "${dias / 7} semanas"
+        else -> {
+            val meses = dias / 30
+            val resto = dias % 30
+            if (resto == 0) "$meses meses" else "$meses meses y $resto días"
         }
     }
 }

@@ -1,20 +1,20 @@
 package app.nubi.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,12 +26,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Repositorio
-import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 
@@ -68,18 +66,20 @@ private sealed interface Destino {
     data class Arriba(val vista: VistaSuperior) : Destino
 }
 
-/**
- * Color de cada pestaña, de la paleta de Nubi.
- *
- * Provisional en cuanto a forma: en iOS cada pestaña tiene su dibujo
- * (Ilustraciones.swift) y aquí de momento es un punto de color.
- */
-private fun colorDe(p: Pestana, c: NubiColores): Color = when (p) {
-    Pestana.HOY -> c.menta
-    Pestana.DIA -> c.lila
-    Pestana.CRECE -> c.mantequilla
-    Pestana.SALUD -> c.cielo
-    Pestana.DIARIO -> c.rosa
+/** Qué dibujo le toca a cada pestaña de abajo. */
+private fun iconoDe(p: Pestana): IconoNubi = when (p) {
+    Pestana.HOY -> IconoNubi.NUBE
+    Pestana.DIA -> IconoNubi.RELOJ
+    Pestana.CRECE -> IconoNubi.CRECE
+    Pestana.SALUD -> IconoNubi.MALETIN
+    Pestana.DIARIO -> IconoNubi.LIBRETA
+}
+
+/** Qué dibujo le toca a cada sección de arriba. */
+private fun iconoDe(v: VistaSuperior): IconoNubi = when (v) {
+    VistaSuperior.BANCO -> IconoNubi.BIBERON
+    VistaSuperior.ALIMENTACION -> IconoNubi.CRONOMETRO
+    VistaSuperior.SONIDOS -> IconoNubi.ONDAS
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,24 +116,28 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = NubiGeometria.margen, vertical = 4.dp)
+                            .padding(horizontal = NubiGeometria.margen, vertical = 10.dp)
                     ) {
                         VistaSuperior.entries.forEach { v ->
                             val seleccionada = (destino as? Destino.Arriba)?.vista == v
-                            FilterChip(
-                                selected = seleccionada,
-                                onClick = { destino = Destino.Arriba(v) },
-                                label = { Text(v.titulo) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = colores.lienzoAlto,
-                                    labelColor = colores.tintaSuave,
-                                    selectedContainerColor = colores.lila,
-                                    selectedLabelColor = colores.tinta
+                            val tinte = if (seleccionada) colores.lila else colores.tintaTenue
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { destino = Destino.Arriba(v) },
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    v.titulo,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = tinte
                                 )
-                            )
-                            Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.height(6.dp))
+                                Icono(iconoDe(v), tint = tinte, tamano = 20.dp)
+                            }
                         }
                     }
+                    HorizontalDivider(color = colores.separador)
                 }
             }
         },
@@ -141,19 +145,25 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
             if (!enAjustes) {
                 NavigationBar(containerColor = colores.superficie) {
                     Pestana.entries.forEach { p ->
+                        val activa = (destino as? Destino.Abajo)?.pestana == p
                         NavigationBarItem(
-                            selected = (destino as? Destino.Abajo)?.pestana == p,
+                            selected = activa,
                             onClick = { destino = Destino.Abajo(p) },
                             icon = {
-                                val activa = (destino as? Destino.Abajo)?.pestana == p
-                                Box(
-                                    Modifier
-                                        .size(if (activa) 14.dp else 10.dp)
-                                        .clip(CircleShape)
-                                        .background(colorDe(p, colores))
+                                Icono(
+                                    iconoDe(p),
+                                    tint = if (activa) colores.lila else colores.tintaTenue,
+                                    tamano = 22.dp
                                 )
                             },
-                            label = { Text(p.titulo) }
+                            label = { Text(p.titulo) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = colores.lila,
+                                selectedTextColor = colores.lila,
+                                unselectedIconColor = colores.tintaTenue,
+                                unselectedTextColor = colores.tintaTenue,
+                                indicatorColor = androidx.compose.ui.graphics.Color.Transparent
+                            )
                         )
                     }
                 }
