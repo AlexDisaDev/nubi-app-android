@@ -4,26 +4,43 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
@@ -36,12 +53,29 @@ import app.nubi.ui.theme.NubiTheme
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+
+private val formatoHoraReloj: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("H:mm").withZone(ZoneId.systemDefault())
+
+/** Lo que hace falta para pintar la burbuja de info que sale al tocar una
+ *  insignia del reloj (siesta prevista, sueño nocturno previsto o el sol
+ *  de "buenos días"). `clave` identifica de qué insignia viene, para que
+ *  tocar la misma otra vez la cierre en vez de volver a abrirla. */
+private data class InfoBurbujaReloj(
+    val clave: String,
+    val icono: IconoNubi,
+    val colorIcono: Color,
+    val titulo: String,
+    val subtitulo: String,
+    val detalle: String
+)
 
 /**
  * El día como un reloj de 24 horas: medianoche arriba, mediodía abajo.
@@ -79,6 +113,14 @@ fun RelojDelDia(
     val densidad = LocalDensity.current
     val diaInstante = dia.atTime(12, 0).atZone(zona).toInstant()
     val esHoy = dia == LocalDate.now(zona)
+    val nombre = nombreBebe ?: bebe.nombre
+
+    // La burbuja de info que sale al tocar el sol, la luna o una nube de
+    // siesta prevista. Tocar la misma insignia otra vez la cierra.
+    var burbuja by remember { mutableStateOf<InfoBurbujaReloj?>(null) }
+    fun alternarBurbuja(info: InfoBurbujaReloj) {
+        burbuja = if (burbuja?.clave == info.clave) null else info
+    }
 
     fun horaDecimal(instante: Instant): Double {
         val t = instante.atZone(zona)
@@ -249,7 +291,31 @@ fun RelojDelDia(
                 MarcaLunaIdeal(
                     realizada = realizada,
                     colores = colores,
-                    modifier = Modifier.offsetPx(pos.x - dp(15f), pos.y - dp(15f))
+                    modifier = Modifier
+                        .offsetPx(pos.x - dp(15f), pos.y - dp(15f))
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            alternarBurbuja(
+                                InfoBurbujaReloj(
+                                    clave = "nocturno",
+                                    icono = IconoNubi.LUNA,
+                                    colorIcono = colores.lila,
+                                    titulo = "Sueño nocturno",
+                                    subtitulo = if (realizada) {
+                                        "Ventana ideal era ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}"
+                                    } else {
+                                        "Ventana ideal"
+                                    },
+                                    detalle = if (realizada) {
+                                        "Realizada: ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
+                                    } else {
+                                        "${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}"
+                                    }
+                                )
+                            )
+                        }
                 )
             } else {
                 val desde = horaDecimal(ideal.arcoDesde)
@@ -260,7 +326,29 @@ fun RelojDelDia(
                     realizada = ideal.realizada,
                     perdida = ideal.perdida(ahora),
                     colores = colores,
-                    modifier = Modifier.offsetPx(pos.x - dp(12f), pos.y - dp(12f))
+                    modifier = Modifier
+                        .offsetPx(pos.x - dp(12f), pos.y - dp(12f))
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            val perdida = ideal.perdida(ahora)
+                            alternarBurbuja(
+                                InfoBurbujaReloj(
+                                    clave = "siesta-${ideal.numero}",
+                                    icono = IconoNubi.NUBE,
+                                    colorIcono = colores.menta,
+                                    titulo = "Siesta ${ideal.numero}",
+                                    subtitulo = "Ventana ideal era ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}",
+                                    detalle = when {
+                                        ideal.realizada ->
+                                            "Realizada: ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
+                                        perdida -> "No se hizo en su ventana"
+                                        else -> "Todavía no se ha hecho"
+                                    }
+                                )
+                            )
+                        }
                 )
             }
         }
@@ -268,7 +356,26 @@ fun RelojDelDia(
         // El despertar real del día (si lo hay), aparte de la predicción.
         despertar?.let { fecha ->
             val pos = punto(horaDecimal(fecha), rIdeales)
-            MarcaSol(colores = colores, modifier = Modifier.offsetPx(pos.x - dp(15f), pos.y - dp(15f)))
+            MarcaSol(
+                colores = colores,
+                modifier = Modifier
+                    .offsetPx(pos.x - dp(15f), pos.y - dp(15f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        alternarBurbuja(
+                            InfoBurbujaReloj(
+                                clave = "despertar",
+                                icono = IconoNubi.SOL,
+                                colorIcono = colores.mantequilla,
+                                titulo = "Buenos días",
+                                subtitulo = "Despertar del día",
+                                detalle = "$nombre se despertó a las ${formatoHoraReloj.format(fecha)}"
+                            )
+                        )
+                    }
+            )
         }
 
         // -----------------------------------------------------------------
@@ -302,6 +409,78 @@ fun RelojDelDia(
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue,
                 modifier = Modifier.offsetPx(centro.x - dp(40f), centro.y)
+            )
+        }
+
+        // La burbuja de info: siempre en el mismo sitio, debajo del reloj
+        // y apuntando hacia el "12", tapando lo que haga falta de la
+        // tarjeta de abajo — igual da qué insignia se haya tocado.
+        burbuja?.let { info ->
+            BurbujaInfoReloj(
+                info = info,
+                colores = colores,
+                onCerrar = { burbuja = null },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-6).dp)
+            )
+        }
+    }
+}
+
+/** Burbuja de info con una flecha arriba, apuntando al reloj. Se cierra
+ *  tocándola, o tocando otra vez la misma insignia que la abrió. */
+@Composable
+private fun BurbujaInfoReloj(
+    info: InfoBurbujaReloj,
+    colores: NubiColores,
+    onCerrar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colorFondo = colores.superficie
+    Column(
+        modifier = modifier
+            .widthIn(max = 260.dp)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onCerrar() },
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Canvas(Modifier.size(width = 18.dp, height = 9.dp)) {
+            val flecha = Path().apply {
+                moveTo(0f, size.height)
+                lineTo(size.width / 2f, 0f)
+                lineTo(size.width, size.height)
+                close()
+            }
+            drawPath(flecha, color = colorFondo)
+        }
+        Column(
+            modifier = Modifier
+                .shadow(6.dp, RoundedCornerShape(16.dp))
+                .background(colorFondo, RoundedCornerShape(16.dp))
+                .padding(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(32.dp).clip(CircleShape).background(info.colorIcono),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icono(info.icono, tint = Color.White, tamano = 16.dp)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(info.titulo, style = MaterialTheme.typography.titleSmall, color = colores.tinta, fontWeight = FontWeight.Bold)
+                    Text(info.subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                info.detalle,
+                style = MaterialTheme.typography.titleSmall,
+                color = colores.tinta,
+                fontWeight = FontWeight.Bold
             )
         }
     }
