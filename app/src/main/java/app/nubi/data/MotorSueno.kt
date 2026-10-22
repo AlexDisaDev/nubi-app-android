@@ -244,6 +244,18 @@ data class VentanaIdeal(
     val excesoVigilia: Int = 0
 ) {
     val realizada: Boolean get() = inicioReal != null
+
+    /** Desde dónde dibujar el arco: la hora real si ya se hizo, si no la prevista. */
+    val arcoDesde: Instant get() = inicioReal ?: rangoInicioDesde
+
+    /** Hasta dónde dibujar el arco: el fin real si ya se hizo, si no la duración prevista
+     *  añadida al final de la ventana. */
+    val arcoHasta: Instant
+        get() = finReal ?: rangoInicioHasta.plusSeconds(duracionTipica.toLong())
+
+    /** La ventana ideal ya pasó sin haberse hecho (con 30 min de margen). */
+    fun perdida(ahora: Instant): Boolean =
+        !realizada && ahora.isAfter(rangoInicioHasta.plusSeconds(30 * 60))
 }
 
 data class ResultadoDia(
@@ -1036,6 +1048,29 @@ object MotorSueno {
         if (porDia.size < 3) return null to porDia.size
         val cuentas = porDia.values.map { it.toDouble() }
         return redondear(mediana(cuentas)) to porDia.size
+    }
+
+    /**
+     * El despertar "oficial" del día (para la insignia de sol del reloj): la
+     * última noche que terminó entre las 4:00 y las 11:00 de ese día, o la
+     * hora manual si no hay ninguna. Si el bebé ha vuelto a dormirse de
+     * noche después de ese despertar, no se cuenta (sigue siendo de noche).
+     */
+    fun despertarDelDia(registros: List<Registro>, dia: Instant, manual: Instant? = null): Instant? {
+        val finesManana = registros.mapNotNull { r ->
+            if (r.tipo != TipoRegistro.NOCHE) return@mapNotNull null
+            val fin = r.fin ?: return@mapNotNull null
+            if (!mismoDia(fin, dia)) return@mapNotNull null
+            val h = componenteHora(fin)
+            if (h in 4..11) fin else null
+        }
+        val candidato = finesManana.maxOrNull()
+            ?: return if (manual != null && mismoDia(manual, dia)) manual else null
+
+        val durmiendoDeNuevo = registros.any {
+            it.tipo == TipoRegistro.NOCHE && it.fin == null && !it.inicio.isBefore(candidato)
+        }
+        return if (durmiendoDeNuevo) null else candidato
     }
 
     private fun horaMediaDespertarManana(registros: List<Registro>, hoy: Instant): Instant? {

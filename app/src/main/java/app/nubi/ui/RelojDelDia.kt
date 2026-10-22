@@ -1,14 +1,21 @@
 package app.nubi.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -19,8 +26,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import app.nubi.data.Bebe
+import app.nubi.data.MotorSueno
 import app.nubi.data.Registro
 import app.nubi.data.TipoRegistro
+import app.nubi.data.VentanaIdeal
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiTheme
 import java.time.Instant
@@ -28,92 +38,107 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
  * El día como un reloj de 24 horas: medianoche arriba, mediodía abajo.
- * Portado de RelojDelDia.swift, y ampliado sobre la captura de VistaLinea:
+ * Traducido en fidelidad de RelojDelDia.swift:
  *
- * - Anillo de fondo con un degradado que recorre los colores de Nubi según
- *   la hora (noche → amanecer → día → tarde → noche), en vez de un solo
- *   color plano.
- * - Los sueños de verdad (siesta/noche) se resaltan encima, más gruesos,
- *   con un brillo fino en el centro del trazo.
- * - Una aguja desde el centro marca la hora actual.
- * - Fuera del anillo solo va el sueño: luna a la hora de acostarse, sol a
- *   la hora de despertar, nube a la hora de la siesta — cada uno en su
- *   sitio, no una insignia a mitad del arco.
- * - Dentro del anillo, un círculo pequeño por cada evento suelto (biberón,
- *   pecho, pañal, medicina, baño...), más discreto que el sueño.
- *
- * Sigue siendo una versión inicial: faltan las ventanas ideales de sueño,
- * la sugerencia de la próxima siesta y poder tocar un evento para abrirlo.
+ * - Anillo de fondo con un degradado angular de 8 paradas (noche, amanecer,
+ *   día, atardecer) más estrellas y nubes decorativas dentro del propio
+ *   trazo, y un borde fino a cada lado.
+ * - 24 marcas horarias (una por hora, las de 0/6/12/18 más marcadas).
+ * - Los sueños de verdad (siesta/noche), resaltados sobre el degradado con
+ *   un brillo blanco fino; los despertares nocturnos (restaSueño) se pintan
+ *   igual pero sin el brillo, como un tramo de otro color dentro de la noche.
+ * - Fuera del anillo, la PREDICCIÓN de sueño (MotorSueño): una luna para la
+ *   ventana de noche (fija en el centro de esa ventana, sin moverse aunque
+ *   la noche real ya haya pasado) y una nube por cada siesta prevista — esa
+ *   nube si se muestra en el centro de la ventana cuando aún no se ha hecho,
+ *   o en el centro del tramo REAL una vez hecha, y cambia de relleno según
+ *   esté hecha, pendiente o ya perdida. El despertar real del día (si lo
+ *   hay) tiene su propia insignia de sol, aparte de la predicción.
+ * - Dentro del anillo, un punto pequeño por cada evento suelto (biberón,
+ *   pecho, pañal, medicina, baño...), con separación anti-solape.
  */
 @Composable
 fun RelojDelDia(
+    bebe: Bebe,
     registros: List<Registro>,
     dia: LocalDate = LocalDate.now(),
+    ahora: Instant = Instant.now(),
+    nombreBebe: String? = null,
+    alTocarEvento: (Registro) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colores = NubiTheme.colores
     val zona = ZoneId.systemDefault()
     val densidad = LocalDensity.current
+    val diaInstante = dia.atTime(12, 0).atZone(zona).toInstant()
+    val esHoy = dia == LocalDate.now(zona)
 
     fun horaDecimal(instante: Instant): Double {
         val t = instante.atZone(zona)
-        return t.hour + t.minute / 60.0 + t.second / 3600.0
+        val h = (t.hour + t.minute / 60.0 + t.second / 3600.0)
+        return h.coerceIn(0.0, 24.0)
     }
 
-    // Un sueño nocturno puede haber empezado ayer y terminar hoy: para este
-    // día en concreto solo nos interesa el tramo (desde, hasta) que cae
-    // dentro de él, no el sueño entero.
-    val suenosConTramo = registros
-        .filter { it.tipo.esSueno && it.fin != null }
-        .mapNotNull { r -> tramoEnDia(r, dia, zona)?.let { r to it } }
-    // El despertar nocturno se trata como el sueño (fuera del anillo, con
-    // su propia insignia): solo biberón/pecho/pañal/medicina/baño van
-    // dentro, como círculos pequeños.
-    val despertares = registros.filter {
-        it.tipo == TipoRegistro.DESPERTAR && it.inicio.atZone(zona).toLocalDate() == dia
-    }
+    // Los intervalos (siesta/noche/despertar) que tocan este día, aunque
+    // hayan empezado ayer o sigan en curso (sin "fin" todavía).
+    val intervalos = registros.filter { it.tipo.esIntervalo && tocaDia(it, dia, ahora, zona) }
+    // El resto de eventos sueltos: solo los que empezaron hoy mismo.
     val eventos = registros.filter {
-        !it.tipo.esSueno && it.tipo != TipoRegistro.DESPERTAR &&
-            it.inicio.atZone(zona).toLocalDate() == dia
+        !it.tipo.esIntervalo && it.inicio.atZone(zona).toLocalDate() == dia
     }
+
+    val ventanasIdeales: List<VentanaIdeal> =
+        MotorSueno.ventanasIdealesDelDia(bebe = bebe, registros = registros, dia = diaInstante, ahora = ahora)
+    val despertar: Instant? = MotorSueno.despertarDelDia(registros = registros, dia = diaInstante)
 
     BoxWithConstraints(modifier.fillMaxWidth().aspectRatio(1f)) {
         val ladoPx = constraints.maxWidth.toFloat()
         val centro = Offset(ladoPx / 2f, ladoPx / 2f)
 
-        fun dp(valor: Int): Float = with(densidad) { valor.dp.toPx() }
+        fun dp(valor: Float): Float = with(densidad) { valor.dp.toPx() }
 
-        val margenBorde = dp(32)
-        val grosor = dp(24)
-        val radioExterior = ladoPx / 2f - margenBorde
-        val radioAnillo = radioExterior - grosor / 2f
-        val radioEtiqueta = radioAnillo + grosor / 2f + dp(22)
-        val radioInsignia = radioAnillo + grosor / 2f + dp(22)
-        // Claramente dentro del aro de color, no encima ni fuera de él.
-        val radioInterior = radioAnillo - grosor / 2f - dp(26)
-        val tamanoInsigniaPx = dp(30)
-        val tamanoEventoPx = dp(20)
+        val grosor = dp(30f)
+        val rExterior = ladoPx / 2f - dp(27f)
+        val rAnillo = rExterior - grosor / 2f
+        val rEventos = rAnillo - grosor / 2f - dp(18f)
+        val rIdeales = rExterior + dp(29f)
 
+        fun punto(hora: Double, radio: Float): Offset {
+            val angulo = hora / 24.0 * 2 * PI - PI / 2
+            return Offset(
+                centro.x + (radio * cos(angulo)).toFloat(),
+                centro.y + (radio * sin(angulo)).toFloat()
+            )
+        }
+
+        // -----------------------------------------------------------------
+        // Anillo cielo: degradado angular + estrellas/nubes decorativas +
+        // doble borde fino.
+        // -----------------------------------------------------------------
         Canvas(Modifier.matchParentSize()) {
-            val esquina = Offset(centro.x - radioAnillo, centro.y - radioAnillo)
-            val tamanoCaja = Size(radioAnillo * 2f, radioAnillo * 2f)
+            val esquina = Offset(centro.x - rAnillo, centro.y - rAnillo)
+            val tamanoCaja = Size(rAnillo * 2f, rAnillo * 2f)
+            val navy = Color(0xFF14122B)
 
-            // Anillo de fondo: un degradado que recorre la paleta según la
-            // hora, para que de un vistazo se note noche/amanecer/día/tarde.
             rotate(degrees = -90f, pivot = centro) {
                 drawArc(
                     brush = Brush.sweepGradient(
                         colorStops = arrayOf(
-                            0.0f to colores.lila,
-                            0.25f to colores.melocoton,
-                            0.5f to colores.cielo,
-                            0.75f to colores.menta,
-                            1.0f to colores.lila
+                            0.00f to navy,
+                            0.21f to navy,
+                            0.28f to colores.melocoton,
+                            0.35f to colores.cielo,
+                            0.65f to colores.cielo,
+                            0.72f to colores.melocoton,
+                            0.80f to navy,
+                            1.00f to navy
                         ),
                         center = centro
                     ),
@@ -122,200 +147,360 @@ fun RelojDelDia(
                     useCenter = false,
                     topLeft = esquina,
                     size = tamanoCaja,
-                    style = Stroke(width = grosor),
-                    alpha = 0.55f
+                    style = Stroke(width = grosor)
                 )
             }
 
-            // Cada sueño de verdad, resaltado encima del degradado.
-            suenosConTramo.forEach { (sueno, tramo) ->
-                val (desde, hasta) = tramo
-                val duracion = hasta - desde
-                val colorSueno = if (sueno.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta
-                val anguloInicio = (desde / 24.0 * 360.0 - 90.0).toFloat()
-                val anguloBarrido = (duracion / 24.0 * 360.0).toFloat()
+            // Estrellas (noche, 21:12 a 04:24) y nubes (día, 08:36 a 16:48),
+            // decorativas, dibujadas dentro del propio trazo del anillo.
+            dibujarEstrellas(this, ::punto)
+            dibujarNubesDecorativas(this, ::punto)
 
-                drawArc(
-                    color = colorSueno,
-                    startAngle = anguloInicio,
-                    sweepAngle = anguloBarrido,
-                    useCenter = false,
-                    topLeft = esquina,
-                    size = tamanoCaja,
-                    style = Stroke(width = grosor, cap = StrokeCap.Round)
-                )
-                // Brillo fino en el centro del trazo.
-                drawArc(
-                    color = colores.superficie.copy(alpha = 0.5f),
-                    startAngle = anguloInicio,
-                    sweepAngle = anguloBarrido,
-                    useCenter = false,
-                    topLeft = esquina,
-                    size = tamanoCaja,
-                    style = Stroke(width = grosor * 0.22f, cap = StrokeCap.Round)
-                )
-            }
+            val colorBorde = colores.lila.copy(alpha = 0.8f)
+            drawCircle(color = colorBorde, radius = rAnillo + grosor / 2f, center = centro, style = Stroke(width = 1.5f.dpPx(densidad)))
+            drawCircle(color = colorBorde, radius = rAnillo - grosor / 2f, center = centro, style = Stroke(width = 1.5f.dpPx(densidad)))
 
-            // Marcas de las ocho horas principales.
-            listOf(0, 3, 6, 9, 12, 15, 18, 21).forEach { hora ->
-                val angulo = (hora / 24.0 * 2 * PI) - PI / 2
-                val desde = Offset(
-                    centro.x + ((radioAnillo + grosor / 2 + dp(4)) * cos(angulo)).toFloat(),
-                    centro.y + ((radioAnillo + grosor / 2 + dp(4)) * sin(angulo)).toFloat()
-                )
-                val hasta = Offset(
-                    centro.x + ((radioAnillo + grosor / 2 + dp(10)) * cos(angulo)).toFloat(),
-                    centro.y + ((radioAnillo + grosor / 2 + dp(10)) * sin(angulo)).toFloat()
-                )
-                drawLine(color = colores.separador, start = desde, end = hasta, strokeWidth = dp(2))
-            }
-
-            // Aguja con la hora actual, solo si se está mirando el día de hoy.
-            if (dia == LocalDate.now(zona)) {
-                val angulo = (horaDecimal(Instant.now()) / 24.0 * 2 * PI) - PI / 2
-                val punta = Offset(
-                    centro.x + (radioAnillo * 0.78f * cos(angulo)).toFloat(),
-                    centro.y + (radioAnillo * 0.78f * sin(angulo)).toFloat()
-                )
+            // 24 marcas horarias, centradas en el radio del anillo (cruzan
+            // el trazo), las de cada 6 horas más largas y marcadas.
+            for (h in 0 until 24) {
+                val angulo = h / 24.0 * 2 * PI - PI / 2
+                val dirX = cos(angulo).toFloat()
+                val dirY = sin(angulo).toFloat()
+                val marcada = h % 6 == 0
+                val largo = if (marcada) dp(11f) else dp(5f)
+                val desde = Offset(centro.x + dirX * (rAnillo - largo / 2f), centro.y + dirY * (rAnillo - largo / 2f))
+                val hasta = Offset(centro.x + dirX * (rAnillo + largo / 2f), centro.y + dirY * (rAnillo + largo / 2f))
                 drawLine(
-                    color = colores.tinta,
-                    start = centro,
-                    end = punta,
-                    strokeWidth = dp(3),
-                    cap = StrokeCap.Round
+                    color = Color.White.copy(alpha = if (marcada) 0.95f else 0.35f),
+                    start = desde,
+                    end = hasta,
+                    strokeWidth = if (marcada) dp(2f) else dp(1.2f)
                 )
-                drawCircle(color = colores.tinta, radius = dp(5), center = centro)
+            }
+
+            // Sueños de verdad: el propio sueño (siesta/noche) resaltado con
+            // un brillo blanco fino encima; el despertar nocturno (resta
+            // sueño) en su color, sin brillo — un tramo distinto dentro de
+            // la noche.
+            intervalos.filter { it.tipo.esSueno }.forEach { reg ->
+                val (desde, hasta) = horasDe(reg, dia, ahora, zona)
+                val anguloInicio = (desde / 24.0 * 360.0 - 90.0).toFloat()
+                val anguloBarrido = ((hasta - desde) / 24.0 * 360.0).toFloat()
+                val color = colorDeTipo(reg.tipo, colores)
+                drawArc(
+                    color = color, startAngle = anguloInicio, sweepAngle = anguloBarrido,
+                    useCenter = false, topLeft = esquina, size = tamanoCaja,
+                    style = Stroke(width = grosor - dp(7f), cap = StrokeCap.Round)
+                )
+                drawArc(
+                    color = Color.White.copy(alpha = 0.7f), startAngle = anguloInicio, sweepAngle = anguloBarrido,
+                    useCenter = false, topLeft = esquina, size = tamanoCaja,
+                    style = Stroke(width = 1.8f.dpPx(densidad), cap = StrokeCap.Round)
+                )
+            }
+            intervalos.filter { it.tipo.restaSueno }.forEach { reg ->
+                val (desde, hasta) = horasDe(reg, dia, ahora, zona)
+                val anguloInicio = (desde / 24.0 * 360.0 - 90.0).toFloat()
+                val anguloBarrido = ((hasta - desde) / 24.0 * 360.0).toFloat()
+                drawArc(
+                    color = colorDeTipo(reg.tipo, colores), startAngle = anguloInicio, sweepAngle = anguloBarrido,
+                    useCenter = false, topLeft = esquina, size = tamanoCaja,
+                    style = Stroke(width = grosor - dp(7f), cap = StrokeCap.Round)
+                )
+            }
+
+            // Aguja de la hora actual, solo en el día de hoy: del centro
+            // hasta el borde exterior del anillo.
+            if (esHoy) {
+                val angulo = horaDecimal(ahora) / 24.0 * 2 * PI - PI / 2
+                val punta = Offset(
+                    centro.x + (rExterior * cos(angulo)).toFloat(),
+                    centro.y + (rExterior * sin(angulo)).toFloat()
+                )
+                drawLine(color = colores.tinta, start = centro, end = punta, strokeWidth = dp(2.5f), cap = StrokeCap.Round)
+                drawCircle(color = colores.tinta, radius = dp(4.5f), center = centro)
             }
         }
 
-        // Números de las horas, como texto normal colocado sobre el anillo.
+        // Números de las horas principales, sobre el borde exterior.
         listOf(0, 3, 6, 9, 12, 15, 18, 21).forEach { hora ->
-            val angulo = (hora / 24.0 * 2 * PI) - PI / 2
-            val x = centro.x + (radioEtiqueta * cos(angulo)).toFloat()
-            val y = centro.y + (radioEtiqueta * sin(angulo)).toFloat()
+            val marcada = hora % 6 == 0
+            val pos = punto(hora.toDouble(), rExterior + dp(13f))
             Text(
                 "%02d".format(hora),
-                style = MaterialTheme.typography.labelMedium,
-                color = colores.tintaSuave,
-                modifier = Modifier.offsetPx(x - dp(14), y - dp(10))
+                style = MaterialTheme.typography.labelSmall,
+                color = if (marcada) colores.tintaSuave else colores.tintaTenue,
+                modifier = Modifier.offsetPx(pos.x - dp(12f), pos.y - dp(8f))
             )
         }
 
-        // Fuera del anillo solo va el sueño, y cada extremo por separado:
-        // la luna a la hora de acostarse, el sol a la hora de despertar
-        // (no una insignia a mitad del arco). Si el tramo viene truncado
-        // porque el sueño sigue desde ayer o continúa mañana, ese extremo
-        // no es una hora real de hoy y no lleva insignia.
-        suenosConTramo.forEach { (sueno, tramo) ->
-            val fin = sueno.fin ?: return@forEach
-            val (desde, hasta) = tramo
-            val diaInicioReal = sueno.inicio.atZone(zona).toLocalDate()
-            val diaFinReal = fin.atZone(zona).toLocalDate()
-
-            @Composable
-            fun insigniaSueno(hora: Double, tipo: IconoNubi, colorFondo: Color) {
-                val angulo = (hora / 24.0 * 2 * PI) - PI / 2
-                val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
-                val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
-                BadgeIcono(
-                    tipo = tipo,
-                    colorFondo = colorFondo,
-                    colorIcono = colores.tinta,
-                    tamano = 30.dp,
-                    tamanoIcono = 14.dp,
-                    modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
+        // -----------------------------------------------------------------
+        // Predicción (MotorSueño): luna para la ventana de noche (fija en
+        // el centro de la ventana prevista), nube por cada siesta prevista
+        // (en el centro del tramo real si ya se hizo).
+        // -----------------------------------------------------------------
+        ventanasIdeales.forEach { ideal ->
+            if (ideal.esNocturna) {
+                val desde = horaDecimal(ideal.rangoInicioDesde)
+                val hasta = horaDecimal(ideal.rangoInicioHasta)
+                val centroH = (desde + hasta) / 2.0
+                val pos = punto(centroH, rIdeales)
+                val realizada = ideal.realizada
+                MarcaLunaIdeal(
+                    realizada = realizada,
+                    colores = colores,
+                    modifier = Modifier.offsetPx(pos.x - dp(15f), pos.y - dp(15f))
                 )
-            }
-
-            if (sueno.tipo == TipoRegistro.NOCHE) {
-                if (diaInicioReal == dia) insigniaSueno(desde, IconoNubi.LUNA, colores.lila)
-                if (diaFinReal == dia) insigniaSueno(hasta, IconoNubi.SOL, colores.mantequilla)
-            } else if (diaInicioReal == dia) {
-                insigniaSueno(desde, IconoNubi.NUBE, colores.menta)
+            } else {
+                val desde = horaDecimal(ideal.arcoDesde)
+                val hasta = max(horaDecimal(ideal.arcoHasta), desde + 0.15)
+                val centroH = (desde + hasta) / 2.0
+                val pos = punto(centroH, rIdeales)
+                MarcaSiestaIdeal(
+                    realizada = ideal.realizada,
+                    perdida = ideal.perdida(ahora),
+                    colores = colores,
+                    modifier = Modifier.offsetPx(pos.x - dp(12f), pos.y - dp(12f))
+                )
             }
         }
 
-        // El despertar nocturno se trata igual que el sueño: fuera del
-        // anillo, a la hora en la que ocurrió.
-        despertares.forEach { despertar ->
-            val angulo = (horaDecimal(despertar.inicio) / 24.0 * 2 * PI) - PI / 2
-            val x = centro.x + (radioInsignia * cos(angulo)).toFloat()
-            val y = centro.y + (radioInsignia * sin(angulo)).toFloat()
+        // El despertar real del día (si lo hay), aparte de la predicción.
+        despertar?.let { fecha ->
+            val pos = punto(horaDecimal(fecha), rIdeales)
+            MarcaSol(colores = colores, modifier = Modifier.offsetPx(pos.x - dp(15f), pos.y - dp(15f)))
+        }
+
+        // -----------------------------------------------------------------
+        // Eventos sueltos dentro del anillo, con separación anti-solape:
+        // si dos caen casi encima, primero se reduce el radio, y si ya no
+        // hay margen, se desplaza el ángulo.
+        // -----------------------------------------------------------------
+        val posiciones = posicionarEventos(
+            eventos, rEventos, ::horaDecimal, ::punto,
+            distanciaMinima = dp(20f), radioFloor = dp(50f), radioPaso = dp(12f)
+        )
+        posiciones.forEach { (registro, pos) ->
+            val claro = registro.tipo != TipoRegistro.MEDICINA
             BadgeIcono(
-                tipo = iconoDeTipo(despertar.tipo),
-                colorFondo = colorDeTipo(despertar.tipo, colores),
-                colorIcono = colores.tinta,
-                tamano = 30.dp,
-                tamanoIcono = 14.dp,
-                modifier = Modifier.offsetPx(x - tamanoInsigniaPx / 2f, y - tamanoInsigniaPx / 2f)
+                tipo = iconoDeTipo(registro.tipo),
+                colorFondo = colorDeTipo(registro.tipo, colores),
+                colorIcono = if (claro) Color.White else Color.Black,
+                tamano = 26.dp,
+                tamanoIcono = 13.dp,
+                modifier = Modifier
+                    .offsetPx(pos.x - dp(13f), pos.y - dp(13f))
+                    .shadow(2.dp, CircleShape)
+                    .border(2.dp, colores.superficie, CircleShape)
+                    .clickable { alTocarEvento(registro) }
             )
         }
 
-        // Dentro del anillo, un círculo pequeño por cada evento suelto
-        // (biberón, pecho, pañal, medicina, baño...) — claramente dentro,
-        // ni encima del aro de color ni fuera de él.
-        //
-        // Nunca se tienen que solapar entre sí, así que esto pasa en dos
-        // pasos: primero se agrupan los que están casi a la misma hora
-        // (p. ej. biberón y pañal juntos) para apilarlos en radio; luego,
-        // el hueco angular entre un grupo y el siguiente se fuerza a ser
-        // al menos el ancho de una insignia — aunque eso signifique mover
-        // el ángulo un poco respecto a la hora exacta.
-        val gruposEventos = mutableListOf<MutableList<Registro>>()
-        eventos.sortedBy { it.inicio }.forEach { evento ->
-            val horaEvento = horaDecimal(evento.inicio)
-            val grupoActual = gruposEventos.lastOrNull()?.takeIf { grupo ->
-                kotlin.math.abs(horaEvento - horaDecimal(grupo.last().inicio)) < 0.4
-            }
-            if (grupoActual != null) grupoActual.add(evento) else gruposEventos.add(mutableListOf(evento))
-        }
-
-        val huecoAngularMinimo = ((tamanoEventoPx + dp(6)) / radioInterior).toDouble()
-        var anguloPrevio: Double? = null
-        val gruposConAngulo = gruposEventos.map { grupo ->
-            val anguloCrudo = horaDecimal(grupo.first().inicio) / 24.0 * 2 * PI
-            val angulo = anguloPrevio?.let { previo ->
-                if (anguloCrudo - previo < huecoAngularMinimo) previo + huecoAngularMinimo else anguloCrudo
-            } ?: anguloCrudo
-            anguloPrevio = angulo
-            grupo to (angulo - PI / 2)
-        }
-
-        gruposConAngulo.forEach { (grupo, angulo) ->
-            grupo.forEachIndexed { indice, evento ->
-                val desplazamiento = (indice - (grupo.size - 1) / 2f) * dp(18)
-                val radio = radioInterior + desplazamiento
-                val x = centro.x + (radio * cos(angulo)).toFloat()
-                val y = centro.y + (radio * sin(angulo)).toFloat()
-                BadgeIcono(
-                    tipo = iconoDeTipo(evento.tipo),
-                    colorFondo = colorDeTipo(evento.tipo, colores),
-                    colorIcono = colores.tinta,
-                    tamano = 20.dp,
-                    tamanoIcono = 10.dp,
-                    modifier = Modifier.offsetPx(x - tamanoEventoPx / 2f, y - tamanoEventoPx / 2f)
-                )
-            }
-        }
-
-        if (suenosConTramo.isEmpty() && despertares.isEmpty() && eventos.isEmpty()) {
+        if (intervalos.isEmpty() && eventos.isEmpty()) {
             Text(
                 "Sin datos aún",
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue,
-                modifier = Modifier.offsetPx(centro.x - dp(40), centro.y)
+                modifier = Modifier.offsetPx(centro.x - dp(40f), centro.y)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MarcaLunaIdeal(realizada: Boolean, colores: NubiColores, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.layout.Box(
+        modifier
+            .size(30.dp)
+            .shadow(3.dp, CircleShape)
+            .background(if (realizada) colores.lila else colores.lila.copy(alpha = 0.6f), CircleShape),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Icono(IconoNubi.LUNA, tint = if (realizada) colores.tinta else colores.superficie, tamano = 15.dp)
+    }
+}
+
+@Composable
+private fun MarcaSiestaIdeal(realizada: Boolean, perdida: Boolean, colores: NubiColores, modifier: Modifier = Modifier) {
+    val alphaTotal = if (perdida) 0.5f else 1.0f
+    androidx.compose.foundation.layout.Box(
+        modifier
+            .size(24.dp)
+            .shadow(2.dp, CircleShape)
+            .background(
+                color = (if (realizada) colores.menta else colores.superficie).copy(alpha = alphaTotal),
+                shape = CircleShape
+            )
+            .border(2.dp, (if (perdida) colores.melocoton else colores.menta).copy(alpha = alphaTotal), CircleShape),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Icono(
+            IconoNubi.NUBE,
+            tint = (if (realizada) Color.White else colores.menta).copy(alpha = if (perdida) 0.6f else 1.0f),
+            tamano = 12.dp
+        )
+    }
+}
+
+@Composable
+private fun MarcaSol(colores: NubiColores, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.layout.Box(
+        modifier
+            .size(30.dp)
+            .shadow(3.dp, CircleShape)
+            .background(colores.mantequilla, CircleShape),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Icono(IconoNubi.SOL, tint = colores.tinta, tamano = 16.dp)
+    }
+}
+
+/** Estrellas decorativas fijas, de las 21:12 a las 04:24 (parte nocturna del anillo). */
+private fun dibujarEstrellas(scope: androidx.compose.ui.graphics.drawscope.DrawScope, punto: (Double, Float) -> Offset) {
+    val datos = listOf(
+        Triple(21.2, -7f, 2.0f) to 0.9f, Triple(21.9, 5f, 1.4f) to 0.6f, Triple(22.6, -2f, 2.4f) to 1.0f,
+        Triple(23.3, 7f, 1.4f) to 0.6f, Triple(23.9, -6f, 1.8f) to 0.8f, Triple(0.6, 4f, 2.2f) to 0.9f,
+        Triple(1.4, -5f, 1.4f) to 0.6f, Triple(2.1, 6f, 2.0f) to 0.9f, Triple(2.9, -3f, 1.4f) to 0.7f,
+        Triple(3.7, 5f, 2.2f) to 0.9f, Triple(4.4, -6f, 1.4f) to 0.6f
+    )
+    with(scope) {
+        datos.forEach { (datoTriple, opacidad) ->
+            val (hora, offsetRadio, tamano) = datoTriple
+            val pos = punto(hora, offsetRadio)
+            drawCircle(color = Color.White.copy(alpha = opacidad), radius = tamano, center = pos)
+        }
+    }
+}
+
+/** Nubes decorativas fijas, de las 08:36 a las 16:48 (parte diurna del anillo). */
+private fun dibujarNubesDecorativas(scope: androidx.compose.ui.graphics.drawscope.DrawScope, punto: (Double, Float) -> Offset) {
+    val datos = listOf(
+        Triple(8.6, -6f, 1.0f) to 0.75f, Triple(10.3, 5f, 0.75f) to 0.55f, Triple(12.0, -4f, 1.1f) to 0.8f,
+        Triple(13.7, 6f, 0.75f) to 0.55f, Triple(15.4, -5f, 1.0f) to 0.7f, Triple(16.8, 4f, 0.7f) to 0.5f
+    )
+    with(scope) {
+        datos.forEach { (datoTriple, opacidad) ->
+            val (hora, offsetRadio, escala) = datoTriple
+            val pos = punto(hora, offsetRadio)
+            val tam = 12f * escala
+            val colorNube = Color.White.copy(alpha = opacidad)
+            // Capsule (cuerpo) + dos círculos (bultos), como nubeDeco en iOS.
+            drawRoundRect(
+                color = colorNube,
+                topLeft = Offset(pos.x - tam / 2f, pos.y - (tam * 0.45f) / 2f),
+                size = Size(tam, tam * 0.45f),
+                cornerRadius = CornerRadius(tam * 0.45f / 2f)
+            )
+            drawCircle(
+                color = colorNube, radius = tam * 0.25f,
+                center = Offset(pos.x - tam * 0.18f, pos.y - tam * 0.22f)
+            )
+            drawCircle(
+                color = colorNube, radius = tam * 0.2f,
+                center = Offset(pos.x + tam * 0.2f, pos.y - tam * 0.15f)
             )
         }
     }
 }
 
 /**
+ * Posiciona los eventos sueltos evitando que se solapen: primero se intenta
+ * el radio base a la hora exacta; si colisiona con uno ya colocado, se
+ * reduce el radio, y cuando ya no queda margen de radio, se desplaza el
+ * ángulo (en horas) hacia un lado y otro.
+ */
+private fun posicionarEventos(
+    eventos: List<Registro>,
+    radioBase: Float,
+    horaDecimal: (Instant) -> Double,
+    punto: (Double, Float) -> Offset,
+    distanciaMinima: Float,
+    radioFloor: Float,
+    radioPaso: Float
+): List<Pair<Registro, Offset>> {
+    fun ordenDeTipo(tipo: TipoRegistro): Int = when (tipo) {
+        TipoRegistro.BIBERON -> 0
+        TipoRegistro.PECHO -> 1
+        TipoRegistro.PANAL -> 2
+        else -> 3
+    }
+    fun horaEnvuelta(h: Double): Double {
+        val r = h % 24.0
+        return if (r < 0) r + 24.0 else r
+    }
+    fun colisiona(p: Offset, puntos: List<Offset>): Boolean = puntos.any {
+        val dx = it.x - p.x; val dy = it.y - p.y
+        dx * dx + dy * dy < distanciaMinima * distanciaMinima
+    }
+
+    val ordenados = eventos.sortedWith(
+        compareBy({ it.inicio }, { ordenDeTipo(it.tipo) })
+    )
+    val desplazamientos = listOf(0.14, -0.14, 0.28, -0.28, 0.42, -0.42, 0.56, -0.56, 0.70, -0.70)
+    val resultado = mutableListOf<Pair<Registro, Offset>>()
+    for (registro in ordenados) {
+        val h = horaDecimal(registro.inicio)
+        var radio = radioBase
+        var p = punto(h, radio)
+        var intentos = 0
+        while (colisiona(p, resultado.map { it.second }) && intentos < 14) {
+            if (radio > radioFloor) {
+                radio -= radioPaso
+                p = punto(h, radio)
+            } else {
+                val desplazamiento = desplazamientos[intentos % desplazamientos.size]
+                p = punto(horaEnvuelta(h + desplazamiento), radio)
+            }
+            intentos++
+        }
+        resultado.add(registro to p)
+    }
+    return resultado
+}
+
+/**
+ * ¿El intervalo (siesta/noche/despertar) toca este día? Es decir, su rango
+ * [inicio, fin ?: ahora] se solapa con el día, aunque haya empezado ayer,
+ * siga en curso o termine mañana.
+ */
+private fun tocaDia(registro: Registro, dia: LocalDate, ahora: Instant, zona: ZoneId): Boolean {
+    val inicioDia = dia.atStartOfDay(zona).toInstant()
+    val finDia = dia.plusDays(1).atStartOfDay(zona).toInstant()
+    val fin = registro.fin ?: ahora
+    return registro.inicio.isBefore(finDia) && fin.isAfter(inicioDia)
+}
+
+/**
+ * El tramo (desde, hasta), en horas decimales de 0 a 24, que le corresponde
+ * a "dia" de un intervalo que puede haber empezado ayer, seguir en curso
+ * (sin fin todavía, se usa "ahora" como fin provisional) o terminar mañana.
+ */
+private fun horasDe(registro: Registro, dia: LocalDate, ahora: Instant, zona: ZoneId): Pair<Double, Double> {
+    val inicioDia = dia.atStartOfDay(zona).toInstant()
+    val finDia = dia.plusDays(1).atStartOfDay(zona).toInstant()
+    val inicioClamp = maxOf(registro.inicio, inicioDia)
+    val finClamp = minOf(registro.fin ?: ahora, finDia)
+    if (!inicioClamp.isBefore(finClamp)) return 0.0 to 0.2
+
+    fun horaDecimal(instante: Instant): Double {
+        val t = instante.atZone(zona)
+        return t.hour + t.minute / 60.0 + t.second / 3600.0
+    }
+    val desde = horaDecimal(inicioClamp)
+    val hasta = horaDecimal(finClamp)
+    return desde to max(hasta, min(desde + 0.2, 24.0))
+}
+
+/**
  * El tramo (desde, hasta), en horas decimales, que le corresponde a "dia"
- * de un registro que puede haber empezado el día anterior o terminar el
- * siguiente — por ejemplo, un sueño nocturno de 20:24 a 8:00.
+ * de un registro TERMINADO que puede haber empezado el día anterior o
+ * terminar el siguiente — por ejemplo, un sueño nocturno de 20:24 a 8:00.
  *
  * Devuelve null cuando el registro no toca ese día en absoluto, así que
  * también sirve para filtrar ("solo los que sí pertenecen a este día").
+ * Se mantiene (la usa PantallaDia para la barra de sueño de 24h) junto a
+ * `horasDe`, que es la versión para el propio reloj: admite intervalos en
+ * curso (sin fin) y nunca devuelve null.
  */
 fun tramoEnDia(registro: Registro, dia: LocalDate, zona: ZoneId): Pair<Double, Double>? {
     val fin = registro.fin ?: return null
@@ -366,3 +551,5 @@ fun colorDeTipo(tipo: TipoRegistro, c: NubiColores): Color = when (tipo) {
 private fun Modifier.offsetPx(x: Float, y: Float): Modifier = this.offset {
     IntOffset(x.roundToInt(), y.roundToInt())
 }
+
+private fun Float.dpPx(densidad: androidx.compose.ui.unit.Density): Float = with(densidad) { this@dpPx.dp.toPx() }

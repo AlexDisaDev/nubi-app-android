@@ -867,7 +867,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         }
 
         Spacer(Modifier.height(16.dp))
-        RelojDelDia(registros = registros, dia = diaSeleccionado)
+        RelojDelDia(bebe = bebe, registros = registros, dia = diaSeleccionado)
 
         Spacer(Modifier.height(20.dp))
         BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno)
