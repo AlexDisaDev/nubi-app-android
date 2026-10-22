@@ -832,6 +832,14 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         .coerceAtLeast(0L)
     val tomas = eventosDelDia.count { it.tipo.esAlimentacion }
 
+    // Si lo acumulado hoy ya cae dentro de lo que le toca dormir a su edad
+    // (misma tabla de MotorSueno que usa la predicción de Hoy), la tarjeta
+    // de sueño se pone en verde.
+    val guiaEdad = MotorSueno.guiaAjustada(
+        bebe.edadEnMeses(diaSeleccionado.atTime(12, 0).atZone(zonaLocal).toInstant())
+    )
+    val suenoSaludable = (minutosSueno / 60.0) in guiaEdad.suenoTotalHoras
+
     // La lista completa, en orden cronológico: los sueños con el inicio
     // real (aunque sea de ayer, para el chip "noche anterior") y el resto
     // de eventos del día.
@@ -880,7 +888,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         RelojDelDia(bebe = bebe, registros = registros, dia = diaSeleccionado)
 
         Spacer(Modifier.height(20.dp))
-        BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno)
+        BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno, suenoSaludable)
 
         Spacer(Modifier.height(16.dp))
         BotoneraDia(bebe.id, diaSeleccionado)
@@ -959,24 +967,30 @@ private fun BotonFlechaDia(mirar: Boolean, habilitado: Boolean = true, onClick: 
 
 /**
  * La barra horizontal de 0h a 24h con los tramos de sueño de este día, y
- * el total en una insignia con borde de color encima — aproximación de la
- * barra de VistaLinea.swift, a falta de medir la captura con precisión.
+ * el total en una insignia encima. El marco de la tarjeta y el borde de
+ * la insignia se ponen en menta cuando lo dormido hoy ya cae dentro de
+ * lo que le toca a su edad (mismo cálculo que la predicción de Hoy);
+ * si no, se quedan en coral.
  */
 @Composable
 private fun BarraSuenoDia(
     suenos: List<Pair<Registro, Pair<Double, Double>>>,
     dia: LocalDate,
-    minutosTotales: Long
+    minutosTotales: Long,
+    saludable: Boolean
 ) {
     val colores = NubiTheme.colores
     val esHoy = dia == LocalDate.now(zonaLocal)
     val fraccionAhora = if (esHoy) (horaDecimalDe(Instant.now()) / 24.0) else 0.5
     val bias = (fraccionAhora * 2 - 1).toFloat().coerceIn(-1f, 1f)
+    val colorMarco = if (saludable) colores.menta else colores.coral
 
     Card(
         shape = RoundedCornerShape(NubiGeometria.radio),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.5.dp, colorMarco, RoundedCornerShape(NubiGeometria.radio))
     ) {
         Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("SUEÑO DE HOY", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
@@ -1011,7 +1025,7 @@ private fun BarraSuenoDia(
                         .size(60.dp)
                         .clip(CircleShape)
                         .background(colores.superficie)
-                        .border(2.5.dp, colores.coral, CircleShape),
+                        .border(2.5.dp, colorMarco, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
