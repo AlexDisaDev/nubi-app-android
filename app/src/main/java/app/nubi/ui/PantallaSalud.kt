@@ -1572,9 +1572,19 @@ fun HojaMedicinaDia(
         mutableStateOf(dia.atTime(horaInicial.atZone(zonaSalud).toLocalTime()).atZone(zonaSalud).toInstant())
     }
     var avisar by remember { mutableStateOf(false) }
+    var horaSiguiente by remember { mutableStateOf<Instant?>(null) }
     var nota by remember { mutableStateOf("") }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
     var mostrarSelectorHora by remember { mutableStateOf(false) }
+    var mostrarSelectorFechaSiguiente by remember { mutableStateOf(false) }
+    var mostrarSelectorHoraSiguiente by remember { mutableStateOf(false) }
+
+    // Por defecto, 8h después de la toma (el intervalo típico de un
+    // antitérmico) — se puede ajustar a mano con los dos chips de abajo.
+    fun alternarAvisar(nuevo: Boolean) {
+        avisar = nuevo
+        if (nuevo && horaSiguiente == null) horaSiguiente = fecha.plusSeconds(8 * 3600L)
+    }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -1624,22 +1634,34 @@ fun HojaMedicinaDia(
             Spacer(Modifier.height(14.dp))
 
             Tarjeta {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clickable { avisar = !avisar },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Avisar de la siguiente toma", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
-                        Text(
-                            "Te avisamos cuando llegue la hora",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colores.tintaTenue
-                        )
+                Column(Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { alternarAvisar(!avisar) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Avisar de la siguiente toma", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                            Text(
+                                "Te avisamos cuando llegue la hora",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colores.tintaTenue
+                            )
+                        }
+                        Switch(checked = avisar, onCheckedChange = { alternarAvisar(it) })
                     }
-                    Switch(checked = avisar, onCheckedChange = { avisar = it })
+                    if (avisar) {
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedButton(onClick = { mostrarSelectorFechaSiguiente = true }) {
+                                Text(textoFechaCorta(horaSiguiente ?: fecha))
+                            }
+                            OutlinedButton(onClick = { mostrarSelectorHoraSiguiente = true }) {
+                                Text(formatoHoraSalud.format(horaSiguiente ?: fecha))
+                            }
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -1661,7 +1683,13 @@ fun HojaMedicinaDia(
             Button(
                 onClick = {
                     Repositorio.guardarMedicina(
-                        Medicina(bebeId = bebeId, fechaToma = fecha, nombre = nombre, nota = nota)
+                        Medicina(
+                            bebeId = bebeId,
+                            fechaToma = fecha,
+                            nombre = nombre,
+                            nota = nota,
+                            horaSiguiente = if (avisar) horaSiguiente else null
+                        )
                     )
                     onCerrar()
                 },
@@ -1704,6 +1732,47 @@ fun HojaMedicinaDia(
             },
             dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } },
             text = { TimePicker(state = estado) }
+        )
+    }
+
+    if (mostrarSelectorFechaSiguiente) {
+        val base = horaSiguiente ?: fecha
+        val estado = rememberDatePickerState(initialSelectedDateMillis = fechaAMillisUtc(base))
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFechaSiguiente = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    estado.selectedDateMillis?.let { millis ->
+                        val diaNuevo = millisUtcAFecha(millis).atZone(zonaSalud).toLocalDate()
+                        val horaVieja = base.atZone(zonaSalud).toLocalTime()
+                        horaSiguiente = diaNuevo.atTime(horaVieja).atZone(zonaSalud).toInstant()
+                    }
+                    mostrarSelectorFechaSiguiente = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarSelectorFechaSiguiente = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = estado) }
+    }
+
+    if (mostrarSelectorHoraSiguiente) {
+        val base = horaSiguiente ?: fecha
+        val horaActualSiguiente = base.atZone(zonaSalud).toLocalTime()
+        val estadoSiguiente = rememberTimePickerState(
+            initialHour = horaActualSiguiente.hour,
+            initialMinute = horaActualSiguiente.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { mostrarSelectorHoraSiguiente = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val diaActual = base.atZone(zonaSalud).toLocalDate()
+                    horaSiguiente = diaActual.atTime(estadoSiguiente.hour, estadoSiguiente.minute).atZone(zonaSalud).toInstant()
+                    mostrarSelectorHoraSiguiente = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarSelectorHoraSiguiente = false }) { Text("Cancelar") } },
+            text = { TimePicker(state = estadoSiguiente) }
         )
     }
 }
