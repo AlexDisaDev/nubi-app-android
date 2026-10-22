@@ -48,9 +48,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
 import app.nubi.data.MotorEtapas
+import app.nubi.data.MotorSueno
+import app.nubi.data.PrediccionDia
 import app.nubi.data.Registro
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
+import app.nubi.data.TipoPrediccion
 import app.nubi.data.TipoRegistro
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
@@ -289,6 +292,12 @@ fun PantallaHoy(
     // alguna definida para su edad.
     val etapaActual = remember(bebe.id) { MotorEtapas.etapaActual(bebe.edadEnDias()) }
 
+    // Próxima ventana de sueño (ver MotorSueno.kt, traducido de VentanasDespierto.swift):
+    // null si ya está durmiendo, si no hay suficientes datos del día, o si el
+    // motor no puede cuadrar un plan. Se recalcula en cada recomposición: el
+    // propio motor memoiza el resultado por minuto.
+    val prediccion = MotorSueno.prediccionDelDia(bebe = bebe, registros = registros, ahora = ahora)
+
     var mostrarHojaPecho by remember { mutableStateOf(false) }
     var mostrarHojaBiberon by remember { mutableStateOf(false) }
     var mostrarHojaPanal by remember { mutableStateOf(false) }
@@ -449,6 +458,11 @@ fun PantallaHoy(
 
         Spacer(Modifier.height(14.dp))
 
+        prediccion?.let { p ->
+            TarjetaPrediccion(prediccion = p, ahora = ahora)
+            Spacer(Modifier.height(10.dp))
+        }
+
         FilaUltimaToma(
             ultimoBiberon = ultimoBiberon,
             ultimoPecho = ultimoPecho,
@@ -550,6 +564,74 @@ private fun FilaResumenHoy(
         }
     }
 }
+
+/** Tarjeta deliberadamente escueta (igual que tarjetaPrediccion en iOS): qué
+ *  ventana de sueño viene y si ya se ha pasado. El motor calcula además la
+ *  vigilia prevista, el despertar de referencia y un diagnóstico del día,
+ *  pero no se muestran aquí — llenarla de datos la hacía pesada de leer de
+ *  un vistazo. */
+@Composable
+private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
+    val colores = NubiTheme.colores
+    val yaEnVentana = prediccion.yaEnVentana(ahora)
+    val pasada = prediccion.pasada(ahora)
+    val colorCategoria = if (prediccion.tipo == TipoPrediccion.NOCHE) colores.lila else colores.indigo
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BadgeIcono(
+                if (prediccion.tipo == TipoPrediccion.NOCHE) IconoNubi.LUNA else IconoNubi.RELOJ,
+                colorFondo = colorCategoria,
+                colorIcono = colores.tinta
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    textoPrediccion(prediccion, yaEnVentana, pasada),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    subtituloPrediccion(prediccion, ahora, yaEnVentana, pasada),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaTenue
+                )
+            }
+        }
+    }
+}
+
+private fun textoPrediccion(p: PrediccionDia, yaEnVentana: Boolean, pasada: Boolean): String = when (p.tipo) {
+    TipoPrediccion.SIESTA -> when {
+        yaEnVentana -> "Buena ventana ahora · hasta ${formatoHora.format(p.hasta)}"
+        pasada -> "Se ha pasado la ventana ideal"
+        else -> "Próxima siesta · ${formatoHora.format(p.desde)} – ${formatoHora.format(p.hasta)}"
+    }
+    TipoPrediccion.NOCHE ->
+        if (yaEnVentana || pasada) "Es hora de dormir 🌙"
+        else "Sueño nocturno · ${formatoHora.format(p.desde)}"
+}
+
+private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: Boolean, pasada: Boolean): String =
+    when (p.tipo) {
+        TipoPrediccion.SIESTA ->
+            if (p.ajustadaPorHistorial) "Ajustado a su ritmo real" else "Basado en su edad"
+        TipoPrediccion.NOCHE -> {
+            if (yaEnVentana || pasada) {
+                "Última ventana del día"
+            } else {
+                val restanteMin = Duration.between(ahora, p.desde).toMinutes()
+                if (restanteMin > 0) "En ${textoDuracion(restanteMin)} · última siesta hecha"
+                else "Última ventana del día"
+            }
+        }
+    }
 
 /** Un solo bloque de "Última toma" — como tarjetaAlimentacion en iOS: no
  *  hay una fila por tipo, sino una única línea con la toma más reciente
