@@ -42,15 +42,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
+import app.nubi.data.GuiaEdadAjustada
 import app.nubi.data.LadoPecho
 import app.nubi.data.MotorEtapas
 import app.nubi.data.MotorSueno
@@ -886,7 +885,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         RelojDelDia(bebe = bebe, registros = registros, dia = diaSeleccionado)
 
         Spacer(Modifier.height(20.dp))
-        BarraSuenoDia(suenosDelDia, minutosSueno, suenoSaludable)
+        BarraSuenoDia(guiaEdad, minutosSueno, suenoSaludable)
 
         Spacer(Modifier.height(16.dp))
         BotoneraDia(bebe.id, diaSeleccionado)
@@ -964,19 +963,19 @@ private fun BotonFlechaDia(mirar: Boolean, habilitado: Boolean = true, onClick: 
 }
 
 /**
- * La barra de "SUEÑO DE HOY": NO es un reloj de 0h-24h del día (eso ya lo
- * dibuja RelojDelDia arriba) — el eje es una escala de HORAS DORMIDAS, de
- * 0h a 24h de sueño. Los tramos de sueño del día se concatenan uno detrás
- * de otro por orden cronológico (no por su hora real), coloreados por
- * tipo, y la insignia con el total se queda justo al final de lo ya
- * acumulado: no hay ningún "relleno" de progreso, son los tramos reales
- * puestos en fila. El marco de la tarjeta y el borde de la insignia se
- * ponen en menta cuando lo dormido hoy ya cae dentro de lo que le toca a
- * su edad (mismo cálculo que la predicción de Hoy); si no, en coral.
+ * La barra de "SUEÑO DE HOY": el eje es una escala de HORAS DORMIDAS (0h a
+ * 24h de sueño total), no un reloj del día (eso ya lo dibuja RelojDelDia
+ * arriba). Es solo la píldora la que lleva el marco de color — la tarjeta
+ * en sí queda igual que el resto, sin borde — y dentro de la píldora se
+ * ve siempre el tramo saludable para su edad (una banda fija, tenue, en
+ * menta) como referencia; la barra en sí NO se rellena con lo dormido,
+ * solo la insignia del total se desliza hasta su sitio. Marco de la
+ * píldora y borde de la insignia se ponen en menta cuando lo acumulado
+ * hoy ya cae dentro de esa banda sana para su edad; si no, en coral.
  */
 @Composable
 private fun BarraSuenoDia(
-    suenos: List<Pair<Registro, Pair<Double, Double>>>,
+    guiaEdad: GuiaEdadAjustada,
     minutosTotales: Long,
     saludable: Boolean
 ) {
@@ -985,15 +984,17 @@ private fun BarraSuenoDia(
 
     val fraccionTotal = (minutosTotales / (24f * 60f)).coerceIn(0f, 1f)
     val bias = (fraccionTotal * 2 - 1).coerceIn(-1f, 1f)
+    val bandaDesde = (guiaEdad.suenoTotalHoras.start / 24.0).coerceIn(0.0, 1.0)
+    val bandaHasta = (guiaEdad.suenoTotalHoras.endInclusive / 24.0).coerceIn(0.0, 1.0)
 
     Card(
         shape = RoundedCornerShape(NubiGeometria.radio),
-        colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.5.dp, colorMarco, RoundedCornerShape(NubiGeometria.radio))
+        colors = CardDefaults.cardColors(containerColor = colores.superficie)
     ) {
-        Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier.fillMaxWidth().padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text("SUEÑO DE HOY", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
             Spacer(Modifier.height(16.dp))
 
@@ -1003,30 +1004,37 @@ private fun BarraSuenoDia(
                     .height(44.dp)
             ) {
                 Canvas(Modifier.matchParentSize()) {
+                    val radio = size.height / 2f
+                    // Fondo de la píldora.
                     drawRoundRect(
                         color = colores.lienzoAlto,
                         size = size,
-                        cornerRadius = CornerRadius(size.height / 2f)
+                        cornerRadius = CornerRadius(radio)
                     )
-                    // Los tramos se recortan a la forma de la píldora para
-                    // que no asomen cuadrados por las puntas redondeadas.
-                    val forma = Path().apply {
-                        addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(size.height / 2f)))
+                    // Banda fija y tenue con el rango de horas de sueño
+                    // sano para su edad — no se mueve con lo dormido hoy,
+                    // es solo la referencia contra la que se compara.
+                    val xBandaDesde = (bandaDesde * size.width).toFloat()
+                    val xBandaHasta = (bandaHasta * size.width).toFloat()
+                    if (xBandaHasta > xBandaDesde) {
+                        drawRect(
+                            color = colores.menta.copy(alpha = 0.35f),
+                            topLeft = Offset(xBandaDesde, 0f),
+                            size = Size(xBandaHasta - xBandaDesde, size.height)
+                        )
                     }
-                    clipPath(forma) {
-                        var xAcumulado = 0f
-                        suenos.sortedBy { (_, tramo) -> tramo.first }.forEach { (registro, tramo) ->
-                            val ancho = ((tramo.second - tramo.first) / 24.0 * size.width).toFloat()
-                            if (ancho > 0f) {
-                                drawRect(
-                                    color = if (registro.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta,
-                                    topLeft = Offset(xAcumulado, 0f),
-                                    size = Size(ancho, size.height)
-                                )
-                                xAcumulado += ancho
-                            }
-                        }
-                    }
+                    // El marco de la píldora: menta si lo dormido hoy cae
+                    // dentro de la banda sana, coral si no. Se mete medio
+                    // grosor hacia dentro para que el trazo no quede
+                    // recortado por el borde del lienzo.
+                    val grosorMarco = 1.5.dp.toPx()
+                    drawRoundRect(
+                        color = colorMarco,
+                        topLeft = Offset(grosorMarco / 2f, grosorMarco / 2f),
+                        size = Size(size.width - grosorMarco, size.height - grosorMarco),
+                        cornerRadius = CornerRadius(radio - grosorMarco / 2f),
+                        style = Stroke(width = grosorMarco)
+                    )
                 }
                 Box(
                     modifier = Modifier
