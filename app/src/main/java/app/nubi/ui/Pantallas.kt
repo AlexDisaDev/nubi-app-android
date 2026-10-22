@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1031,9 +1032,19 @@ private fun BarraSuenoDia(
 @Composable
 private fun BotoneraDia(bebeId: String, dia: LocalDate) {
     val colores = NubiTheme.colores
+    val datos by Repositorio.local.datos.collectAsState()
+    // Mismo cálculo que Repositorio.puedeUsarApp(): sin perfil aún
+    // (recién instalado, sin conexión) no se bloquea nada.
+    val bloqueado = datos.perfil?.let { !it.puedeUsarApp() } ?: false
+
     var hojaAbierta by remember { mutableStateOf<TipoRegistro?>(null) }
     var menuPechoAbierto by remember { mutableStateOf(false) }
     var ladoPechoElegido by remember { mutableStateOf<LadoPecho?>(null) }
+    var mostrarBloqueo by remember { mutableStateOf(false) }
+
+    fun alTocar(abrir: () -> Unit) {
+        if (bloqueado) mostrarBloqueo = true else abrir()
+    }
 
     Card(
         shape = RoundedCornerShape(NubiGeometria.radio),
@@ -1049,7 +1060,9 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                     fila.forEach { tipo ->
                         if (tipo == TipoRegistro.PECHO) {
                             Box {
-                                BotonCircular(tipo) { menuPechoAbierto = true }
+                                BotonCircular(tipo, bloqueado = bloqueado) {
+                                    alTocar { menuPechoAbierto = true }
+                                }
                                 MenuPecho(
                                     expandido = menuPechoAbierto,
                                     onCerrar = { menuPechoAbierto = false },
@@ -1060,14 +1073,16 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                                 )
                             }
                         } else {
-                            BotonCircular(tipo) { hojaAbierta = tipo }
+                            BotonCircular(tipo, bloqueado = bloqueado) {
+                                alTocar { hojaAbierta = tipo }
+                            }
                         }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                "Toca para apuntarlo",
+                if (bloqueado) "Se acabó tu prueba gratuita" else "Toca para apuntarlo",
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -1088,20 +1103,37 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
     ladoPechoElegido?.let { lado ->
         HojaPechoHora(bebeId = bebeId, lado = lado, dia = dia) { ladoPechoElegido = null }
     }
+
+    if (mostrarBloqueo) {
+        HojaPremiumBloqueado { mostrarBloqueo = false }
+    }
 }
 
 @Composable
-private fun BotonCircular(tipo: TipoRegistro, onClick: () -> Unit) {
+private fun BotonCircular(tipo: TipoRegistro, bloqueado: Boolean = false, onClick: () -> Unit) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
             .background(colorDeTipo(tipo, colores))
+            .graphicsLayer(alpha = if (bloqueado) 0.4f else 1f)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 18.dp)
+        if (bloqueado) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(colores.superficie),
+                contentAlignment = Alignment.Center
+            ) {
+                Icono(IconoNubi.CANDADO, tint = colores.tintaSuave, tamano = 10.dp)
+            }
+        }
     }
 }
 

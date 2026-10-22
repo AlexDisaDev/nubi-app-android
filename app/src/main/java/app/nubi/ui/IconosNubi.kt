@@ -44,7 +44,8 @@ enum class IconoNubi {
     JERINGA, CALENDARIO, BOTIQUIN, CHECK,
     LAPIZ, ESTRELLA, CACA,
     BRAZOS, CUNA, CARRITO, COCHE,
-    CONTENTO, MOLESTO
+    CONTENTO, MOLESTO,
+    CANDADO
 }
 
 @Composable
@@ -91,6 +92,7 @@ fun Icono(
             IconoNubi.COCHE -> dibujarCoche(tint)
             IconoNubi.CONTENTO -> dibujarContento(tint)
             IconoNubi.MOLESTO -> dibujarMolesto(tint)
+            IconoNubi.CANDADO -> dibujarCandado(tint)
         }
     }
 }
@@ -822,4 +824,32 @@ private fun DrawScope.dibujarMolesto(color: Color) {
         cubicTo(w * 0.4f, h * 0.58f, w * 0.6f, h * 0.58f, w * 0.68f, h * 0.7f)
     }
     drawPath(mueca, color, style = Stroke(width = grosor * 0.7f, cap = StrokeCap.Round))
+}
+
+/** Candado — insignia de "esto es premium" sobre un botón bloqueado. */
+private fun DrawScope.dibujarCandado(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.1f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.2f, h * 0.46f),
+        size = Size(w * 0.6f, h * 0.42f),
+        cornerRadius = CornerRadius(w * 0.08f),
+        style = Stroke(width = grosor)
+    )
+    drawArc(
+        color = color,
+        startAngle = 180f,
+        sweepAngle = 180f,
+        useCenter = false,
+        topLeft = Offset(w * 0.3f, h * 0.14f),
+        size = Size(w * 0.4f, h * 0.4f),
+        style = Stroke(width = grosor * 0.85f, cap = StrokeCap.Round)
+    )
+    drawCircle(color, radius = w * 0.05f, center = Offset(w * 0.5f, h * 0.62f))
+    drawLine(
+        color, Offset(w * 0.5f, h * 0.64f), Offset(w * 0.5f, h * 0.78f),
+        strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
+    )
 }

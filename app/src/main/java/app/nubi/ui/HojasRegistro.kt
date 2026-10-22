@@ -1329,3 +1329,47 @@ fun HojaPechoHora(
         }
     }
 }
+
+// =====================================================================
+// Bloqueo por prueba/premium — se abre en vez de la hoja de registro
+// cuando se acaban los 7 días de prueba y no hay premium activo (ver
+// Repositorio.puedeUsarApp). iOS todavía no tiene una pantalla para esto:
+// este diseño es nuevo y a falta de que Alejandro lo revise.
+// =====================================================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
+    val colores = NubiTheme.colores
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = NubiGeometria.margen)
+                .padding(bottom = 28.dp)
+        ) {
+            CabeceraHoja(
+                IconoNubi.CANDADO,
+                colores.lila,
+                "Se acabó tu prueba gratuita",
+                "Han pasado tus 7 días de prueba. Canjea un código de regalo o hazte premium para seguir registrando."
+            )
+            Spacer(Modifier.height(20.dp))
+            BloqueCanjearCodigo(
+                alCanjear = {
+                    Repositorio.sincronizarEnSegundoPlano()
+                    onCerrar()
+                }
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Suscripción mensual, trimestral o anual: muy pronto.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colores.tintaTenue,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
