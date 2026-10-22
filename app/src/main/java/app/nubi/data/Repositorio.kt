@@ -82,6 +82,25 @@ object Repositorio {
         }
     }
 
+    fun guardarMedicina(medicina: Medicina) {
+        ambito.launch {
+            val actualizada = medicina.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(medicinas = d.medicinas.filterNot { it.id == actualizada.id } + actualizada)
+            }
+            local.marcarPendiente(Tablas.MEDICINAS, actualizada.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarMedicina(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(medicinas = d.medicinas.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.MEDICINAS, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
+
     fun guardarMedida(medida: Medida) {
         ambito.launch {
             val actualizada = medida.copy(actualizadoEn = Instant.now())

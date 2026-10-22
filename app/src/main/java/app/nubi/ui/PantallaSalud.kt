@@ -64,6 +64,7 @@ import app.nubi.data.EstadoVacuna
 import app.nubi.data.GrupoVacunal
 import app.nubi.data.GrupoVacunas
 import app.nubi.data.ItemVacuna
+import app.nubi.data.Medicina
 import app.nubi.data.Repositorio
 import app.nubi.data.TipoCita
 import app.nubi.data.VacunaPropia
@@ -71,6 +72,7 @@ import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -1544,3 +1546,164 @@ private fun fechaAMillisUtc(fecha: Instant): Long =
 
 private fun millisUtcAFecha(millis: Long): Instant =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(zonaSalud).toInstant()
+
+// =====================================================================
+// Medicina — se abre desde la botonera de la pestaña Día (ver
+// BotoneraDia en Pantallas.kt). A diferencia de Registro, esto se guarda
+// en su propia tabla "medicinas" (ver Modelos.kt y Repositorio.kt).
+//
+// "Avisar de la siguiente toma" se deja preparado en la interfaz, pero
+// todavía no programa ningún aviso real de Android: Medicina no tiene
+// donde guardar esa preferencia (solo un horaSiguiente concreto), y
+// armar una notificación de verdad es trabajo de una fase posterior.
+// =====================================================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HojaMedicinaDia(
+    bebeId: String,
+    dia: LocalDate,
+    horaInicial: Instant = Instant.now(),
+    onCerrar: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var nombre by remember { mutableStateOf("") }
+    var fecha by remember {
+        mutableStateOf(dia.atTime(horaInicial.atZone(zonaSalud).toLocalTime()).atZone(zonaSalud).toInstant())
+    }
+    var avisar by remember { mutableStateOf(false) }
+    var nota by remember { mutableStateOf("") }
+    var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    var mostrarSelectorHora by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = NubiGeometria.margen)
+                .padding(bottom = 28.dp)
+        ) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                BadgeIcono(
+                    IconoNubi.JERINGA,
+                    colorFondo = Color.White,
+                    colorIcono = Color.Black,
+                    tamano = 54.dp,
+                    tamanoIcono = 24.dp
+                )
+                Spacer(Modifier.height(10.dp))
+                Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Anota la toma y programa un aviso",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colores.tintaSuave
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+
+            Tarjeta {
+                Column(Modifier.padding(16.dp)) {
+                    EtiquetaSeccion("Nombre de la medicina")
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = nombre, onValueChange = { nombre = it },
+                        placeholder = { Text("Apiretal, Augmentine…") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
+                    EtiquetaSeccion("Hora de la toma")
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(onClick = { mostrarSelectorFecha = true }) { Text(textoFechaCorta(fecha)) }
+                        OutlinedButton(onClick = { mostrarSelectorHora = true }) { Text(formatoHoraSalud.format(fecha)) }
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+
+            Tarjeta {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .clickable { avisar = !avisar },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Avisar de la siguiente toma", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                        Text(
+                            "Te avisamos cuando llegue la hora",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                    Switch(checked = avisar, onCheckedChange = { avisar = it })
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+
+            Tarjeta {
+                Column(Modifier.padding(16.dp)) {
+                    EtiquetaSeccion("Notas")
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = nota, onValueChange = { nota = it },
+                        placeholder = { Text("Dosis, indicaciones, reacciones…") },
+                        minLines = 2, maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+
+            Button(
+                onClick = {
+                    Repositorio.guardarMedicina(
+                        Medicina(bebeId = bebeId, fechaToma = fecha, nombre = nombre, nota = nota)
+                    )
+                    onCerrar()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Guardar") }
+        }
+    }
+
+    if (mostrarSelectorFecha) {
+        val estado = rememberDatePickerState(initialSelectedDateMillis = fechaAMillisUtc(fecha))
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFecha = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    estado.selectedDateMillis?.let { millis ->
+                        val diaNuevo = millisUtcAFecha(millis).atZone(zonaSalud).toLocalDate()
+                        val horaVieja = fecha.atZone(zonaSalud).toLocalTime()
+                        fecha = diaNuevo.atTime(horaVieja).atZone(zonaSalud).toInstant()
+                    }
+                    mostrarSelectorFecha = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = estado) }
+    }
+
+    if (mostrarSelectorHora) {
+        val horaActual = fecha.atZone(zonaSalud).toLocalTime()
+        val estado = rememberTimePickerState(initialHour = horaActual.hour, initialMinute = horaActual.minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { mostrarSelectorHora = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val diaActual = fecha.atZone(zonaSalud).toLocalDate()
+                    fecha = diaActual.atTime(estado.hour, estado.minute).atZone(zonaSalud).toInstant()
+                    mostrarSelectorHora = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } },
+            text = { TimePicker(state = estado) }
+        )
+    }
+}

@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
+import app.nubi.data.LadoPecho
 import app.nubi.data.MotorEtapas
 import app.nubi.data.MotorSueno
 import app.nubi.data.PrediccionDia
@@ -873,7 +874,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno)
 
         Spacer(Modifier.height(16.dp))
-        BotoneraDia(bebe.id)
+        BotoneraDia(bebe.id, diaSeleccionado)
 
         Spacer(Modifier.height(20.dp))
         Text(
@@ -1024,10 +1025,16 @@ private fun BarraSuenoDia(
 
 /** La botonera: un círculo de color por tipo, igual que en la lista y el
  *  reloj — ocho tipos en vez de los seis de antes (faltaban despertar
- *  nocturno, medicina y baño). */
+ *  nocturno, medicina y baño). Cada uno abre su hoja de registro, salvo
+ *  Pecho, que primero pregunta el lado en un menú anclado al propio
+ *  botón (ver MenuPecho en HojasRegistro.kt). */
 @Composable
-private fun BotoneraDia(bebeId: String) {
+private fun BotoneraDia(bebeId: String, dia: LocalDate) {
     val colores = NubiTheme.colores
+    var hojaAbierta by remember { mutableStateOf<TipoRegistro?>(null) }
+    var menuPechoAbierto by remember { mutableStateOf(false) }
+    var ladoPechoElegido by remember { mutableStateOf<LadoPecho?>(null) }
+
     Card(
         shape = RoundedCornerShape(NubiGeometria.radio),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
@@ -1039,30 +1046,59 @@ private fun BotoneraDia(bebeId: String) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    fila.forEach { tipo -> BotonCircular(tipo, bebeId) }
+                    fila.forEach { tipo ->
+                        if (tipo == TipoRegistro.PECHO) {
+                            Box {
+                                BotonCircular(tipo) { menuPechoAbierto = true }
+                                MenuPecho(
+                                    expandido = menuPechoAbierto,
+                                    onCerrar = { menuPechoAbierto = false },
+                                    onElegir = { lado ->
+                                        menuPechoAbierto = false
+                                        ladoPechoElegido = lado
+                                    }
+                                )
+                            }
+                        } else {
+                            BotonCircular(tipo) { hojaAbierta = tipo }
+                        }
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                "Toca para apuntarlo ahora",
+                "Toca para apuntarlo",
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
         }
     }
+
+    when (hojaAbierta) {
+        TipoRegistro.SIESTA -> HojaSiestaDia(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.NOCHE -> HojaSuenoNocturnoDia(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.BIBERON -> HojaBiberon(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.PANAL -> HojaPanal(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.DESPERTAR -> HojaDespertarNocturno(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.MEDICINA -> HojaMedicinaDia(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.BANO -> HojaBanoDia(bebeId, dia) { hojaAbierta = null }
+        TipoRegistro.PECHO, null -> Unit
+    }
+
+    ladoPechoElegido?.let { lado ->
+        HojaPechoHora(bebeId = bebeId, lado = lado, dia = dia) { ladoPechoElegido = null }
+    }
 }
 
 @Composable
-private fun BotonCircular(tipo: TipoRegistro, bebeId: String) {
+private fun BotonCircular(tipo: TipoRegistro, onClick: () -> Unit) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
             .background(colorDeTipo(tipo, colores))
-            .clickable {
-                Repositorio.guardarRegistro(Registro(bebeId = bebeId, tipo = tipo, inicio = Instant.now()))
-            },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 18.dp)

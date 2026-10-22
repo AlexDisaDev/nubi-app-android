@@ -42,7 +42,9 @@ enum class IconoNubi {
     MEDICINA, BANO, EQUIS,
     MAS, BASCULA, REGLA, PAPELERA,
     JERINGA, CALENDARIO, BOTIQUIN, CHECK,
-    LAPIZ, ESTRELLA, CACA
+    LAPIZ, ESTRELLA, CACA,
+    BRAZOS, CUNA, CARRITO, COCHE,
+    CONTENTO, MOLESTO
 }
 
 @Composable
@@ -83,6 +85,12 @@ fun Icono(
             IconoNubi.LAPIZ -> dibujarLapiz(tint)
             IconoNubi.ESTRELLA -> dibujarEstrella(tint)
             IconoNubi.CACA -> dibujarCaca(tint)
+            IconoNubi.BRAZOS -> dibujarBrazos(tint)
+            IconoNubi.CUNA -> dibujarCuna(tint)
+            IconoNubi.CARRITO -> dibujarCarrito(tint)
+            IconoNubi.COCHE -> dibujarCoche(tint)
+            IconoNubi.CONTENTO -> dibujarContento(tint)
+            IconoNubi.MOLESTO -> dibujarMolesto(tint)
         }
     }
 }
@@ -707,4 +715,111 @@ private fun DrawScope.dibujarEstrella(color: Color) {
     }
     camino.close()
     drawPath(camino, color)
+}
+
+// =====================================================================
+// "¿Dónde se durmió?" (HojaSiestaDia, ver LugarSueno en Modelos.kt) y
+// "¿Cómo lo llevó?" del Baño — iconos nuevos de esta tanda.
+// =====================================================================
+
+/** Dos brazos en forma de cuna, sosteniendo al bebé. */
+private fun DrawScope.dibujarBrazos(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.1f
+    val camino = Path().apply {
+        moveTo(w * 0.14f, h * 0.28f)
+        cubicTo(w * 0.1f, h * 0.68f, w * 0.28f, h * 0.84f, w * 0.5f, h * 0.84f)
+        cubicTo(w * 0.72f, h * 0.84f, w * 0.9f, h * 0.68f, w * 0.86f, h * 0.28f)
+    }
+    drawPath(camino, color, style = Stroke(width = grosor, cap = StrokeCap.Round))
+}
+
+/** Una cuna sencilla: colchón, barrotes y dos patas. */
+private fun DrawScope.dibujarCuna(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.07f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.16f, h * 0.36f),
+        size = Size(w * 0.68f, h * 0.14f),
+        cornerRadius = CornerRadius(w * 0.03f)
+    )
+    listOf(0.22f, 0.34f, 0.46f, 0.58f, 0.7f, 0.78f).forEach { fx ->
+        drawLine(
+            color, Offset(w * fx, h * 0.14f), Offset(w * fx, h * 0.36f),
+            strokeWidth = grosor * 0.55f, cap = StrokeCap.Round
+        )
+    }
+    drawLine(color, Offset(w * 0.22f, h * 0.5f), Offset(w * 0.16f, h * 0.86f), strokeWidth = grosor, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.78f, h * 0.5f), Offset(w * 0.84f, h * 0.86f), strokeWidth = grosor, cap = StrokeCap.Round)
+}
+
+/** Un carrito de paseo: capota, cuerpo, manillar y dos ruedas. */
+private fun DrawScope.dibujarCarrito(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.07f
+    val capota = Path().apply {
+        moveTo(w * 0.26f, h * 0.42f)
+        cubicTo(w * 0.28f, h * 0.16f, w * 0.64f, h * 0.14f, w * 0.68f, h * 0.4f)
+        close()
+    }
+    drawPath(capota, color)
+    drawLine(color, Offset(w * 0.28f, h * 0.42f), Offset(w * 0.7f, h * 0.56f), strokeWidth = grosor, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.7f, h * 0.56f), Offset(w * 0.3f, h * 0.56f), strokeWidth = grosor, cap = StrokeCap.Round)
+    drawLine(color, Offset(w * 0.7f, h * 0.56f), Offset(w * 0.88f, h * 0.28f), strokeWidth = grosor * 0.8f, cap = StrokeCap.Round)
+    drawCircle(color, radius = w * 0.08f, center = Offset(w * 0.36f, h * 0.84f))
+    drawCircle(color, radius = w * 0.08f, center = Offset(w * 0.64f, h * 0.84f))
+}
+
+/** Un coche visto de lado: techo, carrocería y dos ruedas. */
+private fun DrawScope.dibujarCoche(color: Color) {
+    val w = size.width
+    val h = size.height
+    val techo = Path().apply {
+        moveTo(w * 0.28f, h * 0.46f)
+        cubicTo(w * 0.32f, h * 0.24f, w * 0.68f, h * 0.24f, w * 0.72f, h * 0.46f)
+        close()
+    }
+    drawPath(techo, color)
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.1f, h * 0.44f),
+        size = Size(w * 0.8f, h * 0.24f),
+        cornerRadius = CornerRadius(w * 0.08f)
+    )
+    drawCircle(color, radius = w * 0.1f, center = Offset(w * 0.3f, h * 0.78f))
+    drawCircle(color, radius = w * 0.1f, center = Offset(w * 0.7f, h * 0.78f))
+}
+
+/** Carita sonriente — "Contento" en la hoja de Baño. */
+private fun DrawScope.dibujarContento(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawCircle(color, radius = w * 0.4f, center = Offset(w * 0.5f, h * 0.5f), style = Stroke(width = grosor))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.36f, h * 0.42f))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.64f, h * 0.42f))
+    val sonrisa = Path().apply {
+        moveTo(w * 0.32f, h * 0.56f)
+        cubicTo(w * 0.4f, h * 0.72f, w * 0.6f, h * 0.72f, w * 0.68f, h * 0.56f)
+    }
+    drawPath(sonrisa, color, style = Stroke(width = grosor * 0.7f, cap = StrokeCap.Round))
+}
+
+/** Carita disgustada — "Molesto" en la hoja de Baño. */
+private fun DrawScope.dibujarMolesto(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawCircle(color, radius = w * 0.4f, center = Offset(w * 0.5f, h * 0.5f), style = Stroke(width = grosor))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.36f, h * 0.44f))
+    drawCircle(color, radius = w * 0.045f, center = Offset(w * 0.64f, h * 0.44f))
+    val mueca = Path().apply {
+        moveTo(w * 0.32f, h * 0.7f)
+        cubicTo(w * 0.4f, h * 0.58f, w * 0.6f, h * 0.58f, w * 0.68f, h * 0.7f)
+    }
+    drawPath(mueca, color, style = Stroke(width = grosor * 0.7f, cap = StrokeCap.Round))
 }
