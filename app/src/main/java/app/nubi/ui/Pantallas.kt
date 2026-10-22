@@ -42,8 +42,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -774,11 +777,6 @@ private val formatoHoraCorta: DateTimeFormatter =
 
 private val zonaLocal = ZoneId.systemDefault()
 
-private fun horaDecimalDe(instante: Instant): Double {
-    val t = instante.atZone(zonaLocal)
-    return t.hour + t.minute / 60.0
-}
-
 private fun textoDuracionCompacta(minutos: Long): String {
     val h = minutos / 60
     val m = minutos % 60
@@ -888,7 +886,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         RelojDelDia(bebe = bebe, registros = registros, dia = diaSeleccionado)
 
         Spacer(Modifier.height(20.dp))
-        BarraSuenoDia(suenosDelDia, diaSeleccionado, minutosSueno, suenoSaludable)
+        BarraSuenoDia(suenosDelDia, minutosSueno, suenoSaludable)
 
         Spacer(Modifier.height(16.dp))
         BotoneraDia(bebe.id, diaSeleccionado)
@@ -966,24 +964,27 @@ private fun BotonFlechaDia(mirar: Boolean, habilitado: Boolean = true, onClick: 
 }
 
 /**
- * La barra horizontal de 0h a 24h con los tramos de sueño de este día, y
- * el total en una insignia encima. El marco de la tarjeta y el borde de
- * la insignia se ponen en menta cuando lo dormido hoy ya cae dentro de
- * lo que le toca a su edad (mismo cálculo que la predicción de Hoy);
- * si no, se quedan en coral.
+ * La barra de "SUEÑO DE HOY": NO es un reloj de 0h-24h del día (eso ya lo
+ * dibuja RelojDelDia arriba) — el eje es una escala de HORAS DORMIDAS, de
+ * 0h a 24h de sueño. Los tramos de sueño del día se concatenan uno detrás
+ * de otro por orden cronológico (no por su hora real), coloreados por
+ * tipo, y la insignia con el total se queda justo al final de lo ya
+ * acumulado: no hay ningún "relleno" de progreso, son los tramos reales
+ * puestos en fila. El marco de la tarjeta y el borde de la insignia se
+ * ponen en menta cuando lo dormido hoy ya cae dentro de lo que le toca a
+ * su edad (mismo cálculo que la predicción de Hoy); si no, en coral.
  */
 @Composable
 private fun BarraSuenoDia(
     suenos: List<Pair<Registro, Pair<Double, Double>>>,
-    dia: LocalDate,
     minutosTotales: Long,
     saludable: Boolean
 ) {
     val colores = NubiTheme.colores
-    val esHoy = dia == LocalDate.now(zonaLocal)
-    val fraccionAhora = if (esHoy) (horaDecimalDe(Instant.now()) / 24.0) else 0.5
-    val bias = (fraccionAhora * 2 - 1).toFloat().coerceIn(-1f, 1f)
     val colorMarco = if (saludable) colores.menta else colores.coral
+
+    val fraccionTotal = (minutosTotales / (24f * 60f)).coerceIn(0f, 1f)
+    val bias = (fraccionTotal * 2 - 1).coerceIn(-1f, 1f)
 
     Card(
         shape = RoundedCornerShape(NubiGeometria.radio),
@@ -1007,16 +1008,24 @@ private fun BarraSuenoDia(
                         size = size,
                         cornerRadius = CornerRadius(size.height / 2f)
                     )
-                    suenos.forEach { (registro, tramo) ->
-                        val (desde, hasta) = tramo
-                        val x0 = (desde / 24.0 * size.width).toFloat()
-                        val ancho = ((hasta - desde) / 24.0 * size.width).toFloat().coerceAtLeast(4f)
-                        drawRoundRect(
-                            color = if (registro.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta,
-                            topLeft = Offset(x0, 0f),
-                            size = Size(ancho, size.height),
-                            cornerRadius = CornerRadius(size.height / 2f)
-                        )
+                    // Los tramos se recortan a la forma de la píldora para
+                    // que no asomen cuadrados por las puntas redondeadas.
+                    val forma = Path().apply {
+                        addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(size.height / 2f)))
+                    }
+                    clipPath(forma) {
+                        var xAcumulado = 0f
+                        suenos.sortedBy { (_, tramo) -> tramo.first }.forEach { (registro, tramo) ->
+                            val ancho = ((tramo.second - tramo.first) / 24.0 * size.width).toFloat()
+                            if (ancho > 0f) {
+                                drawRect(
+                                    color = if (registro.tipo == TipoRegistro.NOCHE) colores.lila else colores.menta,
+                                    topLeft = Offset(xAcumulado, 0f),
+                                    size = Size(ancho, size.height)
+                                )
+                                xAcumulado += ancho
+                            }
+                        }
                     }
                 }
                 Box(
