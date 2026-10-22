@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.unit.Dp
@@ -45,7 +46,8 @@ enum class IconoNubi {
     LAPIZ, ESTRELLA, CACA,
     BRAZOS, CUNA, CARRITO, COCHE,
     CONTENTO, MOLESTO,
-    CANDADO
+    CANDADO,
+    CAMARA, GALERIA, PULGAR_ARRIBA, PULGAR_ABAJO, PLAY, PAUSA
 }
 
 @Composable
@@ -93,6 +95,12 @@ fun Icono(
             IconoNubi.CONTENTO -> dibujarContento(tint)
             IconoNubi.MOLESTO -> dibujarMolesto(tint)
             IconoNubi.CANDADO -> dibujarCandado(tint)
+            IconoNubi.CAMARA -> dibujarCamara(tint)
+            IconoNubi.GALERIA -> dibujarGaleria(tint)
+            IconoNubi.PULGAR_ARRIBA -> dibujarPulgarArriba(tint)
+            IconoNubi.PULGAR_ABAJO -> dibujarPulgarAbajo(tint)
+            IconoNubi.PLAY -> dibujarPlay(tint)
+            IconoNubi.PAUSA -> dibujarPausa(tint)
         }
     }
 }
@@ -852,4 +860,112 @@ private fun DrawScope.dibujarCandado(color: Color) {
         color, Offset(w * 0.5f, h * 0.64f), Offset(w * 0.5f, h * 0.78f),
         strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
     )
+}
+
+/** Cámara: cuerpo redondeado, visor y un pequeño flash arriba — "Hacer foto". */
+private fun DrawScope.dibujarCamara(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.12f, h * 0.32f),
+        size = Size(w * 0.76f, h * 0.54f),
+        cornerRadius = CornerRadius(w * 0.12f),
+        style = Stroke(width = grosor)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.38f, h * 0.18f),
+        size = Size(w * 0.24f, h * 0.14f),
+        cornerRadius = CornerRadius(w * 0.04f)
+    )
+    drawCircle(color, radius = w * 0.17f, center = Offset(w * 0.5f, h * 0.59f), style = Stroke(width = grosor * 0.85f))
+}
+
+/** Galería: marco de foto con una montaña y un sol — "Elegir foto". */
+private fun DrawScope.dibujarGaleria(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.08f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.12f, h * 0.16f),
+        size = Size(w * 0.76f, h * 0.68f),
+        cornerRadius = CornerRadius(w * 0.1f),
+        style = Stroke(width = grosor)
+    )
+    drawCircle(color, radius = w * 0.08f, center = Offset(w * 0.32f, h * 0.38f))
+    val monte = Path().apply {
+        moveTo(w * 0.18f, h * 0.76f)
+        lineTo(w * 0.4f, h * 0.5f)
+        lineTo(w * 0.56f, h * 0.68f)
+        lineTo(w * 0.68f, h * 0.54f)
+        lineTo(w * 0.82f, h * 0.76f)
+        close()
+    }
+    drawPath(monte, color)
+}
+
+/** Pulgar hacia arriba — "Le gustó". */
+private fun DrawScope.dibujarPulgarArriba(color: Color) {
+    val w = size.width
+    val h = size.height
+    val puño = Path().apply {
+        moveTo(w * 0.22f, h * 0.46f)
+        lineTo(w * 0.78f, h * 0.46f)
+        cubicTo(w * 0.84f, h * 0.46f, w * 0.86f, h * 0.52f, w * 0.82f, h * 0.58f)
+        lineTo(w * 0.74f, h * 0.84f)
+        cubicTo(w * 0.72f, h * 0.9f, w * 0.66f, h * 0.9f, w * 0.3f, h * 0.9f)
+        close()
+    }
+    drawPath(puño, color)
+    val pulgar = Path().apply {
+        moveTo(w * 0.22f, h * 0.46f)
+        cubicTo(w * 0.22f, h * 0.3f, w * 0.34f, h * 0.1f, w * 0.44f, h * 0.1f)
+        cubicTo(w * 0.5f, h * 0.1f, w * 0.52f, h * 0.16f, w * 0.48f, h * 0.24f)
+        lineTo(w * 0.4f, h * 0.42f)
+        close()
+    }
+    drawPath(pulgar, color)
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.1f, h * 0.46f),
+        size = Size(w * 0.14f, h * 0.44f),
+        cornerRadius = CornerRadius(w * 0.06f)
+    )
+}
+
+/** Pulgar hacia abajo — "No le gustó": el mismo dibujo que PULGAR_ARRIBA, volteado verticalmente. */
+private fun DrawScope.dibujarPulgarAbajo(color: Color) {
+    scale(1f, -1f, pivot = Offset(size.width / 2f, size.height / 2f)) {
+        dibujarPulgarArriba(color)
+    }
+}
+
+/** Triángulo apuntando a la derecha — "reproducir". */
+private fun DrawScope.dibujarPlay(color: Color) {
+    val w = size.width
+    val h = size.height
+    val camino = Path().apply {
+        moveTo(w * 0.32f, h * 0.18f)
+        lineTo(w * 0.32f, h * 0.82f)
+        lineTo(w * 0.82f, h * 0.5f)
+        close()
+    }
+    drawPath(camino, color)
+}
+
+/** Dos barras verticales — "pausar". */
+private fun DrawScope.dibujarPausa(color: Color) {
+    val w = size.width
+    val h = size.height
+    listOf(0.28f, 0.6f).forEach { fx ->
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * fx, h * 0.18f),
+            size = Size(w * 0.14f, h * 0.64f),
+            cornerRadius = CornerRadius(w * 0.04f)
+        )
+    }
 }

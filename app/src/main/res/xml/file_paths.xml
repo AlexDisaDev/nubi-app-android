@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rutas que el FileProvider puede exponer como content:// hacia fuera de
+    la app (ver AndroidManifest.xml). Solo la carpeta "fotos" dentro del
+    almacenamiento privado (filesDir), que es donde FotosNubi.kt guarda las
+    fotos de Alimentación.
+-->
+<paths>
+    <files-path name="fotos" path="fotos/" />
+</paths>

@@ -357,4 +357,69 @@ object Repositorio {
             sincronizador.sincronizar()
         }
     }
+
+    // -----------------------------------------------------------------
+    // Banco de leche
+    // -----------------------------------------------------------------
+
+    fun guardarExtraccion(extraccion: ExtraccionLeche) {
+        ambito.launch {
+            val actualizada = extraccion.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(extracciones = d.extracciones.filterNot { it.id == actualizada.id } + actualizada)
+            }
+            local.marcarPendiente(Tablas.EXTRACCIONES, actualizada.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarExtraccion(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(extracciones = d.extracciones.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.EXTRACCIONES, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun guardarUsoLeche(uso: UsoLeche) {
+        ambito.launch {
+            val actualizado = uso.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(usosLeche = d.usosLeche.filterNot { it.id == actualizado.id } + actualizado)
+            }
+            local.marcarPendiente(Tablas.USOS_LECHE, actualizado.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarUsoLeche(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(usosLeche = d.usosLeche.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.USOS_LECHE, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Alimentación complementaria
+    // -----------------------------------------------------------------
+
+    fun guardarComida(comida: ComidaComplementaria) {
+        ambito.launch {
+            val actualizada = comida.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(comidas = d.comidas.filterNot { it.id == actualizada.id } + actualizada)
+            }
+            local.marcarPendiente(Tablas.COMIDAS, actualizada.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarComida(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(comidas = d.comidas.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.COMIDAS, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
 }

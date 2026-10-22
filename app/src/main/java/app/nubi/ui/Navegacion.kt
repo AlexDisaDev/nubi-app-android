@@ -193,7 +193,15 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                 )
 
                 else -> when (val d = destino) {
-                    is Destino.Arriba -> PantallaEnObras(d.vista.titulo)
+                    is Destino.Arriba -> when (d.vista) {
+                        VistaSuperior.BANCO -> datos.bebe?.let {
+                            PantallaBanco(it, datos.extracciones, datos.usosLeche)
+                        }
+                        VistaSuperior.ALIMENTACION -> datos.bebe?.let {
+                            PantallaAlimentacion(it, datos.comidas)
+                        }
+                        VistaSuperior.SONIDOS -> PantallaSonidos()
+                    }
 
                     is Destino.Abajo -> when (d.pestana) {
                         Pestana.HOY -> datos.bebe?.let {
