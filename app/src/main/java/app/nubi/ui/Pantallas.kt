@@ -449,15 +449,13 @@ fun PantallaHoy(
 
         Spacer(Modifier.height(14.dp))
 
-        if (ultimoBiberon != null || ultimoPecho != null) {
-            FilaUltimaToma(
-                ultimoBiberon = ultimoBiberon,
-                ultimoPecho = ultimoPecho,
-                onBiberon = { mostrarHojaBiberon = true },
-                onPecho = { mostrarHojaPecho = true }
-            )
-            Spacer(Modifier.height(10.dp))
-        }
+        FilaUltimaToma(
+            ultimoBiberon = ultimoBiberon,
+            ultimoPecho = ultimoPecho,
+            onBiberon = { mostrarHojaBiberon = true },
+            onPecho = { mostrarHojaPecho = true }
+        )
+        Spacer(Modifier.height(10.dp))
 
         ultimoPanal?.let { registro ->
             FilaResumenHoy(
@@ -553,10 +551,11 @@ private fun FilaResumenHoy(
     }
 }
 
-/** Biberón y pecho juntos en una sola tarjeta — uno al lado del otro, no
- *  en filas separadas — porque un bebé puede tomar de los dos. Si solo se
- *  ha usado uno de los dos, el otro se ve igualmente con "Sin registros
- *  aún", en vez de desaparecer. */
+/** Un solo bloque de "Última toma" — como tarjetaAlimentacion en iOS: no
+ *  hay una fila por tipo, sino una única línea con la toma más reciente
+ *  de cualquiera de los dos (biberón o pecho), y a la derecha los DOS
+ *  iconos de acceso rápido siempre visibles, para poder registrar uno u
+ *  otro en cualquier momento sin que importe cuál se usó la última vez. */
 @Composable
 private fun FilaUltimaToma(
     ultimoBiberon: Registro?,
@@ -565,46 +564,43 @@ private fun FilaUltimaToma(
     onPecho: () -> Unit
 ) {
     val colores = NubiTheme.colores
+    val ultimo = listOfNotNull(ultimoBiberon, ultimoPecho).maxByOrNull { it.inicio }
+
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Última toma", style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(12.dp))
-            FilaTomaTipo(
-                icono = IconoNubi.BIBERON,
-                colorBadge = colores.mantequilla,
-                texto = ultimoBiberon?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
-                    ?: "Sin registros aún",
-                onClick = onBiberon
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    ultimo?.let { "Última toma · ${hace(it.inicio)}" } ?: "Alimentación",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    ultimo?.let { subtituloRegistro(it) } ?: "Sin registrar todavía",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaTenue
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            BadgeIcono(
+                IconoNubi.BIBERON,
+                colorFondo = colores.mantequilla,
+                colorIcono = colores.tinta,
+                modifier = Modifier.clickable(onClick = onBiberon)
             )
-            Spacer(Modifier.height(10.dp))
-            FilaTomaTipo(
-                icono = IconoNubi.CORAZON,
-                colorBadge = colores.melocoton,
-                texto = ultimoPecho?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
-                    ?: "Sin registros aún",
-                onClick = onPecho
+            Spacer(Modifier.width(8.dp))
+            BadgeIcono(
+                IconoNubi.CORAZON,
+                colorFondo = colores.melocoton,
+                colorIcono = colores.tinta,
+                modifier = Modifier.clickable(onClick = onPecho)
             )
         }
-    }
-}
-
-@Composable
-/** Mismo alineado que la fila de Pañal (FilaResumenHoy): el texto a la
- *  izquierda y la insignia de color a la derecha, sin flecha. */
-@Composable
-private fun FilaTomaTipo(icono: IconoNubi, colorBadge: Color, texto: String, onClick: () -> Unit) {
-    val colores = NubiTheme.colores
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(texto, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave, modifier = Modifier.weight(1f))
-        Spacer(Modifier.width(12.dp))
-        BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
     }
 }
 
