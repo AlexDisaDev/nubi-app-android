@@ -41,6 +41,13 @@ data class DatosNubi(
     val comidas: List<ComidaComplementaria> = emptyList(),
     val enfermedades: List<Enfermedad> = emptyList(),
 
+    /**
+     * Estado de la cuenta (prueba/premium) leído de la tabla "perfiles".
+     * Nunca se escribe desde aquí ni se marca como pendiente: solo lo
+     * cambia el servidor (ver Modelos.kt).
+     */
+    val perfil: Perfil? = null,
+
     /** Hora del despertar marcado a mano (iOS: despertarManual). */
     val despertarManual: Fecha? = null,
 

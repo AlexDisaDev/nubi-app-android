@@ -28,6 +28,7 @@ object Tablas {
     const val USOS_LECHE = "usos_leche"
     const val COMIDAS = "comidas_complementarias"
     const val ENFERMEDADES = "enfermedades"
+    const val PERFILES = "perfiles"
 }
 
 /**
@@ -207,9 +208,19 @@ class Sincronizador(private val local: AlmacenLocal) {
         val comidas = Supabase.client.from(Tablas.COMIDAS).select().decodeList<ComidaComplementaria>()
         val enfermedades = Supabase.client.from(Tablas.ENFERMEDADES).select().decodeList<Enfermedad>()
 
+        // El perfil (prueba/premium) no tiene pendientes propios: lo gestiona
+        // el servidor en exclusiva, aquí solo se lee la fila del usuario.
+        val miId = Supabase.client.auth.currentUserOrNull()?.id
+        val perfil = miId?.let {
+            Supabase.client.from(Tablas.PERFILES).select {
+                filter { eq("id", it) }
+            }.decodeList<Perfil>().firstOrNull()
+        }
+
         local.modificar { d ->
             d.copy(
                 bebe = bebes.firstOrNull()?.takeIf { it.id !in pendientes } ?: d.bebe,
+                perfil = perfil ?: d.perfil,
                 registros = fundir(d.registros, registros, pendientes, { it.id }, { it.actualizadoEn }),
                 medicinas = fundir(d.medicinas, medicinas, pendientes, { it.id }, { it.actualizadoEn }),
                 medidas = fundir(d.medidas, medidas, pendientes, { it.id }, { it.actualizadoEn }),

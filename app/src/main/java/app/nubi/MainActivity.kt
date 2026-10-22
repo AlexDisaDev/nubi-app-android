@@ -1,10 +1,15 @@
 package app.nubi
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,7 +37,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.ui.Navegacion
@@ -107,6 +115,22 @@ fun ContenidoApp() {
     val cargando by Repositorio.local.cargando.collectAsState()
     var bienvenidaVista by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
+
+    // Permiso de notificaciones (obligatorio desde Android 13): se pide una
+    // vez al entrar, para que los avisos de medicina y citas puedan sonar.
+    // Antes de Android 13 las apps ya tienen el permiso concedido de serie.
+    val contexto = LocalContext.current
+    val lanzadorPermiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* se conceda o no, no hay nada más que hacer aquí */ }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+        ) {
+            lanzadorPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     when {
         cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

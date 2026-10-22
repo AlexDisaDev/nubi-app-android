@@ -309,6 +309,29 @@ data class ComidaComplementaria(
     @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
 )
 
+/**
+ * Fila de "perfiles" (ver backend/001_cuenta_y_premium.sql). No la escribe
+ * nunca el cliente: la gestiona el servidor (alta con 7 días de prueba,
+ * canje de código de regalo, futura suscripción de Google Play). Aquí solo
+ * se lee, para saber si la cuenta puede seguir usando la app.
+ */
+@Serializable
+data class Perfil(
+    val id: String,
+    val email: String? = null,
+    @SerialName("premium_hasta") val premiumHasta: Fecha? = null,
+    @SerialName("premium_fuente") val premiumFuente: String? = null,
+    @SerialName("fecha_corte_prueba") val fechaCortePrueba: Fecha,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
+) {
+    /** Mismo cálculo que la función puede_registrar() de Supabase. */
+    fun puedeUsarApp(ahora: Instant = Instant.now()): Boolean {
+        val premiumActivo = premiumHasta != null && ahora.isBefore(premiumHasta)
+        val enPrueba = ahora.isBefore(fechaCortePrueba)
+        return premiumActivo || enPrueba
+    }
+}
+
 @Serializable
 data class Enfermedad(
     val id: String = nuevoId(),

@@ -1,11 +1,14 @@
 package app.nubi.data
 
 import android.content.Context
+import app.nubi.notificaciones.AvisosNubi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Punto único desde el que la interfaz accede a los datos.
@@ -23,26 +26,100 @@ object Repositorio {
     lateinit var sincronizador: Sincronizador
         private set
 
+    private lateinit var contexto: Context
+
     private var iniciado = false
+
+    /**
+     * Hora (en punto, hora local) a la que avisa "Avisarme la tarde de
+     * antes" de una cita: el día anterior a la cita, a esta hora.
+     * TODO: confirmar que coincide con la hora que usa iOS — de momento es
+     * una suposición razonable (20:00), no viene de ninguna captura.
+     */
+    private const val HORA_AVISO_CITA_PREVIA = 20
 
     fun iniciar(contexto: Context) {
         if (iniciado) return
         iniciado = true
 
-        local = AlmacenLocal(contexto.applicationContext, ambito)
+        this.contexto = contexto.applicationContext
+        local = AlmacenLocal(this.contexto, ambito)
         sincronizador = Sincronizador(local)
+
+        AvisosNubi.crearCanal(this.contexto)
 
         ambito.launch {
             local.cargar()
             // Primer intento de sincronizar al arrancar. Si no hay sesión o
             // no hay red, no hace nada y ya se reintentará.
             sincronizador.sincronizar()
+            // Y se repasan los avisos por si algo cambió mientras la app
+            // estaba cerrada (por ejemplo, una toma de hace rato que ya
+            // tendría que haber avisado y hay que descartar).
+            reprogramarAvisos(this@Repositorio.contexto)
         }
+    }
+
+    /** Espera a que termine de leer nubi.json. La usa ReceptorArranque. */
+    suspend fun esperarCarga() {
+        local.cargando.first { !it }
+    }
+
+    /**
+     * Vuelve a programar todos los avisos a partir de lo que hay en local
+     * ahora mismo. Se llama al arrancar la app y tras reiniciar el móvil
+     * (AlarmManager olvida las alarmas programadas en cada reinicio).
+     */
+    fun reprogramarAvisos(contexto: Context = this.contexto) {
+        val datos = local.datos.value
+        datos.medicinas.forEach { avisarDeMedicina(contexto, it) }
+        datos.citas.forEach { avisarDeCita(contexto, it) }
+    }
+
+    private fun avisarDeMedicina(contexto: Context, medicina: Medicina) {
+        val id = "medicina_${medicina.id}"
+        val siguiente = medicina.horaSiguiente
+        if (siguiente == null) {
+            AvisosNubi.cancelar(contexto, id)
+            return
+        }
+        val texto = medicina.nombre.ifBlank { "Toca la siguiente toma" }
+        AvisosNubi.programar(contexto, id, siguiente, "Hora de la siguiente toma", texto)
+    }
+
+    private fun avisarDeCita(contexto: Context, cita: Cita) {
+        val id = "cita_${cita.id}"
+        if (!cita.recordar) {
+            AvisosNubi.cancelar(contexto, id)
+            return
+        }
+        val zona = ZoneId.systemDefault()
+        val vispera = cita.fecha.atZone(zona).toLocalDate()
+            .minusDays(1)
+            .atTime(HORA_AVISO_CITA_PREVIA, 0)
+            .atZone(zona)
+            .toInstant()
+        val texto = buildString {
+            append(cita.titulo.ifBlank { "Tienes una cita" })
+            if (cita.lugar.isNotBlank()) append(" · ${cita.lugar}")
+        }
+        AvisosNubi.programar(contexto, id, vispera, "Cita mañana", texto)
     }
 
     fun sincronizarEnSegundoPlano() {
         ambito.launch { sincronizador.sincronizar() }
     }
+
+    /**
+     * ¿Puede usar ahora mismo las funciones de pago (prueba de 7 días o
+     * premium activo)? Mismo cálculo que puede_registrar() en Supabase.
+     *
+     * Si todavía no se ha sincronizado ni una vez (perfil == null, por
+     * ejemplo nada más instalar sin conexión), se deja pasar: es preferible
+     * no bloquear a alguien real por una lectura que aún no ha llegado:
+     * en cuanto sincronice, el estado real manda.
+     */
+    fun puedeUsarApp(): Boolean = local.datos.value.perfil?.puedeUsarApp() ?: true
 
     // -----------------------------------------------------------------
     // Operaciones. Todas siguen el mismo patrón: escribir en local
@@ -83,6 +160,7 @@ object Repositorio {
     }
 
     fun guardarMedicina(medicina: Medicina) {
+        avisarDeMedicina(contexto, medicina)
         ambito.launch {
             val actualizada = medicina.copy(actualizadoEn = Instant.now())
             local.modificar { d ->
@@ -94,6 +172,7 @@ object Repositorio {
     }
 
     fun borrarMedicina(id: String) {
+        AvisosNubi.cancelar(contexto, "medicina_$id")
         ambito.launch {
             local.modificar { d -> d.copy(medicinas = d.medicinas.filterNot { it.id == id }) }
             local.marcarPendiente(Tablas.MEDICINAS, id, borrado = true)
@@ -130,6 +209,7 @@ object Repositorio {
     }
 
     fun guardarCita(cita: Cita) {
+        avisarDeCita(contexto, cita)
         ambito.launch {
             val actualizada = cita.copy(actualizadoEn = Instant.now())
             local.modificar { d ->
@@ -141,6 +221,7 @@ object Repositorio {
     }
 
     fun borrarCita(id: String) {
+        AvisosNubi.cancelar(contexto, "cita_$id")
         ambito.launch {
             local.modificar { d -> d.copy(citas = d.citas.filterNot { it.id == id }) }
             local.marcarPendiente(Tablas.CITAS, id, borrado = true)
