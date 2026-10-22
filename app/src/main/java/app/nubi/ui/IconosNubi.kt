@@ -42,7 +42,7 @@ enum class IconoNubi {
     MEDICINA, BANO, EQUIS,
     MAS, BASCULA, REGLA, PAPELERA,
     JERINGA, CALENDARIO, BOTIQUIN, CHECK,
-    LAPIZ, ESTRELLA
+    LAPIZ, ESTRELLA, CACA
 }
 
 @Composable
@@ -82,6 +82,7 @@ fun Icono(
             IconoNubi.CHECK -> dibujarCheck(tint)
             IconoNubi.LAPIZ -> dibujarLapiz(tint)
             IconoNubi.ESTRELLA -> dibujarEstrella(tint)
+            IconoNubi.CACA -> dibujarCaca(tint)
         }
     }
 }
@@ -671,6 +672,20 @@ private fun DrawScope.dibujarLapiz(color: Color) {
             close()
         }
         drawPath(punta, color)
+    }
+}
+
+/** Caca: tres vueltas apiladas, cada una más pequeña hacia arriba — el
+ *  remolino típico, sin más detalle que eso. */
+private fun DrawScope.dibujarCaca(color: Color) {
+    val w = size.width
+    val h = size.height
+    listOf(
+        Triple(0.5f, 0.78f, 0.3f),
+        Triple(0.5f, 0.56f, 0.24f),
+        Triple(0.5f, 0.38f, 0.17f)
+    ).forEach { (fx, fy, fr) ->
+        drawCircle(color, radius = w * fr, center = Offset(w * fx, h * fy))
     }
 }
 

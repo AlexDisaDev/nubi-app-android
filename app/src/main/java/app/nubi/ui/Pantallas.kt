@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Bebe
+import app.nubi.data.MotorEtapas
 import app.nubi.data.Registro
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
@@ -279,6 +280,15 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
     val ultimoPecho = registros.filter { it.tipo == TipoRegistro.PECHO }.maxByOrNull { it.inicio }
     val ultimoPanal = registros.filter { it.tipo == TipoRegistro.PANAL }.maxByOrNull { it.inicio }
 
+    // La etapa que le toca al bebé ahora mismo (ver MotorEtapas.kt), si hay
+    // alguna definida para su edad.
+    val etapaActual = remember(bebe.id) { MotorEtapas.etapaActual(bebe.edadEnDias()) }
+
+    var mostrarHojaPecho by remember { mutableStateOf(false) }
+    var mostrarHojaBiberon by remember { mutableStateOf(false) }
+    var mostrarHojaPanal by remember { mutableStateOf(false) }
+    var mostrarHojaEtapa by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -395,7 +405,12 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
         Spacer(Modifier.height(14.dp))
 
         if (ultimoBiberon != null || ultimoPecho != null) {
-            FilaUltimaToma(ultimoBiberon, ultimoPecho)
+            FilaUltimaToma(
+                ultimoBiberon = ultimoBiberon,
+                ultimoPecho = ultimoPecho,
+                onBiberon = { mostrarHojaBiberon = true },
+                onPecho = { mostrarHojaPecho = true }
+            )
             Spacer(Modifier.height(10.dp))
         }
 
@@ -404,45 +419,63 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
                 titulo = "Pañal · ${hace(registro.inicio)}",
                 subtitulo = "Último a las ${formatoHora.format(registro.inicio)}",
                 icono = IconoNubi.GOTA,
-                colorBadge = colores.cielo
+                colorBadge = colores.cielo,
+                onClick = { mostrarHojaPanal = true }
             )
             Spacer(Modifier.height(10.dp))
         }
 
-        // "Etapa" (MotorEtapas.swift) todavía no está portado: de momento
-        // es una tarjeta de aviso fija, no consejos de verdad.
-        Card(
-            shape = RoundedCornerShape(NubiGeometria.radioChico),
-            colors = CardDefaults.cardColors(containerColor = colores.superficie),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+        // Etapa actual (ver MotorEtapas.kt): solo se muestra si hay una
+        // definida para la edad del bebé, igual que en iOS.
+        etapaActual?.let { etapa ->
+            Card(
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                modifier = Modifier.fillMaxWidth().clickable { mostrarHojaEtapa = true }
             ) {
-                BadgeIcono(
-                    IconoNubi.BOMBILLA,
-                    colorFondo = colores.mantequilla,
-                    colorIcono = colores.tinta,
-                    tamano = 40.dp,
-                    tamanoIcono = 18.dp
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Consejos de esta etapa", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "Pendiente de portar (MotorEtapas.swift)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colores.tintaTenue
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BadgeIcono(
+                        iconoDeEtapa(etapa.id),
+                        colorFondo = colorDeEtapa(etapa.color, colores),
+                        colorIcono = colores.tinta,
+                        tamano = 40.dp,
+                        tamanoIcono = 18.dp
                     )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(etapa.titulo, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Toca para ver consejos",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                    Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
                 }
-                Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
             }
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+
+    if (mostrarHojaPecho) {
+        HojaPecho(bebeId = bebe.id) { mostrarHojaPecho = false }
+    }
+    if (mostrarHojaBiberon) {
+        HojaBiberon(bebeId = bebe.id) { mostrarHojaBiberon = false }
+    }
+    if (mostrarHojaPanal) {
+        HojaPanal(bebeId = bebe.id) { mostrarHojaPanal = false }
+    }
+    if (mostrarHojaEtapa) {
+        etapaActual?.let { etapa ->
+            HojaEtapa(etapa = etapa) { mostrarHojaEtapa = false }
+        }
     }
 }
 
@@ -451,13 +484,14 @@ private fun FilaResumenHoy(
     titulo: String,
     subtitulo: String,
     icono: IconoNubi,
-    colorBadge: Color
+    colorBadge: Color,
+    onClick: () -> Unit = {}
 ) {
     val colores = NubiTheme.colores
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -479,7 +513,12 @@ private fun FilaResumenHoy(
  *  ha usado uno de los dos, el otro se ve igualmente con "Sin registros
  *  aún", en vez de desaparecer. */
 @Composable
-private fun FilaUltimaToma(ultimoBiberon: Registro?, ultimoPecho: Registro?) {
+private fun FilaUltimaToma(
+    ultimoBiberon: Registro?,
+    ultimoPecho: Registro?,
+    onBiberon: () -> Unit,
+    onPecho: () -> Unit
+) {
     val colores = NubiTheme.colores
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
@@ -493,26 +532,32 @@ private fun FilaUltimaToma(ultimoBiberon: Registro?, ultimoPecho: Registro?) {
                 icono = IconoNubi.BIBERON,
                 colorBadge = colores.mantequilla,
                 texto = ultimoBiberon?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
-                    ?: "Sin registros aún"
+                    ?: "Sin registros aún",
+                onClick = onBiberon
             )
             Spacer(Modifier.height(10.dp))
             FilaTomaTipo(
                 icono = IconoNubi.CORAZON,
                 colorBadge = colores.melocoton,
                 texto = ultimoPecho?.let { "${hace(it.inicio)} · ${formatoHora.format(it.inicio)}" }
-                    ?: "Sin registros aún"
+                    ?: "Sin registros aún",
+                onClick = onPecho
             )
         }
     }
 }
 
 @Composable
-private fun FilaTomaTipo(icono: IconoNubi, colorBadge: Color, texto: String) {
+private fun FilaTomaTipo(icono: IconoNubi, colorBadge: Color, texto: String, onClick: () -> Unit) {
     val colores = NubiTheme.colores
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta, tamano = 36.dp, tamanoIcono = 16.dp)
         Spacer(Modifier.width(12.dp))
-        Text(texto, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+        Text(texto, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave, modifier = Modifier.weight(1f))
+        Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
     }
 }
 
