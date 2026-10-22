@@ -234,4 +234,27 @@ object Repositorio {
             sincronizador.sincronizar()
         }
     }
+
+    // -----------------------------------------------------------------
+    // Diario
+    // -----------------------------------------------------------------
+
+    fun guardarEntradaDiario(entrada: EntradaDiario) {
+        ambito.launch {
+            val actualizada = entrada.copy(actualizadoEn = Instant.now())
+            local.modificar { d ->
+                d.copy(diario = d.diario.filterNot { it.id == actualizada.id } + actualizada)
+            }
+            local.marcarPendiente(Tablas.DIARIO, actualizada.id)
+            sincronizador.sincronizar()
+        }
+    }
+
+    fun borrarEntradaDiario(id: String) {
+        ambito.launch {
+            local.modificar { d -> d.copy(diario = d.diario.filterNot { it.id == id }) }
+            local.marcarPendiente(Tablas.DIARIO, id, borrado = true)
+            sincronizador.sincronizar()
+        }
+    }
 }

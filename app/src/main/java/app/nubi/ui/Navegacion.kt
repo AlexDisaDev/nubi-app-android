@@ -203,7 +203,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                                 comunidadGuardada = datos.comunidad
                             )
                         }
-                        Pestana.DIARIO -> PantallaEnObras("Diario")
+                        Pestana.DIARIO -> datos.bebe?.let { PantallaDiario(it, datos.diario) }
                     }
                 }
             }

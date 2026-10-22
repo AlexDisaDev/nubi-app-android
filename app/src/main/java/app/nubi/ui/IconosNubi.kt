@@ -41,7 +41,8 @@ enum class IconoNubi {
     SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
     MEDICINA, BANO, EQUIS,
     MAS, BASCULA, REGLA, PAPELERA,
-    JERINGA, CALENDARIO, BOTIQUIN, CHECK
+    JERINGA, CALENDARIO, BOTIQUIN, CHECK,
+    LAPIZ, ESTRELLA
 }
 
 @Composable
@@ -79,6 +80,8 @@ fun Icono(
             IconoNubi.CALENDARIO -> dibujarCalendario(tint)
             IconoNubi.BOTIQUIN -> dibujarBotiquin(tint)
             IconoNubi.CHECK -> dibujarCheck(tint)
+            IconoNubi.LAPIZ -> dibujarLapiz(tint)
+            IconoNubi.ESTRELLA -> dibujarEstrella(tint)
         }
     }
 }
@@ -647,4 +650,46 @@ private fun DrawScope.dibujarCheck(color: Color) {
         camino, color,
         style = Stroke(width = w * 0.12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     )
+}
+
+/** Lápiz: cuerpo en diagonal y punta — para escribir/editar. */
+private fun DrawScope.dibujarLapiz(color: Color) {
+    val w = size.width
+    val h = size.height
+    rotate(degrees = 45f) {
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(w * 0.42f, h * 0.1f),
+            size = Size(w * 0.16f, h * 0.58f),
+            cornerRadius = CornerRadius(w * 0.04f),
+            style = Stroke(width = w * 0.08f)
+        )
+        val punta = Path().apply {
+            moveTo(w * 0.41f, h * 0.68f)
+            lineTo(w * 0.59f, h * 0.68f)
+            lineTo(w * 0.5f, h * 0.88f)
+            close()
+        }
+        drawPath(punta, color)
+    }
+}
+
+/** Estrella de cinco puntas — para marcar un hito. */
+private fun DrawScope.dibujarEstrella(color: Color) {
+    val w = size.width
+    val h = size.height
+    val cx = w * 0.5f
+    val cy = h * 0.5f
+    val rExterior = w * 0.46f
+    val rInterior = w * 0.19f
+    val camino = Path()
+    for (i in 0 until 10) {
+        val angulo = (PI / 5 * i - PI / 2).toFloat()
+        val r = if (i % 2 == 0) rExterior else rInterior
+        val x = cx + r * cos(angulo)
+        val y = cy + r * sin(angulo)
+        if (i == 0) camino.moveTo(x, y) else camino.lineTo(x, y)
+    }
+    camino.close()
+    drawPath(camino, color)
 }
