@@ -273,9 +273,9 @@ fun PantallaHoy(
     val colores = NubiTheme.colores
     val ahora = Instant.now()
 
-    // El sueño nocturno en curso, si lo hay (el que no tiene "fin" todavía).
+    // El sueño en curso, siesta o nocturno (el que no tiene "fin" todavía).
     val suenoEnCurso = registros
-        .filter { it.tipo == TipoRegistro.NOCHE && it.fin == null }
+        .filter { it.tipo.esSueno && it.fin == null }
         .maxByOrNull { it.inicio }
 
     // Biberón y pecho se muestran los dos, no solo el que se apuntó en
@@ -352,17 +352,21 @@ fun PantallaHoy(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "SUEÑO NOCTURNO",
+                        if (suenoEnCurso?.tipo == TipoRegistro.SIESTA) "SIESTA"
+                        else if (suenoEnCurso?.tipo == TipoRegistro.NOCHE) "SUEÑO NOCTURNO"
+                        else "SUEÑO",
                         style = MaterialTheme.typography.labelMedium,
                         color = colores.tintaTenue
                     )
-                    BadgeIcono(
-                        IconoNubi.LUNA,
-                        colorFondo = colores.lila,
-                        colorIcono = colores.tinta,
-                        tamano = 36.dp,
-                        tamanoIcono = 16.dp
-                    )
+                    if (suenoEnCurso != null) {
+                        BadgeIcono(
+                            if (suenoEnCurso.tipo == TipoRegistro.SIESTA) IconoNubi.NUBE else IconoNubi.LUNA,
+                            colorFondo = if (suenoEnCurso.tipo == TipoRegistro.SIESTA) colores.menta else colores.lila,
+                            colorIcono = colores.tinta,
+                            tamano = 36.dp,
+                            tamanoIcono = 16.dp
+                        )
+                    }
                 }
                 Spacer(Modifier.height(8.dp))
 
@@ -377,33 +381,68 @@ fun PantallaHoy(
                         color = colores.tintaSuave
                     )
                     Spacer(Modifier.height(14.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        BotonAccion(
-                            texto = "Despertar\nnocturno",
-                            icono = IconoNubi.LUNA,
-                            color = colores.coral,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Repositorio.guardarRegistro(
-                                Registro(bebeId = bebe.id, tipo = TipoRegistro.DESPERTAR, inicio = Instant.now())
-                            )
+                    if (suenoEnCurso.tipo == TipoRegistro.NOCHE) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            BotonAccion(
+                                texto = "Despertar\nnocturno",
+                                icono = IconoNubi.LUNA,
+                                color = colores.coral,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Repositorio.guardarRegistro(
+                                    Registro(bebeId = bebe.id, tipo = TipoRegistro.DESPERTAR, inicio = Instant.now())
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            BotonAccion(
+                                texto = "Buenos días",
+                                icono = IconoNubi.SOL,
+                                color = colores.melocoton,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
+                            }
                         }
-                        Spacer(Modifier.width(10.dp))
+                    } else {
                         BotonAccion(
-                            texto = "Buenos días",
+                            texto = "Se ha despertado",
                             icono = IconoNubi.SOL,
                             color = colores.melocoton,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
                         }
                     }
                 } else {
                     Text(
-                        "Sin sueño nocturno en curso.",
+                        "Sin sueño en curso.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaTenue
                     )
+                    Spacer(Modifier.height(14.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        BotonAccion(
+                            texto = "Siesta",
+                            icono = IconoNubi.NUBE,
+                            color = colores.menta,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Repositorio.guardarRegistro(
+                                Registro(bebeId = bebe.id, tipo = TipoRegistro.SIESTA, inicio = Instant.now())
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        BotonAccion(
+                            texto = "Sueño nocturno",
+                            icono = IconoNubi.LUNA,
+                            color = colores.lila,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Repositorio.guardarRegistro(
+                                Registro(bebeId = bebe.id, tipo = TipoRegistro.NOCHE, inicio = Instant.now())
+                            )
+                        }
+                    }
                 }
             }
         }
