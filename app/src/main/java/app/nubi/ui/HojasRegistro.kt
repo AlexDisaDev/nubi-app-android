@@ -61,6 +61,7 @@ import app.nubi.data.UnidadBiberon
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -166,17 +167,20 @@ fun HojaBiberon(
     bebeId: String,
     dia: LocalDate? = null,
     horaInicial: Instant = Instant.now(),
+    registro: Registro? = null,
     onCerrar: () -> Unit
 ) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val editando = registro != null
 
-    var unidad by remember { mutableStateOf(UnidadBiberon.ML) }
-    var tipoLeche by remember { mutableStateOf(TipoLeche.MATERNA) }
-    var cantidad by remember { mutableStateOf(120.0) }
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    var unidad by remember { mutableStateOf(registro?.unidadBiberon ?: UnidadBiberon.ML) }
+    var tipoLeche by remember { mutableStateOf(registro?.tipoLeche ?: TipoLeche.MATERNA) }
+    var cantidad by remember { mutableStateOf(registro?.cantidadBiberon ?: 120.0) }
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
 
     val sugerencias = if (unidad == UnidadBiberon.ML)
         listOf(30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0)
@@ -187,11 +191,10 @@ fun HojaBiberon(
     val maximo = if (unidad == UnidadBiberon.ML) 400.0 else 14.0
 
     fun guardar(conCantidad: Boolean) {
-        val inicio = if (dia != null) instanteDe(dia, hora, minuto) else Instant.now()
+        val inicio = if (diaBase != null) instanteDe(diaBase, hora, minuto) else Instant.now()
+        val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.BIBERON, inicio = inicio)
         Repositorio.guardarRegistro(
-            Registro(
-                bebeId = bebeId,
-                tipo = TipoRegistro.BIBERON,
+            base.copy(
                 inicio = inicio,
                 cantidadBiberon = if (conCantidad) cantidad else null,
                 unidadBiberon = if (conCantidad) unidad else null,
@@ -209,28 +212,37 @@ fun HojaBiberon(
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                BadgeIcono(
-                    IconoNubi.BIBERON,
-                    colorFondo = colores.mantequilla,
-                    colorIcono = colores.tinta,
-                    tamano = 54.dp,
-                    tamanoIcono = 24.dp
-                )
-                Spacer(Modifier.height(10.dp))
-                Text("Biberón", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    if (dia != null) "Elige la hora del registro" else "¿Cuánto ha bebido?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colores.tintaSuave
-                )
-            }
-            Spacer(Modifier.height(18.dp))
-
-            if (dia != null) {
-                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.BIBERON, colores.mantequilla, "Biberón")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
+            } else {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    BadgeIcono(
+                        IconoNubi.BIBERON,
+                        colorFondo = colores.mantequilla,
+                        colorIcono = colores.tinta,
+                        tamano = 54.dp,
+                        tamanoIcono = 24.dp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text("Biberón", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (dia != null) "Elige la hora del registro" else "¿Cuánto ha bebido?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colores.tintaSuave
+                    )
+                }
                 Spacer(Modifier.height(18.dp))
+
+                if (dia != null) {
+                    RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                    Spacer(Modifier.height(18.dp))
+                }
             }
 
             Card(
@@ -389,15 +401,18 @@ fun HojaPanal(
     bebeId: String,
     dia: LocalDate? = null,
     horaInicial: Instant = Instant.now(),
+    registro: Registro? = null,
     onCerrar: () -> Unit
 ) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var pis by remember { mutableStateOf(true) }
-    var caca by remember { mutableStateOf(false) }
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    var pis by remember { mutableStateOf(registro?.panalPis ?: true) }
+    var caca by remember { mutableStateOf(registro?.panalCaca ?: false) }
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -406,34 +421,45 @@ fun HojaPanal(
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BadgeIcono(
-                    IconoNubi.GOTA,
-                    colorFondo = colores.cielo,
-                    colorIcono = colores.tinta,
-                    tamano = 40.dp,
-                    tamanoIcono = 18.dp
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    if (dia != null) "Pañal" else "¿Qué hizo?",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colores.tinta
-                )
-            }
-            Spacer(Modifier.height(18.dp))
-
-            if (dia != null) {
-                Text(
-                    "Elige la hora del registro",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colores.tintaSuave
-                )
-                Spacer(Modifier.height(10.dp))
-                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
-                Spacer(Modifier.height(18.dp))
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.GOTA, colores.cielo, "Pañal")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
                 EtiquetaSeccionHoja("¿Qué hizo?")
                 Spacer(Modifier.height(8.dp))
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BadgeIcono(
+                        IconoNubi.GOTA,
+                        colorFondo = colores.cielo,
+                        colorIcono = colores.tinta,
+                        tamano = 40.dp,
+                        tamanoIcono = 18.dp
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        if (dia != null) "Pañal" else "¿Qué hizo?",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = colores.tinta
+                    )
+                }
+                Spacer(Modifier.height(18.dp))
+
+                if (dia != null) {
+                    Text(
+                        "Elige la hora del registro",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colores.tintaSuave
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                    Spacer(Modifier.height(18.dp))
+                    EtiquetaSeccionHoja("¿Qué hizo?")
+                    Spacer(Modifier.height(8.dp))
+                }
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -458,15 +484,10 @@ fun HojaPanal(
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val inicio = if (dia != null) instanteDe(dia, hora, minuto) else Instant.now()
+                    val inicio = if (diaBase != null) instanteDe(diaBase, hora, minuto) else Instant.now()
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.PANAL, inicio = inicio)
                     Repositorio.guardarRegistro(
-                        Registro(
-                            bebeId = bebeId,
-                            tipo = TipoRegistro.PANAL,
-                            inicio = inicio,
-                            panalPis = pis,
-                            panalCaca = caca
-                        )
+                        base.copy(inicio = inicio, panalPis = pis, panalCaca = caca)
                     )
                     onCerrar()
                 },
@@ -704,6 +725,70 @@ private fun CabeceraHoja(icono: IconoNubi, colorFondo: Color, titulo: String, su
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+// =====================================================================
+// Edición — al tocar un registro ya guardado en "Todo lo del día" se
+// reabre la misma hoja de siempre, pero en modo edición: barra de arriba
+// con "Cancelar" / "Editar registro", la cabecera metida en su propia
+// tarjeta con un subtítulo fijo, y la hora de inicio siempre visible (se
+// haya o no mostrado al crearlo) para poder corregirla sin perder el
+// registro. Al guardar se actualiza el mismo registro (mismo id), nunca
+// se crea uno nuevo.
+// =====================================================================
+const val SUBTITULO_EDITAR = "Corrige la hora sin perder el registro"
+
+/** Barra superior de toda hoja en modo edición: "Cancelar" a la izquierda,
+ *  título centrado — igual que en iOS. */
+@Composable
+fun BarraEditarRegistro(onCancelar: () -> Unit) {
+    val colores = NubiTheme.colores
+    Box(Modifier.fillMaxWidth()) {
+        TextButton(onClick = onCancelar, modifier = Modifier.align(Alignment.CenterStart)) {
+            Text("Cancelar", color = colores.lila, style = MaterialTheme.typography.bodyLarge)
+        }
+        Text(
+            "Editar registro",
+            style = MaterialTheme.typography.titleMedium,
+            color = colores.tinta,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+
+/** La misma cabecera de siempre (icono + título), pero metida en su propia
+ *  tarjeta y con el subtítulo fijo de edición — así se ve en iOS. */
+@Composable
+fun CabeceraHojaEditar(icono: IconoNubi, colorFondo: Color, titulo: String) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radio),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            CabeceraHoja(icono, colorFondo, titulo, SUBTITULO_EDITAR)
+        }
+    }
+}
+
+/** La rueda de hora, en su propia tarjeta con etiqueta "Hora de inicio" —
+ *  siempre visible en modo edición, aunque esa hoja normalmente no la
+ *  muestre al crear un registro nuevo (p. ej. Biberón o Pañal al vuelo). */
+@Composable
+fun TarjetaHoraInicioEditar(hora: Int, minuto: Int, onHoraCambiar: (Int) -> Unit, onMinutoCambiar: (Int) -> Unit) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radio),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            EtiquetaSeccionHoja("Hora de inicio")
+            Spacer(Modifier.height(6.dp))
+            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = onHoraCambiar, onMinutoCambiar = onMinutoCambiar)
+        }
     }
 }
 
@@ -966,16 +1051,19 @@ private fun nombreLugar(lugar: LugarSueno): String = when (lugar) {
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), onCerrar: () -> Unit) {
+fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), registro: Registro? = null, onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
-    var aunDurmiendo by remember { mutableStateOf(false) }
-    var horas by remember { mutableIntStateOf(0) }
-    var minutos by remember { mutableIntStateOf(30) }
-    var lugar by remember { mutableStateOf<LugarSueno?>(null) }
+    var aunDurmiendo by remember { mutableStateOf(registro != null && registro.fin == null) }
+    val duracionInicial = registro?.fin?.let { Duration.between(registro.inicio, it) }
+    var horas by remember { mutableIntStateOf(duracionInicial?.toHours()?.toInt() ?: 0) }
+    var minutos by remember { mutableIntStateOf(duracionInicial?.let { (it.toMinutes() % 60).toInt() } ?: 30) }
+    var lugar by remember { mutableStateOf(registro?.lugarSueno) }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -985,13 +1073,22 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            CabeceraHoja(IconoNubi.NUBE, colores.menta, "Siesta", "¿Cuándo durmió y cuánto?")
-            Spacer(Modifier.height(18.dp))
-            EtiquetaSeccionHoja("Hora")
-            Spacer(Modifier.height(6.dp))
-            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.NUBE, colores.menta, "Siesta")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
+            } else {
+                CabeceraHoja(IconoNubi.NUBE, colores.menta, "Siesta", "¿Cuándo durmió y cuánto?")
+                Spacer(Modifier.height(18.dp))
+                EtiquetaSeccionHoja("Hora")
+                Spacer(Modifier.height(6.dp))
+                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                Spacer(Modifier.height(18.dp))
+            }
 
-            Spacer(Modifier.height(18.dp))
             FilaAunDurmiendo(activo = aunDurmiendo) { aunDurmiendo = !aunDurmiendo }
 
             if (!aunDurmiendo) {
@@ -1007,10 +1104,11 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val inicio = instanteDe(dia, hora, minuto)
+                    val inicio = instanteDe(diaBase, hora, minuto)
                     val fin = if (aunDurmiendo) null else inicio.plusSeconds((horas * 3600 + minutos * 60).toLong())
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.SIESTA, inicio = inicio)
                     Repositorio.guardarRegistro(
-                        Registro(bebeId = bebeId, tipo = TipoRegistro.SIESTA, inicio = inicio, fin = fin, lugarSueno = lugar)
+                        base.copy(inicio = inicio, fin = fin, lugarSueno = lugar)
                     )
                     onCerrar()
                 },
@@ -1028,16 +1126,21 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), onCerrar: () -> Unit) {
+fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), registro: Registro? = null, onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
     var esAyer by remember { mutableStateOf(false) }
-    var aunDurmiendo by remember { mutableStateOf(false) }
-    var horas by remember { mutableIntStateOf(0) }
-    var minutos by remember { mutableIntStateOf(30) }
+    var aunDurmiendo by remember { mutableStateOf(registro != null && registro.fin == null) }
+    val duracionInicial = registro?.fin?.let { Duration.between(registro.inicio, it) }
+    var horas by remember { mutableIntStateOf(duracionInicial?.toHours()?.toInt() ?: 0) }
+    var minutos by remember { mutableIntStateOf(duracionInicial?.let { (it.toMinutes() % 60).toInt() } ?: 30) }
+    // Editando, el día base es el mismo en el que ya estaba el registro;
+    // no hace falta el selector de "ayer/hoy", que es solo para crearlo.
+    val diaPropio = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -1047,20 +1150,29 @@ fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = 
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            CabeceraHoja(IconoNubi.LUNA, colores.lila, "Sueño nocturno", "¿Cuándo durmió y cuánto?")
-            Spacer(Modifier.height(18.dp))
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.LUNA, colores.lila, "Sueño nocturno")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
+            } else {
+                CabeceraHoja(IconoNubi.LUNA, colores.lila, "Sueño nocturno", "¿Cuándo durmió y cuánto?")
+                Spacer(Modifier.height(18.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SelectorDiaRelativo(esAyer = esAyer, onCambiar = { esAyer = it })
-                Spacer(Modifier.width(10.dp))
-                RuedaHoraMinuto(
-                    hora = hora, minuto = minuto,
-                    onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it },
-                    modifier = Modifier.weight(1f)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SelectorDiaRelativo(esAyer = esAyer, onCambiar = { esAyer = it })
+                    Spacer(Modifier.width(10.dp))
+                    RuedaHoraMinuto(
+                        hora = hora, minuto = minuto,
+                        onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Spacer(Modifier.height(18.dp))
             }
 
-            Spacer(Modifier.height(18.dp))
             FilaAunDurmiendo(activo = aunDurmiendo) { aunDurmiendo = !aunDurmiendo }
 
             if (!aunDurmiendo) {
@@ -1071,12 +1183,11 @@ fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = 
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val diaBase = if (esAyer) dia.minusDays(1) else dia
+                    val diaBase = if (editando) diaPropio else if (esAyer) dia.minusDays(1) else dia
                     val inicio = instanteDe(diaBase, hora, minuto)
                     val fin = if (aunDurmiendo) null else inicio.plusSeconds((horas * 3600 + minutos * 60).toLong())
-                    Repositorio.guardarRegistro(
-                        Registro(bebeId = bebeId, tipo = TipoRegistro.NOCHE, inicio = inicio, fin = fin)
-                    )
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.NOCHE, inicio = inicio)
+                    Repositorio.guardarRegistro(base.copy(inicio = inicio, fin = fin))
                     onCerrar()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
@@ -1092,13 +1203,16 @@ fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = 
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), onCerrar: () -> Unit) {
+fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), registro: Registro? = null, onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
-    var duracionMin by remember { mutableIntStateOf(5) }
+    val duracionInicial = registro?.fin?.let { Duration.between(registro.inicio, it) }
+    var duracionMin by remember { mutableIntStateOf(duracionInicial?.toMinutes()?.toInt() ?: 5) }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -1108,14 +1222,22 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            CabeceraHoja(IconoNubi.LUNA, colores.coral, "Despertar nocturno", "¿A qué hora se despertó y cuánto duró?")
-            Spacer(Modifier.height(18.dp))
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.LUNA, colores.coral, "Despertar nocturno")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
+            } else {
+                CabeceraHoja(IconoNubi.LUNA, colores.coral, "Despertar nocturno", "¿A qué hora se despertó y cuánto duró?")
+                Spacer(Modifier.height(18.dp))
 
-            EtiquetaSeccionHoja("Hora del despertar")
-            Spacer(Modifier.height(6.dp))
-            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
-
-            Spacer(Modifier.height(18.dp))
+                EtiquetaSeccionHoja("Hora del despertar")
+                Spacer(Modifier.height(6.dp))
+                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                Spacer(Modifier.height(18.dp))
+            }
             EtiquetaSeccionHoja("Duración del despertar")
             Spacer(Modifier.height(10.dp))
             Row(
@@ -1157,14 +1279,10 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val inicio = instanteDe(dia, hora, minuto)
+                    val inicio = instanteDe(diaBase, hora, minuto)
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.DESPERTAR, inicio = inicio)
                     Repositorio.guardarRegistro(
-                        Registro(
-                            bebeId = bebeId,
-                            tipo = TipoRegistro.DESPERTAR,
-                            inicio = inicio,
-                            fin = inicio.plusSeconds(duracionMin * 60L)
-                        )
+                        base.copy(inicio = inicio, fin = inicio.plusSeconds(duracionMin * 60L))
                     )
                     onCerrar()
                 },
@@ -1181,13 +1299,15 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), onCerrar: () -> Unit) {
+fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.now(), registro: Registro? = null, onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
-    var contento by remember { mutableStateOf<Boolean?>(null) }
+    var contento by remember { mutableStateOf(registro?.banoContento) }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -1196,13 +1316,21 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            CabeceraHoja(IconoNubi.BANO, colores.rosa, "Baño", "Elige la hora del registro")
-            Spacer(Modifier.height(18.dp))
-            EtiquetaSeccionHoja("Hora")
-            Spacer(Modifier.height(6.dp))
-            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
-
-            Spacer(Modifier.height(18.dp))
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.BANO, colores.rosa, "Baño")
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                Spacer(Modifier.height(14.dp))
+            } else {
+                CabeceraHoja(IconoNubi.BANO, colores.rosa, "Baño", "Elige la hora del registro")
+                Spacer(Modifier.height(18.dp))
+                EtiquetaSeccionHoja("Hora")
+                Spacer(Modifier.height(6.dp))
+                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                Spacer(Modifier.height(18.dp))
+            }
             EtiquetaSeccionHoja("¿Cómo lo llevó? · Opcional")
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1227,14 +1355,9 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    Repositorio.guardarRegistro(
-                        Registro(
-                            bebeId = bebeId,
-                            tipo = TipoRegistro.BANO,
-                            inicio = instanteDe(dia, hora, minuto),
-                            banoContento = contento
-                        )
-                    )
+                    val inicio = instanteDe(diaBase, hora, minuto)
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.BANO, inicio = inicio)
+                    Repositorio.guardarRegistro(base.copy(inicio = inicio, banoContento = contento))
                     onCerrar()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.rosa, contentColor = colores.tinta),
@@ -1289,11 +1412,14 @@ fun HojaPechoHora(
     lado: LadoPecho,
     dia: LocalDate,
     horaInicial: Instant = Instant.now(),
+    registro: Registro? = null,
     onCerrar: () -> Unit
 ) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val horaLocalInicial = remember { horaInicial.atZone(ZoneId.systemDefault()).toLocalTime() }
+    val editando = registro != null
+    val diaBase = registro?.inicio?.atZone(ZoneId.systemDefault())?.toLocalDate() ?: dia
+    val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
     val titulo = if (lado == LadoPecho.IZQUIERDA) "Pecho izquierdo" else "Pecho derecho"
@@ -1305,21 +1431,24 @@ fun HojaPechoHora(
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            CabeceraHoja(IconoNubi.CORAZON, colores.melocoton, titulo, "Elige la hora del registro")
-            Spacer(Modifier.height(18.dp))
-            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                CabeceraHojaEditar(IconoNubi.CORAZON, colores.melocoton, titulo)
+                Spacer(Modifier.height(14.dp))
+                TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+            } else {
+                CabeceraHoja(IconoNubi.CORAZON, colores.melocoton, titulo, "Elige la hora del registro")
+                Spacer(Modifier.height(18.dp))
+                RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+            }
 
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    Repositorio.guardarRegistro(
-                        Registro(
-                            bebeId = bebeId,
-                            tipo = TipoRegistro.PECHO,
-                            inicio = instanteDe(dia, hora, minuto),
-                            lado = lado
-                        )
-                    )
+                    val inicio = instanteDe(diaBase, hora, minuto)
+                    val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.PECHO, inicio = inicio)
+                    Repositorio.guardarRegistro(base.copy(inicio = inicio, lado = lado))
                     onCerrar()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.melocoton, contentColor = colores.tinta),

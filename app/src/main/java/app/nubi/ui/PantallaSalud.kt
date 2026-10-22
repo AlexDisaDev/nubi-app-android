@@ -39,6 +39,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +68,7 @@ import app.nubi.data.ItemVacuna
 import app.nubi.data.Medicina
 import app.nubi.data.Registro
 import app.nubi.data.Repositorio
+import app.nubi.data.nuevoId
 import app.nubi.data.TipoCita
 import app.nubi.data.TipoRegistro
 import app.nubi.data.VacunaPropia
@@ -1564,17 +1566,30 @@ fun HojaMedicinaDia(
     bebeId: String,
     dia: LocalDate,
     horaInicial: Instant = Instant.now(),
+    registro: Registro? = null,
     onCerrar: () -> Unit
 ) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var nombre by remember { mutableStateOf("") }
+    val editando = registro != null
+    // La toma se guarda a la vez en "medicinas" (para el aviso de la
+    // siguiente toma) y como Registro normal (para "Todo lo del día"),
+    // con el mismo id — así, al editar desde la lista, se encuentra la
+    // fila completa de "medicinas" a partir del Registro tocado.
+    val datos by Repositorio.local.datos.collectAsState()
+    val medicinaExistente = registro?.let { r -> datos.medicinas.find { it.id == r.id } }
+
+    var nombre by remember { mutableStateOf(medicinaExistente?.nombre ?: registro?.nota ?: "") }
     var fecha by remember {
-        mutableStateOf(dia.atTime(horaInicial.atZone(zonaSalud).toLocalTime()).atZone(zonaSalud).toInstant())
+        mutableStateOf(
+            medicinaExistente?.fechaToma
+                ?: registro?.inicio
+                ?: dia.atTime(horaInicial.atZone(zonaSalud).toLocalTime()).atZone(zonaSalud).toInstant()
+        )
     }
-    var avisar by remember { mutableStateOf(false) }
-    var horaSiguiente by remember { mutableStateOf<Instant?>(null) }
-    var nota by remember { mutableStateOf("") }
+    var avisar by remember { mutableStateOf(medicinaExistente?.horaSiguiente != null) }
+    var horaSiguiente by remember { mutableStateOf(medicinaExistente?.horaSiguiente) }
+    var nota by remember { mutableStateOf(medicinaExistente?.nota ?: "") }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
     var mostrarSelectorHora by remember { mutableStateOf(false) }
     var mostrarSelectorFechaSiguiente by remember { mutableStateOf(false) }
@@ -1595,22 +1610,50 @@ fun HojaMedicinaDia(
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                BadgeIcono(
-                    IconoNubi.JERINGA,
-                    colorFondo = Color.White,
-                    colorIcono = Color.Black,
-                    tamano = 54.dp,
-                    tamanoIcono = 24.dp
-                )
-                Spacer(Modifier.height(10.dp))
-                Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Anota la toma y programa un aviso",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colores.tintaSuave
-                )
+            if (editando) {
+                BarraEditarRegistro(onCancelar = onCerrar)
+                Spacer(Modifier.height(14.dp))
+                Card(
+                    shape = RoundedCornerShape(NubiGeometria.radio),
+                    colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        BadgeIcono(
+                            IconoNubi.JERINGA,
+                            colorFondo = Color.White,
+                            colorIcono = Color.Black,
+                            tamano = 54.dp,
+                            tamanoIcono = 24.dp
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            SUBTITULO_EDITAR,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colores.tintaSuave
+                        )
+                    }
+                }
+            } else {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    BadgeIcono(
+                        IconoNubi.JERINGA,
+                        colorFondo = Color.White,
+                        colorIcono = Color.Black,
+                        tamano = 54.dp,
+                        tamanoIcono = 24.dp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Anota la toma y programa un aviso",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colores.tintaSuave
+                    )
+                }
             }
             Spacer(Modifier.height(18.dp))
 
@@ -1683,8 +1726,14 @@ fun HojaMedicinaDia(
 
             Button(
                 onClick = {
+                    // El mismo id para las dos filas (compartido con el
+                    // Registro espejo de abajo): así, al tocar la toma
+                    // desde "Todo lo del día", se encuentra esta fila de
+                    // "medicinas" a partir del id del Registro.
+                    val id = registro?.id ?: medicinaExistente?.id ?: nuevoId()
                     Repositorio.guardarMedicina(
                         Medicina(
+                            id = id,
                             bebeId = bebeId,
                             fechaToma = fecha,
                             nombre = nombre,
@@ -1696,14 +1745,8 @@ fun HojaMedicinaDia(
                     // siguiente toma), se guarda un Registro normal: es lo
                     // único que hace que la toma aparezca en "Todo lo del
                     // día" de la pestaña Día, igual que el resto de tipos.
-                    Repositorio.guardarRegistro(
-                        Registro(
-                            bebeId = bebeId,
-                            tipo = TipoRegistro.MEDICINA,
-                            inicio = fecha,
-                            nota = nombre
-                        )
-                    )
+                    val baseRegistro = registro ?: Registro(id = id, bebeId = bebeId, tipo = TipoRegistro.MEDICINA, inicio = fecha)
+                    Repositorio.guardarRegistro(baseRegistro.copy(inicio = fecha, nota = nombre))
                     onCerrar()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),

@@ -809,6 +809,9 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
     val colores = NubiTheme.colores
     var diaSeleccionado by remember { mutableStateOf(LocalDate.now(zonaLocal)) }
     val hoy = LocalDate.now(zonaLocal)
+    // Al tocar una fila de "Todo lo del día" se reabre su misma hoja de
+    // registro, en modo edición (ver HojaEditarRegistro más abajo).
+    var registroEditando by remember { mutableStateOf<Registro?>(null) }
 
     // Todo lo que pertenece a este día: los sueños se recortan por si
     // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
@@ -915,6 +918,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
                     registro = registro,
                     diaMostrado = diaSeleccionado,
                     esUltimo = indice == listaCompleta.lastIndex,
+                    onEditar = { registroEditando = registro },
                     onBorrar = { Repositorio.borrarRegistro(registro.id) }
                 )
 
@@ -939,6 +943,29 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+
+    // La hoja de edición: la misma hoja de siempre para ese tipo, pero
+    // precargada con los datos del registro tocado y en modo edición —
+    // al guardar se actualiza el mismo registro, nunca se crea uno nuevo.
+    registroEditando?.let { registro ->
+        val cerrar = { registroEditando = null }
+        when (registro.tipo) {
+            TipoRegistro.SIESTA -> HojaSiestaDia(bebe.id, diaSeleccionado, registro = registro, onCerrar = cerrar)
+            TipoRegistro.NOCHE -> HojaSuenoNocturnoDia(bebe.id, diaSeleccionado, registro = registro, onCerrar = cerrar)
+            TipoRegistro.DESPERTAR -> HojaDespertarNocturno(bebe.id, diaSeleccionado, registro = registro, onCerrar = cerrar)
+            TipoRegistro.BANO -> HojaBanoDia(bebe.id, diaSeleccionado, registro = registro, onCerrar = cerrar)
+            TipoRegistro.BIBERON -> HojaBiberon(bebe.id, registro = registro, onCerrar = cerrar)
+            TipoRegistro.PANAL -> HojaPanal(bebe.id, registro = registro, onCerrar = cerrar)
+            TipoRegistro.MEDICINA -> HojaMedicinaDia(bebe.id, diaSeleccionado, registro = registro, onCerrar = cerrar)
+            TipoRegistro.PECHO -> HojaPechoHora(
+                bebe.id,
+                lado = registro.lado ?: LadoPecho.IZQUIERDA,
+                dia = diaSeleccionado,
+                registro = registro,
+                onCerrar = cerrar
+            )
+        }
     }
 }
 
@@ -1177,16 +1204,18 @@ private fun BotonCircular(tipo: TipoRegistro, bloqueado: Boolean = false, onClic
 }
 
 /** Una fila de la lista "Todo lo del día": insignia + línea que conecta
- *  con la siguiente, título con sus chips, subtítulo, y una X para borrar. */
+ *  con la siguiente, título con sus chips, subtítulo, y una X para borrar.
+ *  Tocar la fila (fuera de la X) abre la hoja de edición de ese registro. */
 @Composable
 private fun FilaTimeline(
     registro: Registro,
     diaMostrado: LocalDate,
     esUltimo: Boolean,
+    onEditar: () -> Unit,
     onBorrar: () -> Unit
 ) {
     val colores = NubiTheme.colores
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onEditar)) {
         Box(
             modifier = Modifier.width(40.dp).height(if (esUltimo) 40.dp else 64.dp),
             contentAlignment = Alignment.TopCenter
