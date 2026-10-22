@@ -24,7 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -264,7 +263,13 @@ private val formatoHora: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
 @Composable
-fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Unit = {}) {
+fun PantallaHoy(
+    bebe: Bebe,
+    registros: List<Registro>,
+    oscuro: Boolean = false,
+    alCambiarTema: () -> Unit = {},
+    alAbrirAjustes: () -> Unit = {}
+) {
     val colores = NubiTheme.colores
     val ahora = Instant.now()
 
@@ -295,10 +300,9 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        // Cabecera: saludo, nombre, edad, y dos accesos rápidos (aspecto /
-        // ajustes). "Ajustes" también se puede abrir desde arriba en el
-        // resto de pestañas; aquí se repite porque en iOS está a mano
-        // desde Hoy.
+        // Cabecera: saludo, nombre, edad, y dos accesos rápidos. El de
+        // sol/luna alterna el modo día/noche ahí mismo (ya no se elige
+        // desde Ajustes); el de controles abre Ajustes, igual que antes.
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(
@@ -313,13 +317,15 @@ fun PantallaHoy(bebe: Bebe, registros: List<Registro>, alAbrirAjustes: () -> Uni
                     color = colores.tintaSuave
                 )
             }
-            BadgeIcono(
-                IconoNubi.SOL,
-                colorFondo = colores.mantequilla,
-                colorIcono = colores.tinta,
-                tamano = 44.dp,
-                tamanoIcono = 20.dp
-            )
+            Box(modifier = Modifier.clickable { alCambiarTema() }) {
+                BadgeIcono(
+                    if (oscuro) IconoNubi.SOL else IconoNubi.LUNA,
+                    colorFondo = if (oscuro) colores.mantequilla else colores.lila,
+                    colorIcono = colores.tinta,
+                    tamano = 44.dp,
+                    tamanoIcono = 20.dp
+                )
+            }
             Spacer(Modifier.width(10.dp))
             Box(modifier = Modifier.clickable { alAbrirAjustes() }) {
                 BadgeIcono(
@@ -548,16 +554,18 @@ private fun FilaUltimaToma(
 }
 
 @Composable
+/** Mismo alineado que la fila de Pañal (FilaResumenHoy): el texto a la
+ *  izquierda y la insignia de color a la derecha, sin flecha. */
+@Composable
 private fun FilaTomaTipo(icono: IconoNubi, colorBadge: Color, texto: String, onClick: () -> Unit) {
     val colores = NubiTheme.colores
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta, tamano = 36.dp, tamanoIcono = 16.dp)
-        Spacer(Modifier.width(12.dp))
         Text(texto, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave, modifier = Modifier.weight(1f))
-        Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+        Spacer(Modifier.width(12.dp))
+        BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
     }
 }
 
@@ -1101,7 +1109,7 @@ fun PantallaEnObras(nombre: String) {
 // Ajustes
 // =====================================================================
 @Composable
-fun PantallaAjustes(bebe: Bebe?, tema: String, alCerrarSesion: () -> Unit) {
+fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1119,29 +1127,8 @@ fun PantallaAjustes(bebe: Bebe?, tema: String, alCerrarSesion: () -> Unit) {
             )
         }
 
-        Spacer(Modifier.height(28.dp))
-        Text("Aspecto", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        Row {
-            listOf(
-                "sistema" to "Automático",
-                "claro" to "Modo día",
-                "oscuro" to "Modo noche"
-            ).forEach { (valor, etiqueta) ->
-                FilterChip(
-                    selected = tema == valor,
-                    onClick = { Repositorio.guardarTema(valor) },
-                    label = { Text(etiqueta) }
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Automático sigue lo que tenga el móvil.",
-            style = MaterialTheme.typography.bodySmall,
-            color = NubiTheme.colores.tintaTenue
-        )
+        // El modo día/noche ya no se elige aquí: se alterna directamente
+        // con el botón de sol/luna de la cabecera de Hoy.
 
         Spacer(Modifier.height(28.dp))
         Text("Canjear código de regalo", style = MaterialTheme.typography.titleMedium)

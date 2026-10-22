@@ -1,6 +1,7 @@
 package app.nubi.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -89,6 +90,15 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
     var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
     val colores = NubiTheme.colores
+
+    // El mismo cálculo que en MainActivity: sin tema explícito, se sigue
+    // el del sistema. El botón de sol/luna de Hoy alterna entre los dos
+    // modos explícitos, nunca vuelve a "seguir al sistema" por sí solo.
+    val oscuroActual = when (datos.tema) {
+        "claro" -> false
+        "oscuro" -> true
+        else -> isSystemInDarkTheme()
+    }
 
     val titulo = when {
         enAjustes -> "Ajustes"
@@ -179,7 +189,6 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
             when {
                 enAjustes -> PantallaAjustes(
                     bebe = datos.bebe,
-                    tema = datos.tema,
                     alCerrarSesion = alCerrarSesion
                 )
 
@@ -188,7 +197,13 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
 
                     is Destino.Abajo -> when (d.pestana) {
                         Pestana.HOY -> datos.bebe?.let {
-                            PantallaHoy(it, datos.registros, alAbrirAjustes = { enAjustes = true })
+                            PantallaHoy(
+                                bebe = it,
+                                registros = datos.registros,
+                                oscuro = oscuroActual,
+                                alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
+                                alAbrirAjustes = { enAjustes = true }
+                            )
                         }
                         Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
                         Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
