@@ -821,7 +821,15 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
     val eventosDelDia = registros.filter {
         !it.tipo.esSueno && it.inicio.atZone(zonaLocal).toLocalDate() == diaSeleccionado
     }
-    val minutosSueno = suenosDelDia.sumOf { (_, tramo) -> ((tramo.second - tramo.first) * 60).toLong() }
+    // Un despertar nocturno resta del sueño (TipoRegistro.restaSueno): está
+    // marcado dentro del tramo de una noche/siesta ya contada arriba, así
+    // que su duración hay que descontarla para no contar como dormido el
+    // rato que estuvo despierto.
+    val minutosDespierto = registros
+        .filter { it.tipo.restaSueno && it.fin != null }
+        .sumOf { r -> tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { (desde, hasta) -> ((hasta - desde) * 60).toLong() } ?: 0L }
+    val minutosSueno = (suenosDelDia.sumOf { (_, tramo) -> ((tramo.second - tramo.first) * 60).toLong() } - minutosDespierto)
+        .coerceAtLeast(0L)
     val tomas = eventosDelDia.count { it.tipo.esAlimentacion }
 
     // La lista completa, en orden cronológico: los sueños con el inicio
@@ -1248,6 +1256,10 @@ private fun subtituloRegistro(registro: Registro): String = when (registro.tipo)
         }
         listOfNotNull(formatoHoraCorta.format(registro.inicio), detalle).joinToString(" · ")
     }
+
+    TipoRegistro.MEDICINA ->
+        listOfNotNull(formatoHoraCorta.format(registro.inicio), registro.nota.takeIf { it.isNotBlank() })
+            .joinToString(" · ")
 
     else -> formatoHoraCorta.format(registro.inicio)
 }

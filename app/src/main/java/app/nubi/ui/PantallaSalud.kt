@@ -65,8 +65,10 @@ import app.nubi.data.GrupoVacunal
 import app.nubi.data.GrupoVacunas
 import app.nubi.data.ItemVacuna
 import app.nubi.data.Medicina
+import app.nubi.data.Registro
 import app.nubi.data.Repositorio
 import app.nubi.data.TipoCita
+import app.nubi.data.TipoRegistro
 import app.nubi.data.VacunaPropia
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
@@ -1549,13 +1551,12 @@ private fun millisUtcAFecha(millis: Long): Instant =
 
 // =====================================================================
 // Medicina — se abre desde la botonera de la pestaña Día (ver
-// BotoneraDia en Pantallas.kt). A diferencia de Registro, esto se guarda
-// en su propia tabla "medicinas" (ver Modelos.kt y Repositorio.kt).
-//
-// "Avisar de la siguiente toma" se deja preparado en la interfaz, pero
-// todavía no programa ningún aviso real de Android: Medicina no tiene
-// donde guardar esa preferencia (solo un horaSiguiente concreto), y
-// armar una notificación de verdad es trabajo de una fase posterior.
+// BotoneraDia en Pantallas.kt). Al guardar se escribe en DOS sitios:
+// un Registro normal (tipo MEDICINA), que es lo que hace que la toma
+// aparezca en "Todo lo del día" junto al resto de tipos; y una fila en
+// la tabla propia "medicinas" (ver Modelos.kt y Repositorio.kt), que es
+// la que guarda "avisar de la siguiente toma" y programa el aviso real
+// (ver app.nubi.notificaciones.AvisosNubi).
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1689,6 +1690,18 @@ fun HojaMedicinaDia(
                             nombre = nombre,
                             nota = nota,
                             horaSiguiente = if (avisar) horaSiguiente else null
+                        )
+                    )
+                    // Además de la tabla "medicinas" (para el aviso de la
+                    // siguiente toma), se guarda un Registro normal: es lo
+                    // único que hace que la toma aparezca en "Todo lo del
+                    // día" de la pestaña Día, igual que el resto de tipos.
+                    Repositorio.guardarRegistro(
+                        Registro(
+                            bebeId = bebeId,
+                            tipo = TipoRegistro.MEDICINA,
+                            inicio = fecha,
+                            nota = nombre
                         )
                     )
                     onCerrar()
