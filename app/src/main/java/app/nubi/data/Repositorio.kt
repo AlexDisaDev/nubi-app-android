@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * Punto único desde el que la interfaz accede a los datos.
@@ -80,6 +81,40 @@ object Repositorio {
         val datos = local.datos.value
         datos.medicinas.forEach { avisarDeMedicina(contexto, it) }
         datos.citas.forEach { avisarDeCita(contexto, it) }
+        avisarDeSueno(contexto, datos)
+    }
+
+    /** Mismo formato de hora que usa la tarjeta de predicción en Hoy (Pantallas.kt). */
+    private val formatoHoraAviso: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
+
+    /**
+     * Aviso de la próxima ventana de sueño (siesta o noche), a partir de la
+     * MISMA predicción que pinta la tarjeta de Hoy (MotorSueno.prediccionDelDia):
+     * así lo que avisa el móvil coincide siempre con lo que se ve al abrir la
+     * app. Solo hay un aviso de sueño a la vez (id fijo "sueno_proximo"), para
+     * la próxima ventana sin hacer; en cuanto esa siesta o esa noche se
+     * registra (o se borra), se vuelve a calcular y se reprograma con la
+     * siguiente, igual que si fuera una alarma que se recoloca sola.
+     *
+     * Si no hay predicción (ya está durmiendo, no hay datos suficientes, o no
+     * hay bebé), se cancela el aviso pendiente en vez de dejarlo apuntando a
+     * una ventana que ya no es la vigente.
+     */
+    private fun avisarDeSueno(contexto: Context, datos: DatosNubi = local.datos.value) {
+        val id = "sueno_proximo"
+        val bebe = datos.bebe
+        val prediccion = bebe?.let { MotorSueno.prediccionDelDia(bebe = it, registros = datos.registros) }
+        if (prediccion == null) {
+            AvisosNubi.cancelar(contexto, id)
+            return
+        }
+        if (prediccion.tipo == TipoPrediccion.NOCHE) {
+            AvisosNubi.programar(contexto, id, prediccion.desde, "Hora de dormir", "Es hora de dormir 🌙")
+        } else {
+            val texto = "Buena ventana ahora · hasta ${formatoHoraAviso.format(prediccion.hasta)}"
+            AvisosNubi.programar(contexto, id, prediccion.desde, "Hora de la siesta", texto)
+        }
     }
 
     private fun avisarDeMedicina(contexto: Context, medicina: Medicina) {
@@ -171,6 +206,9 @@ object Repositorio {
             }
             local.marcarPendiente(Tablas.REGISTROS, actualizado.id)
             sincronizador.sincronizar()
+            // Una siesta o un despertar nuevos pueden mover la próxima
+            // ventana de sueño: se recalcula el aviso con el dato ya guardado.
+            avisarDeSueno(contexto)
         }
     }
 
@@ -179,6 +217,7 @@ object Repositorio {
             local.modificar { d -> d.copy(registros = d.registros.filterNot { it.id == id }) }
             local.marcarPendiente(Tablas.REGISTROS, id, borrado = true)
             sincronizador.sincronizar()
+            avisarDeSueno(contexto)
         }
     }
 
