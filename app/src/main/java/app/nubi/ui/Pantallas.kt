@@ -61,6 +61,7 @@ import app.nubi.data.TipoPrediccion
 import app.nubi.data.TipoRegistro
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
@@ -235,13 +236,20 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
                     LocalDate.of(anio.toInt(), mes.toInt(), dia.toInt())
                 }.getOrNull()
 
+                val miId = Supabase.client.auth.currentUserOrNull()?.id
+
                 when {
                     nombre.isBlank() -> error = "Pon el nombre del bebé."
                     fecha == null -> error = "Esa fecha no existe. Revísala."
                     fecha.isAfter(LocalDate.now()) -> error = "La fecha no puede ser futura."
+                    // No debería pasar nunca (esta pantalla solo se ve con
+                    // sesión iniciada), pero mejor avisar que guardar un bebé
+                    // que luego nunca podría subirse a Supabase.
+                    miId == null -> error = "No hay sesión iniciada. Vuelve a entrar e inténtalo de nuevo."
                     else -> {
                         Repositorio.guardarBebe(
                             Bebe(
+                                usuarioId = miId,
                                 nombre = nombre.trim(),
                                 fechaNacimiento = fecha.atTime(LocalTime.NOON)
                                     .atZone(ZoneId.systemDefault()).toInstant()

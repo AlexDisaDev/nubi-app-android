@@ -55,6 +55,15 @@ fun nuevoId(): String = UUID.randomUUID().toString()
 @Serializable
 data class Bebe(
     val id: String = nuevoId(),
+    // Dueño de este bebé en Supabase. La tabla "bebes" exige esta columna
+    // (NOT NULL, sin valor por defecto) y la RLS solo deja pasar una fila
+    // cuyo usuario_id coincida con auth.uid(): sin este campo, cada intento
+    // de sincronizar el bebé fallaba en silencio y la fila nunca llegaba a
+    // aparecer en el panel de Supabase, aunque localmente todo funcionara bien.
+    // El valor por defecto "" es solo para que un nubi.json guardado antes de
+    // este cambio (sin esta clave) siga leyéndose sin romperse; Repositorio
+    // lo rellena con el usuario real nada más arrancar (ver migrarUsuarioIdBebe).
+    @SerialName("usuario_id") val usuarioId: String = "",
     val nombre: String,
     @SerialName("fecha_nacimiento") val fechaNacimiento: Fecha,
     @SerialName("semanas_prematuro") val semanasPrematuro: Int = 0,

@@ -2,6 +2,7 @@ package app.nubi.data
 
 import android.content.Context
 import app.nubi.notificaciones.AvisosNubi
+import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +51,11 @@ object Repositorio {
 
         ambito.launch {
             local.cargar()
+            // Si el bebé se creó antes de que Bebe tuviera usuario_id (o el
+            // nubi.json es de antes de este cambio), se rellena aquí con el
+            // usuario de la sesión actual y se marca pendiente para que el
+            // próximo sincronizar() lo vuelva a subir con el campo correcto.
+            migrarUsuarioIdBebe()
             // Primer intento de sincronizar al arrancar. Si no hay sesión o
             // no hay red, no hace nada y ya se reintentará.
             sincronizador.sincronizar()
@@ -130,6 +136,23 @@ object Repositorio {
     /** Tema claro/oscuro. No se marca como pendiente: es de este móvil. */
     fun guardarTema(valor: String) {
         ambito.launch { local.modificar { it.copy(tema = valor) } }
+    }
+
+    /**
+     * Parche de una sola vez para instalaciones de antes de que Bebe tuviera
+     * usuario_id: si el bebé guardado en local tiene ese campo vacío y hay
+     * sesión iniciada, se rellena con el usuario actual y se marca pendiente
+     * para que vuelva a subirse a Supabase ya con el dato correcto. Sin esto,
+     * la fila se quedaría para siempre fallando en silencio contra la RLS de
+     * la tabla "bebes" (NOT NULL + with check usuario_id = auth.uid()).
+     */
+    private suspend fun migrarUsuarioIdBebe() {
+        val bebe = local.datos.value.bebe ?: return
+        if (bebe.usuarioId.isNotBlank()) return
+        val miId = Supabase.client.auth.currentUserOrNull()?.id ?: return
+        val corregido = bebe.copy(usuarioId = miId)
+        local.modificar { it.copy(bebe = corregido) }
+        local.marcarPendiente(Tablas.BEBES, corregido.id)
     }
 
     fun guardarBebe(bebe: Bebe) {
