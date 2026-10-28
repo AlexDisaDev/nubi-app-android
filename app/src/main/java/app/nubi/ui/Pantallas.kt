@@ -483,16 +483,19 @@ fun PantallaHoy(
         )
         Spacer(Modifier.height(10.dp))
 
-        ultimoPanal?.let { registro ->
-            FilaResumenHoy(
-                titulo = "Pañal · ${hace(registro.inicio)}",
-                subtitulo = "Último a las ${formatoHora.format(registro.inicio)}",
-                icono = IconoNubi.GOTA,
-                colorBadge = colores.cielo,
-                onClick = { mostrarHojaPanal = true }
-            )
-            Spacer(Modifier.height(10.dp))
-        }
+        // A diferencia de las demás tarjetas de esta pantalla, esta siempre
+        // está visible: el botón de "Hoy" es para apuntar un pañal en el
+        // momento (el de "Día" es para uno de hace rato), así que tiene que
+        // poder tocarse aunque todavía no haya ningún pañal registrado hoy.
+        FilaResumenHoy(
+            titulo = ultimoPanal?.let { "Pañal · ${hace(it.inicio)}" } ?: "Pañal",
+            subtitulo = ultimoPanal?.let { "Último a las ${formatoHora.format(it.inicio)}" }
+                ?: "Sin registrar todavía",
+            icono = IconoNubi.GOTA,
+            colorBadge = colores.cielo,
+            onClick = { mostrarHojaPanal = true }
+        )
+        Spacer(Modifier.height(10.dp))
 
         // Etapa actual (ver MotorEtapas.kt): solo se muestra si hay una
         // definida para la edad del bebé, igual que en iOS.
