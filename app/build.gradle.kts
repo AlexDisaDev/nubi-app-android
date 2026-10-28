@@ -9,7 +9,13 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "app.nubi"
+        // El "application ID" es el identificador que ve Play Console, y es
+        // distinto del namespace/paquete Kotlin de arriba (que puede quedarse
+        // como "app.nubi" sin problema). Tiene que coincidir exactamente con
+        // el nombre de paquete que se registró al crear la ficha de la app en
+        // Play Console (com.app.nubi) — ese nombre no se puede cambiar una
+        // vez creada la ficha, así que es el proyecto el que se ajusta a él.
+        applicationId = "com.app.nubi"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
