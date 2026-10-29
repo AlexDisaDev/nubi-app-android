@@ -189,6 +189,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
             when {
                 enAjustes -> PantallaAjustes(
                     bebe = datos.bebe,
+                    perfil = datos.perfil,
                     alCerrarSesion = alCerrarSesion
                 )
 

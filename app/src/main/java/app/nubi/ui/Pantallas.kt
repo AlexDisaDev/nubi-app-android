@@ -1,6 +1,10 @@
 package app.nubi.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,14 +30,22 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,13 +60,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.nubi.R
 import app.nubi.data.Bebe
 import app.nubi.data.GuiaEdadAjustada
 import app.nubi.data.LadoPecho
 import app.nubi.data.MotorEtapas
 import app.nubi.data.MotorSueno
+import app.nubi.data.Perfil
 import app.nubi.data.PrediccionDia
 import app.nubi.data.Registro
 import app.nubi.data.Repositorio
@@ -73,6 +90,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -533,6 +551,11 @@ fun PantallaHoy(
                 }
             }
         }
+
+        // Regalar Nubi: mismo sitio que en iOS (VistaInicio.swift), al final
+        // del scroll de Hoy, siempre visible.
+        Spacer(Modifier.height(14.dp))
+        TarjetaRegalarNubi()
 
         Spacer(Modifier.height(24.dp))
     }
@@ -1379,12 +1402,15 @@ fun PantallaEnObras(nombre: String) {
 // Ajustes
 // =====================================================================
 @Composable
-fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
+fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
     var confirmarEliminarCuenta by remember { mutableStateOf(false) }
     var errorEliminarCuenta by remember { mutableStateOf(false) }
     var eliminandoCuenta by remember { mutableStateOf(false) }
+    var mostrarHojaBebe by remember { mutableStateOf(false) }
+    var mostrarHojaSuenoSeguro by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
     val colores = NubiTheme.colores
+    val contexto = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -1393,57 +1419,134 @@ fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
             .padding(NubiGeometria.margen)
     ) {
         Text("Ajustes", style = MaterialTheme.typography.headlineMedium)
-
-        bebe?.let {
-            Spacer(Modifier.height(20.dp))
-            Text("Bebé", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "${it.nombre} · ${textoEdad(it)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = NubiTheme.colores.tintaSuave
-            )
-        }
+        Spacer(Modifier.height(18.dp))
 
         // El modo día/noche ya no se elige aquí: se alterna directamente
         // con el botón de sol/luna de la cabecera de Hoy.
 
-        Spacer(Modifier.height(28.dp))
-        Text("Canjear código de regalo", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        BloqueCanjearCodigo()
+        TarjetaEstadoSuscripcion(perfil)
+        Spacer(Modifier.height(14.dp))
 
-        Spacer(Modifier.height(32.dp))
-        OutlinedButton(
-            onClick = alCerrarSesion,
+        // El idioma no se porta todavía: en iOS depende de un sistema de
+        // traducciones completo (Traducciones.swift, L10n), y Android no
+        // tiene ninguna infraestructura equivalente hoy. Hace falta montarla
+        // antes de que un selector de idioma aquí sirviera para algo real.
+
+        Card(
             shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Cerrar sesión")
+            Column(Modifier.padding(16.dp)) {
+                Text("Canjear código de regalo", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(10.dp))
+                BloqueCanjearCodigo()
+            }
         }
+        Spacer(Modifier.height(14.dp))
+
+        bebe?.let {
+            Card(
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Bebé", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(10.dp))
+                    FilaDato("Nombre", it.nombre)
+                    HorizontalDivider(color = colores.separador)
+                    FilaDato("Nacimiento", formatoFecha.format(it.fechaNacimiento))
+                    HorizontalDivider(color = colores.separador)
+                    FilaDato("Edad", textoEdad(it))
+                    if (it.semanasPrematuro > 0) {
+                        HorizontalDivider(color = colores.separador)
+                        FilaDato("Prematuridad", "${it.semanasPrematuro} semanas")
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        onClick = { mostrarHojaBebe = true },
+                        shape = RoundedCornerShape(NubiGeometria.radioChico)
+                    ) {
+                        Icono(IconoNubi.LAPIZ, tint = colores.tinta, tamano = 14.dp)
+                        Spacer(Modifier.width(7.dp))
+                        Text("Editar datos")
+                    }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+        }
+
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Nubi", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(6.dp))
+                FilaEnlace(IconoNubi.NUBE, colores.menta, "Sueño seguro") {
+                    mostrarHojaSuenoSeguro = true
+                }
+                HorizontalDivider(color = colores.separador)
+                FilaEnlace(IconoNubi.CANDADO, colores.lila, "Política de privacidad") {
+                    abrirUrl(contexto, "https://appnubi.netlify.app/privacidad")
+                }
+                HorizontalDivider(color = colores.separador)
+                FilaEnlace(IconoNubi.CALENDARIO, colores.cielo, "Términos de uso") {
+                    abrirUrl(contexto, "https://appnubi.netlify.app/terminos")
+                }
+            }
+        }
+        Spacer(Modifier.height(14.dp))
 
         // Cuenta — mismo sitio y mismo texto que en iOS: borrado real en el
         // servidor, no solo un email a soporte (lo exige Apple 5.1.1(v), y es
         // lo correcto igualmente en Android).
-        Spacer(Modifier.height(28.dp))
-        Text("Cuenta", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(
-                onClick = { confirmarEliminarCuenta = true },
-                enabled = !eliminandoCuenta
-            ) {
-                Text("Eliminar cuenta", color = colores.coral)
-            }
-            if (eliminandoCuenta) {
-                Spacer(Modifier.width(8.dp))
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Cuenta", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = alCerrarSesion,
+                    shape = RoundedCornerShape(NubiGeometria.radioChico),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cerrar sesión")
+                }
+                Spacer(Modifier.height(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(
+                        onClick = { confirmarEliminarCuenta = true },
+                        enabled = !eliminandoCuenta
+                    ) {
+                        Text("Eliminar cuenta", color = colores.coral)
+                    }
+                    if (eliminandoCuenta) {
+                        Spacer(Modifier.width(8.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    }
+                }
+                Text(
+                    "Borra tu cuenta de Nubi y todos sus datos en la nube. Es permanente.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaTenue
+                )
             }
         }
-        Text(
-            "Borra tu cuenta de Nubi y todos sus datos en la nube. Es permanente.",
-            style = MaterialTheme.typography.bodySmall,
-            color = colores.tintaTenue
-        )
+        Spacer(Modifier.height(24.dp))
+    }
+
+    if (mostrarHojaBebe && bebe != null) {
+        HojaBebe(bebe = bebe) { mostrarHojaBebe = false }
+    }
+
+    if (mostrarHojaSuenoSeguro) {
+        HojaSuenoSeguro { mostrarHojaSuenoSeguro = false }
     }
 
     if (confirmarEliminarCuenta) {
@@ -1489,5 +1592,358 @@ fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
                 TextButton(onClick = { errorEliminarCuenta = false }) { Text("Listo") }
             }
         )
+    }
+}
+
+/** Abre un enlace en el navegador del sistema — mismo sitio en todos los
+ *  enlaces de Ajustes (regalo, privacidad, términos). */
+private fun abrirUrl(contexto: Context, url: String) {
+    contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+}
+
+private val formatoFecha: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "ES")).withZone(zonaLocal)
+
+// Mismo patrón que fechaAMillisUtc/millisUtcAFecha de PantallaSalud.kt (son
+// privadas a ese archivo, así que se repiten aquí): el DatePicker de
+// Material3 trabaja en millis UTC de medianoche, y convertir con
+// Instant.ofEpochMilli() directo desplaza el día según la zona del usuario.
+private fun fechaAMillisUtc(fecha: Instant): Long =
+    fecha.atZone(zonaLocal).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun millisUtcAFecha(millis: Long): Instant =
+    Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().atStartOfDay(zonaLocal).toInstant()
+
+/**
+ * Tarjeta de "Regalar Nubi" en la pestaña Hoy — mismo sitio y mismo texto
+ * que TarjetaRegalarNubi en VistaInicio.swift, al final del scroll.
+ */
+@Composable
+private fun TarjetaRegalarNubi() {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { abrirUrl(contexto, "https://appnubi.netlify.app/regalar") }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(colores.rosa),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Regala Nubi",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "Un regalo perfecto para otra familia con bebé",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaSuave
+                )
+            }
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+        }
+    }
+}
+
+/**
+ * Estado de la cuenta (premium / prueba / caducada) + acceso a regalar
+ * Nubi — mismo agrupamiento que tarjetaSuscripcion en VistaAjustes.swift,
+ * sin los botones de Gestionar/Suscribirse: Google Play Billing todavía no
+ * está conectado en Android, así que no hay compra real que ofrecer aquí
+ * todavía — solo el estado, que sí se puede leer de "perfiles".
+ */
+@Composable
+private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    val ahora = Instant.now()
+    val premiumHasta = perfil?.premiumHasta
+
+    val titulo: String
+    val subtitulo: String
+    val colorBadge: Color
+    val premiumActivo: Boolean
+
+    when {
+        perfil == null -> {
+            titulo = "Comprobando tu cuenta…"
+            subtitulo = ""
+            colorBadge = colores.tintaTenue
+            premiumActivo = false
+        }
+        premiumHasta != null && ahora.isBefore(premiumHasta) -> {
+            titulo = "Nubi Premium activo"
+            subtitulo = "Hasta el ${formatoFecha.format(premiumHasta)}"
+            colorBadge = colores.mantequilla
+            premiumActivo = true
+        }
+        ahora.isBefore(perfil.fechaCortePrueba) -> {
+            val dias = Duration.between(ahora, perfil.fechaCortePrueba).toDays() + 1
+            titulo = "Período de prueba"
+            subtitulo = if (dias <= 1L) "Último día de prueba" else "Te quedan $dias días de prueba"
+            colorBadge = colores.lila
+            premiumActivo = false
+        }
+        else -> {
+            titulo = "Prueba finalizada"
+            subtitulo = "Canjea un código de regalo para seguir usando Nubi"
+            colorBadge = colores.coral
+            premiumActivo = false
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BadgeIcono(
+                    if (premiumActivo) IconoNubi.ESTRELLA else IconoNubi.CANDADO,
+                    colorFondo = colorBadge,
+                    colorIcono = colores.tinta,
+                    tamano = 34.dp,
+                    tamanoIcono = 16.dp
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (subtitulo.isNotEmpty()) {
+                        Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = colores.separador)
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { abrirUrl(contexto, "https://appnubi.netlify.app/regalar") }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BadgeIcono(
+                    IconoNubi.CORAZON,
+                    colorFondo = colores.rosa,
+                    colorIcono = colores.tinta,
+                    tamano = 32.dp,
+                    tamanoIcono = 15.dp
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Regalar Nubi", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Regala 1, 3 o 12 meses de Nubi",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaSuave
+                    )
+                }
+                Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+            }
+        }
+    }
+}
+
+/** Fila etiqueta/valor — la tarjeta "Bebé" de Ajustes. */
+@Composable
+private fun FilaDato(etiqueta: String, valor: String) {
+    val colores = NubiTheme.colores
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(etiqueta, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+        Text(valor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+    }
+}
+
+/** Fila de enlace con badge + chevron — la tarjeta "Nubi" de Ajustes. */
+@Composable
+private fun FilaEnlace(icono: IconoNubi, colorBadge: Color, texto: String, onClick: () -> Unit) {
+    val colores = NubiTheme.colores
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta, tamano = 36.dp, tamanoIcono = 16.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(texto, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+    }
+}
+
+/**
+ * Hoja para editar los datos del bebé — mismo contenido y mismos límites
+ * que HojaBebe en VistaAjustes.swift (semanas de prematuridad 0..16),
+ * guardando con el mismo Repositorio.guardarBebe que usa el resto de la app.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
+    val colores = NubiTheme.colores
+    var nombre by remember { mutableStateOf(bebe.nombre) }
+    var fechaNacimiento by remember { mutableStateOf(bebe.fechaNacimiento) }
+    var semanasPrematuro by remember { mutableIntStateOf(bebe.semanasPrematuro) }
+    var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    val estadoHoja = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = alCerrar, sheetState = estadoHoja) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(NubiGeometria.margen)
+        ) {
+            Text("Datos del bebé", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(20.dp))
+
+            Text("Nombre", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = { Text("Su nombre") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(18.dp))
+            Text("Fecha de nacimiento", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { mostrarSelectorFecha = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(formatoFecha.format(fechaNacimiento))
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Text("Semanas de prematuridad", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = { if (semanasPrematuro > 0) semanasPrematuro-- },
+                    enabled = semanasPrematuro > 0
+                ) { Text("−") }
+                Text(
+                    "$semanasPrematuro semanas",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 18.dp)
+                )
+                OutlinedButton(
+                    onClick = { if (semanasPrematuro < 16) semanasPrematuro++ },
+                    enabled = semanasPrematuro < 16
+                ) { Text("+") }
+            }
+
+            Spacer(Modifier.height(26.dp))
+            Button(
+                onClick = {
+                    Repositorio.guardarBebe(
+                        bebe.copy(
+                            nombre = nombre.trim().ifBlank { bebe.nombre },
+                            fechaNacimiento = fechaNacimiento,
+                            semanasPrematuro = semanasPrematuro
+                        )
+                    )
+                    alCerrar()
+                },
+                enabled = nombre.isNotBlank(),
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Guardar")
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+
+    if (mostrarSelectorFecha) {
+        val estado = rememberDatePickerState(
+            initialSelectedDateMillis = fechaAMillisUtc(fechaNacimiento),
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= System.currentTimeMillis()
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { mostrarSelectorFecha = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    estado.selectedDateMillis?.let { millis -> fechaNacimiento = millisUtcAFecha(millis) }
+                    mostrarSelectorFecha = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+        ) { DatePicker(state = estado) }
+    }
+}
+
+/**
+ * Info estática de sueño seguro — mismo texto que VistaSueñoSeguro en
+ * VistaAjustes.swift, palabra por palabra.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HojaSuenoSeguro(alCerrar: () -> Unit) {
+    val colores = NubiTheme.colores
+    val estadoHoja = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = alCerrar, sheetState = estadoHoja) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(NubiGeometria.margen)
+        ) {
+            BadgeIcono(
+                IconoNubi.NUBE,
+                colorFondo = colores.menta,
+                colorIcono = colores.tinta,
+                tamano = 60.dp,
+                tamanoIcono = 28.dp
+            )
+            Spacer(Modifier.height(16.dp))
+            Text("Sueño seguro", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "Las recomendaciones generales de sueño seguro para lactantes incluyen acostar al bebé boca arriba, sobre una superficie firme y plana, sin almohadas, mantas sueltas ni peluches en la cuna, y compartir habitación pero no cama durante los primeros meses.\n\n" +
+                    "Evita el sobrecalentamiento y el humo del tabaco en el entorno del bebé.\n\n" +
+                    "Consulta siempre las guías de tu pediatra o de la sociedad de pediatría de tu país, que son la referencia válida para tu caso.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colores.tintaSuave
+            )
+            Spacer(Modifier.height(16.dp))
+        }
     }
 }
