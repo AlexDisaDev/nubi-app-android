@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fondo de la ventana mientras se abre la app: el lienzo de Nubi con el
+  logotipo completo (nubes + "NUBI") centrado, a tamaño fijo y sin recortes.
+
+  Se pinta al instante al crearse la ventana — antes de que Compose dibuje
+  su primer frame — así que tapa el hueco entre el icono del splash del
+  sistema (que por limitación de la API solo admite un icono compacto, ver
+  themes.xml) y la pantalla de carga real. Una vez Compose dibuja encima,
+  esto deja de verse.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/lienzo" />
+    <item
+        android:width="220dp"
+        android:height="163dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/nubi_logo_splash"
+            android:gravity="center" />
+    </item>
+</layer-list>

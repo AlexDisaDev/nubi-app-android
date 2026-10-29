@@ -4,10 +4,14 @@
          falta para que el sistema sepa qué arranque/estilo usar fuera de
          Compose (splash, barras del sistema, etc.).
 
-         El windowBackground en el lienzo de Nubi evita el fogonazo blanco
-         (o negro) entre que se abre la ventana y Compose dibuja. -->
+         El windowBackground pinta el logotipo completo de Nubi centrado
+         sobre el lienzo (ver drawable/fondo_apertura.xml) — se ve al
+         instante al crearse la ventana, antes de que Compose dibuje nada,
+         así que no hay hueco en blanco entre el icono del splash del
+         sistema y la pantalla de carga real. Una vez Compose pinta encima,
+         deja de verse (toda pantalla cubre la ventana entera). -->
     <style name="Theme.Nubi" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowBackground">@color/lienzo</item>
+        <item name="android:windowBackground">@drawable/fondo_apertura</item>
     </style>
 
     <!-- Pantalla de apertura: el icono del sistema (API SplashScreen de
