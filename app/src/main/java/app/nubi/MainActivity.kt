@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +21,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -38,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.nubi.data.Repositorio
@@ -133,8 +142,19 @@ fun ContenidoApp() {
     }
 
     when {
+        // Mismo tratamiento que VistaCargandoSesion en iOS: el logo completo
+        // en vez de texto suelto, para no enseñar una pantalla en blanco
+        // mientras se comprueba si ya había sesión guardada.
         cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Un momento…", style = MaterialTheme.typography.bodyMedium)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Image(
+                    painter = painterResource(R.drawable.nubi_logo_splash),
+                    contentDescription = null,
+                    modifier = Modifier.width(160.dp)
+                )
+                Spacer(Modifier.height(20.dp))
+                CircularProgressIndicator()
+            }
         }
 
         datos.bebe == null && !bienvenidaVista ->
@@ -166,36 +186,68 @@ fun PantallaLogin() {
     var correo by remember { mutableStateOf("") }
     var enlaceEnviado by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var entrandoConGoogle by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(NubiGeometria.margen)
-            .fillMaxSize(),
+            .verticalScroll(rememberScrollState())
+            .padding(NubiGeometria.margen),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Nubi", style = MaterialTheme.typography.displayMedium)
-        Spacer(Modifier.height(24.dp))
+        // Mismo logo y mismo sitio que en VistaLogin de iOS: encabezando la
+        // pantalla de login, sin tocar ninguna otra imagen de la app.
+        Image(
+            painter = painterResource(R.drawable.nubi_logo_splash),
+            contentDescription = null,
+            modifier = Modifier.width(140.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Inicia sesión para continuar",
+            style = MaterialTheme.typography.bodyMedium,
+            color = NubiTheme.colores.tintaSuave
+        )
+        Spacer(Modifier.height(28.dp))
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = NubiTheme.colores.superficie),
+            shape = RoundedCornerShape(NubiGeometria.radio),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                "¿Ya eras usuario de Nubi? Tranquilo: tus datos no se van a borrar, siguen guardados tal y como estaban.",
+                style = MaterialTheme.typography.bodySmall,
+                color = NubiTheme.colores.tintaSuave,
+                modifier = Modifier.padding(14.dp)
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
 
         Button(
             onClick = {
                 ambito.launch {
+                    entrandoConGoogle = true
                     try {
                         Supabase.client.auth.signInWith(Google)
                         error = null
                     } catch (e: Exception) {
                         error = "No se pudo entrar con Google: ${e.message}"
                     }
+                    entrandoConGoogle = false
                 }
             },
+            enabled = !entrandoConGoogle,
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Entrar con Google")
+            Text(if (entrandoConGoogle) "Un momento…" else "Continuar con Google")
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
         Text(
             "o con tu email",
             style = MaterialTheme.typography.bodySmall,
@@ -206,7 +258,8 @@ fun PantallaLogin() {
         if (enlaceEnviado) {
             Text(
                 "Te hemos enviado un enlace a $correo. Ábrelo desde el correo en este móvil para entrar.",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center
             )
         } else {
             OutlinedTextField(
@@ -237,7 +290,21 @@ fun PantallaLogin() {
 
         error?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Text(
+                it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center
+            )
         }
+
+        Spacer(Modifier.height(28.dp))
+        Text(
+            "Al continuar aceptas nuestros términos y la política de privacidad de Nubi.",
+            style = MaterialTheme.typography.bodySmall,
+            color = NubiTheme.colores.tintaTenue,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

@@ -179,6 +179,28 @@ class Sincronizador(private val local: AlmacenLocal) {
         Supabase.client.from(tabla).upsert(fila)
     }
 
+    /**
+     * PostgREST solo devuelve 1000 filas por consulta aunque no se pida
+     * límite ninguno (tope de servidor, no de esta app). Con un bebé de
+     * meses esto no se nota, pero un diario o un historial de medidas puede
+     * superarlo con el tiempo — sin esto, las filas de más allá de la 1000
+     * simplemente desaparecerían de este móvil en cada sincronización.
+     */
+    private suspend inline fun <reified T : Any> traerTodo(tabla: String): List<T> {
+        val tamanoPagina = 1000L
+        val resultado = mutableListOf<T>()
+        var desde = 0L
+        while (true) {
+            val pagina = Supabase.client.from(tabla).select {
+                range(desde, desde + tamanoPagina - 1)
+            }.decodeList<T>()
+            resultado += pagina
+            if (pagina.size < tamanoPagina) break
+            desde += tamanoPagina
+        }
+        return resultado
+    }
+
     // -----------------------------------------------------------------
     // Bajada
     //
@@ -194,19 +216,19 @@ class Sincronizador(private val local: AlmacenLocal) {
     private suspend fun bajarCambios() {
         val pendientes = local.datos.value.pendientes.map { it.id }.toSet()
 
-        val bebes = Supabase.client.from(Tablas.BEBES).select().decodeList<Bebe>()
-        val registros = Supabase.client.from(Tablas.REGISTROS).select().decodeList<Registro>()
-        val medicinas = Supabase.client.from(Tablas.MEDICINAS).select().decodeList<Medicina>()
-        val medidas = Supabase.client.from(Tablas.MEDIDAS).select().decodeList<Medida>()
-        val citas = Supabase.client.from(Tablas.CITAS).select().decodeList<Cita>()
-        val vacunas = Supabase.client.from(Tablas.VACUNAS_ESTADO).select().decodeList<EstadoVacuna>()
-        val grupos = Supabase.client.from(Tablas.VACUNAS_GRUPOS).select().decodeList<GrupoVacunas>()
-        val propias = Supabase.client.from(Tablas.VACUNAS_PROPIAS).select().decodeList<VacunaPropia>()
-        val diario = Supabase.client.from(Tablas.DIARIO).select().decodeList<EntradaDiario>()
-        val extracciones = Supabase.client.from(Tablas.EXTRACCIONES).select().decodeList<ExtraccionLeche>()
-        val usos = Supabase.client.from(Tablas.USOS_LECHE).select().decodeList<UsoLeche>()
-        val comidas = Supabase.client.from(Tablas.COMIDAS).select().decodeList<ComidaComplementaria>()
-        val enfermedades = Supabase.client.from(Tablas.ENFERMEDADES).select().decodeList<Enfermedad>()
+        val bebes = traerTodo<Bebe>(Tablas.BEBES)
+        val registros = traerTodo<Registro>(Tablas.REGISTROS)
+        val medicinas = traerTodo<Medicina>(Tablas.MEDICINAS)
+        val medidas = traerTodo<Medida>(Tablas.MEDIDAS)
+        val citas = traerTodo<Cita>(Tablas.CITAS)
+        val vacunas = traerTodo<EstadoVacuna>(Tablas.VACUNAS_ESTADO)
+        val grupos = traerTodo<GrupoVacunas>(Tablas.VACUNAS_GRUPOS)
+        val propias = traerTodo<VacunaPropia>(Tablas.VACUNAS_PROPIAS)
+        val diario = traerTodo<EntradaDiario>(Tablas.DIARIO)
+        val extracciones = traerTodo<ExtraccionLeche>(Tablas.EXTRACCIONES)
+        val usos = traerTodo<UsoLeche>(Tablas.USOS_LECHE)
+        val comidas = traerTodo<ComidaComplementaria>(Tablas.COMIDAS)
+        val enfermedades = traerTodo<Enfermedad>(Tablas.ENFERMEDADES)
 
         // El perfil (prueba/premium) no tiene pendientes propios: lo gestiona
         // el servidor en exclusiva, aquí solo se lee la fila del usuario.

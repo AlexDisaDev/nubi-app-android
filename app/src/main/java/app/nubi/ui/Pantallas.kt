@@ -20,10 +20,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -1378,9 +1380,16 @@ fun PantallaEnObras(nombre: String) {
 // =====================================================================
 @Composable
 fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
+    var confirmarEliminarCuenta by remember { mutableStateOf(false) }
+    var errorEliminarCuenta by remember { mutableStateOf(false) }
+    var eliminandoCuenta by remember { mutableStateOf(false) }
+    val ambito = rememberCoroutineScope()
+    val colores = NubiTheme.colores
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
         Text("Ajustes", style = MaterialTheme.typography.headlineMedium)
@@ -1411,5 +1420,74 @@ fun PantallaAjustes(bebe: Bebe?, alCerrarSesion: () -> Unit) {
         ) {
             Text("Cerrar sesión")
         }
+
+        // Cuenta — mismo sitio y mismo texto que en iOS: borrado real en el
+        // servidor, no solo un email a soporte (lo exige Apple 5.1.1(v), y es
+        // lo correcto igualmente en Android).
+        Spacer(Modifier.height(28.dp))
+        Text("Cuenta", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(
+                onClick = { confirmarEliminarCuenta = true },
+                enabled = !eliminandoCuenta
+            ) {
+                Text("Eliminar cuenta", color = colores.coral)
+            }
+            if (eliminandoCuenta) {
+                Spacer(Modifier.width(8.dp))
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            }
+        }
+        Text(
+            "Borra tu cuenta de Nubi y todos sus datos en la nube. Es permanente.",
+            style = MaterialTheme.typography.bodySmall,
+            color = colores.tintaTenue
+        )
+    }
+
+    if (confirmarEliminarCuenta) {
+        AlertDialog(
+            onDismissRequest = { confirmarEliminarCuenta = false },
+            title = { Text("¿Eliminar tu cuenta?") },
+            text = {
+                Text(
+                    "Se elimina tu cuenta de Nubi y todos tus datos guardados en la nube: bebé, registros, medidas, citas y diario. No se puede deshacer.\n\nSi tienes una suscripción activa, cancélala en Google Play: eliminar la cuenta no la cancela."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmarEliminarCuenta = false
+                    ambito.launch {
+                        eliminandoCuenta = true
+                        try {
+                            Supabase.client.postgrest.rpc("eliminar_mi_cuenta")
+                            alCerrarSesion()
+                        } catch (e: Exception) {
+                            errorEliminarCuenta = true
+                        }
+                        eliminandoCuenta = false
+                    }
+                }) {
+                    Text("Eliminar cuenta", color = colores.coral)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmarEliminarCuenta = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (errorEliminarCuenta) {
+        AlertDialog(
+            onDismissRequest = { errorEliminarCuenta = false },
+            title = { Text("No se pudo eliminar la cuenta") },
+            text = { Text("Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa, escribe a nubibabyapp@gmail.com.") },
+            confirmButton = {
+                TextButton(onClick = { errorEliminarCuenta = false }) { Text("Listo") }
+            }
+        )
     }
 }
