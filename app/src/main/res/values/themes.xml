@@ -10,13 +10,17 @@
         <item name="android:windowBackground">@color/lienzo</item>
     </style>
 
-    <!-- Pantalla de apertura: el logo de Nubi (nubes + "NUBI") sobre el
-         mismo lienzo de la app, y luego directo al tema normal. Sin
-         windowSplashScreenIconBackgroundColor porque el logo es ancho
-         (nubes + palabra) y no queremos que se recorte en un círculo. -->
+    <!-- Pantalla de apertura: el icono del sistema (API SplashScreen de
+         Android 12+) solo admite un icono compacto, tipo app-icon — un
+         logotipo ancho con texto fino (nubes + "NUBI") sale destrozado por
+         el escalado a ese tamaño pequeño. Por eso aquí se usa solo el
+         icono de las nubes (el mismo foreground del icono de la app), sin
+         texto; el logotipo completo con la palabra "NUBI" se enseña aparte,
+         a tamaño controlado, en la propia pantalla de carga de Compose
+         (ver ContenidoApp en MainActivity.kt) justo después de este splash. -->
     <style name="Theme.Nubi.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/lienzo</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/nubi_logo_splash</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/Theme.Nubi</item>
     </style>
 </resources>
