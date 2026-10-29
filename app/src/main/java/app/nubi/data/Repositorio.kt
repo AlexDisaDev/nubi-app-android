@@ -173,6 +173,11 @@ object Repositorio {
         ambito.launch { local.modificar { it.copy(tema = valor) } }
     }
 
+    /** Idioma elegido en Ajustes. Igual que el tema: de este móvil, no se sincroniza. */
+    fun guardarIdioma(valor: String) {
+        ambito.launch { local.modificar { it.copy(idioma = valor) } }
+    }
+
     /**
      * Parche de una sola vez para instalaciones de antes de que Bebe tuviera
      * usuario_id: si el bebé guardado en local tiene ese campo vacío y hay

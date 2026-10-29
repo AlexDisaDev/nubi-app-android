@@ -32,6 +32,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +80,8 @@ import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.data.TipoPrediccion
 import app.nubi.data.TipoRegistro
+import app.nubi.i18n.IdiomaNubi
+import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
@@ -393,9 +397,9 @@ fun PantallaHoy(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        if (suenoEnCurso?.tipo == TipoRegistro.SIESTA) "SIESTA"
-                        else if (suenoEnCurso?.tipo == TipoRegistro.NOCHE) "SUEÑO NOCTURNO"
-                        else "SUEÑO",
+                        if (suenoEnCurso?.tipo == TipoRegistro.SIESTA) L10n.t("Siesta").uppercase()
+                        else if (suenoEnCurso?.tipo == TipoRegistro.NOCHE) L10n.t("Sueño nocturno").uppercase()
+                        else L10n.t("Sueño").uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = colores.tintaTenue
                     )
@@ -417,7 +421,7 @@ fun PantallaHoy(
                         style = MaterialTheme.typography.displaySmall
                     )
                     Text(
-                        "Dormido desde ${formatoHora.format(suenoEnCurso.inicio)}",
+                        "${L10n.t("Dormido desde")} ${formatoHora.format(suenoEnCurso.inicio)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave
                     )
@@ -425,7 +429,10 @@ fun PantallaHoy(
                     if (suenoEnCurso.tipo == TipoRegistro.NOCHE) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             BotonAccion(
-                                texto = "Despertar\nnocturno",
+                                // "Despertar nocturno" (y sus traducciones) son siempre dos
+                                // palabras separadas por un único espacio — se parte ahí para
+                                // que quepa en dos líneas en el botón, igual que antes.
+                                texto = L10n.t("Despertar nocturno").replaceFirst(" ", "\n"),
                                 icono = IconoNubi.LUNA,
                                 color = colores.coral,
                                 modifier = Modifier.weight(1f)
@@ -436,7 +443,7 @@ fun PantallaHoy(
                             }
                             Spacer(Modifier.width(10.dp))
                             BotonAccion(
-                                texto = "Buenos días",
+                                texto = L10n.t("Buenos días"),
                                 icono = IconoNubi.SOL,
                                 color = colores.melocoton,
                                 modifier = Modifier.weight(1f)
@@ -446,7 +453,7 @@ fun PantallaHoy(
                         }
                     } else {
                         BotonAccion(
-                            texto = "Se ha despertado",
+                            texto = L10n.t("Se ha despertado"),
                             icono = IconoNubi.SOL,
                             color = colores.melocoton,
                             modifier = Modifier.fillMaxWidth()
@@ -456,14 +463,14 @@ fun PantallaHoy(
                     }
                 } else {
                     Text(
-                        "Sin sueño en curso.",
+                        L10n.t("Sin sueño en curso."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaTenue
                     )
                     Spacer(Modifier.height(14.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
                         BotonAccion(
-                            texto = "Siesta",
+                            texto = L10n.t("Siesta"),
                             icono = IconoNubi.NUBE,
                             color = colores.menta,
                             modifier = Modifier.weight(1f)
@@ -474,7 +481,7 @@ fun PantallaHoy(
                         }
                         Spacer(Modifier.width(10.dp))
                         BotonAccion(
-                            texto = "Sueño nocturno",
+                            texto = L10n.t("Sueño nocturno"),
                             icono = IconoNubi.LUNA,
                             color = colores.lila,
                             modifier = Modifier.weight(1f)
@@ -508,9 +515,9 @@ fun PantallaHoy(
         // momento (el de "Día" es para uno de hace rato), así que tiene que
         // poder tocarse aunque todavía no haya ningún pañal registrado hoy.
         FilaResumenHoy(
-            titulo = ultimoPanal?.let { "Pañal · ${hace(it.inicio)}" } ?: "Pañal",
-            subtitulo = ultimoPanal?.let { "Último a las ${formatoHora.format(it.inicio)}" }
-                ?: "Sin registrar todavía",
+            titulo = ultimoPanal?.let { "${L10n.t("Pañal")} · ${hace(it.inicio)}" } ?: L10n.t("Pañal"),
+            subtitulo = ultimoPanal?.let { "${L10n.t("Último a las")} ${formatoHora.format(it.inicio)}" }
+                ?: L10n.t("Sin registrar todavía"),
             icono = IconoNubi.GOTA,
             colorBadge = colores.cielo,
             onClick = { mostrarHojaPanal = true }
@@ -542,7 +549,7 @@ fun PantallaHoy(
                     Column(Modifier.weight(1f)) {
                         Text(etapa.titulo, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            "Toca para ver consejos",
+                            L10n.t("Toca para ver consejos"),
                             style = MaterialTheme.typography.bodySmall,
                             color = colores.tintaTenue
                         )
@@ -649,26 +656,26 @@ private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
 
 private fun textoPrediccion(p: PrediccionDia, yaEnVentana: Boolean, pasada: Boolean): String = when (p.tipo) {
     TipoPrediccion.SIESTA -> when {
-        yaEnVentana -> "Buena ventana ahora · hasta ${formatoHora.format(p.hasta)}"
-        pasada -> "Se ha pasado la ventana ideal"
-        else -> "Próxima siesta · ${formatoHora.format(p.desde)} – ${formatoHora.format(p.hasta)}"
+        yaEnVentana -> "${L10n.t("Buena ventana ahora")} · ${L10n.t("hasta")} ${formatoHora.format(p.hasta)}"
+        pasada -> L10n.t("Se ha pasado la ventana ideal")
+        else -> "${L10n.t("Próxima siesta")} · ${formatoHora.format(p.desde)} – ${formatoHora.format(p.hasta)}"
     }
     TipoPrediccion.NOCHE ->
-        if (yaEnVentana || pasada) "Es hora de dormir 🌙"
-        else "Sueño nocturno · ${formatoHora.format(p.desde)}"
+        if (yaEnVentana || pasada) L10n.t("Es hora de dormir 🌙")
+        else "${L10n.t("Sueño nocturno")} · ${formatoHora.format(p.desde)}"
 }
 
 private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: Boolean, pasada: Boolean): String =
     when (p.tipo) {
         TipoPrediccion.SIESTA ->
-            if (p.ajustadaPorHistorial) "Ajustado a su ritmo real" else "Basado en su edad"
+            L10n.t(if (p.ajustadaPorHistorial) "Ajustado a su ritmo real" else "Basado en su edad")
         TipoPrediccion.NOCHE -> {
             if (yaEnVentana || pasada) {
-                "Última ventana del día"
+                L10n.t("Última ventana del día")
             } else {
                 val restanteMin = Duration.between(ahora, p.desde).toMinutes()
-                if (restanteMin > 0) "En ${textoDuracion(restanteMin)} · última siesta hecha"
-                else "Última ventana del día"
+                if (restanteMin > 0) "${L10n.t("En")} ${textoDuracion(restanteMin)} ${L10n.t("· última siesta hecha")}"
+                else L10n.t("Última ventana del día")
             }
         }
     }
@@ -699,11 +706,11 @@ private fun FilaUltimaToma(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    ultimo?.let { "Última toma · ${hace(it.inicio)}" } ?: "Alimentación",
+                    ultimo?.let { "${L10n.t("Última toma")} · ${hace(it.inicio)}" } ?: L10n.t("Alimentación"),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    ultimo?.let { subtituloRegistro(it) } ?: "Sin registrar todavía",
+                    ultimo?.let { subtituloRegistro(it) } ?: L10n.t("Sin registrar todavía"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaTenue
                 )
@@ -755,23 +762,25 @@ private fun BotonAccion(
 
 private fun saludoSegunHora(): String {
     val hora = LocalTime.now().hour
-    return when {
-        hora < 6 -> "Buenas noches"
-        hora < 12 -> "Buenos días"
-        hora < 20 -> "Buenas tardes"
-        else -> "Buenas noches"
-    }
+    return L10n.t(
+        when {
+            hora < 6 -> "Buenas noches"
+            hora < 12 -> "Buenos días"
+            hora < 20 -> "Buenas tardes"
+            else -> "Buenas noches"
+        }
+    )
 }
 
 private fun hace(instante: Instant): String {
     val minutos = Duration.between(instante, Instant.now()).toMinutes().coerceAtLeast(0)
     return when {
-        minutos < 1 -> "ahora mismo"
-        minutos < 60 -> "hace $minutos min"
+        minutos < 1 -> L10n.ahoraMismo
+        minutos < 60 -> L10n.haceMin(minutos.toInt())
         else -> {
-            val horas = minutos / 60
-            val resto = minutos % 60
-            if (resto == 0L) "hace $horas h" else "hace $horas h $resto min"
+            val horas = (minutos / 60).toInt()
+            val resto = (minutos % 60).toInt()
+            L10n.haceHoras(horas, resto)
         }
     }
 }
@@ -1418,7 +1427,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text("Ajustes", style = MaterialTheme.typography.headlineMedium)
+        Text(L10n.t("Ajustes"), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(18.dp))
 
         // El modo día/noche ya no se elige aquí: se alterna directamente
@@ -1427,10 +1436,8 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
         TarjetaEstadoSuscripcion(perfil)
         Spacer(Modifier.height(14.dp))
 
-        // El idioma no se porta todavía: en iOS depende de un sistema de
-        // traducciones completo (Traducciones.swift, L10n), y Android no
-        // tiene ninguna infraestructura equivalente hoy. Hace falta montarla
-        // antes de que un selector de idioma aquí sirviera para algo real.
+        TarjetaIdioma()
+        Spacer(Modifier.height(14.dp))
 
         Card(
             shape = RoundedCornerShape(NubiGeometria.radioChico),
@@ -1438,7 +1445,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(16.dp)) {
-                Text("Canjear código de regalo", style = MaterialTheme.typography.titleMedium)
+                Text(L10n.t("Canjear código de regalo"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
                 BloqueCanjearCodigo()
             }
@@ -1452,16 +1459,16 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Bebé", style = MaterialTheme.typography.titleMedium)
+                    Text(L10n.t("Bebé"), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(10.dp))
-                    FilaDato("Nombre", it.nombre)
+                    FilaDato(L10n.t("Nombre"), it.nombre)
                     HorizontalDivider(color = colores.separador)
-                    FilaDato("Nacimiento", formatoFecha.format(it.fechaNacimiento))
+                    FilaDato(L10n.t("Nacimiento"), formatoFecha.format(it.fechaNacimiento))
                     HorizontalDivider(color = colores.separador)
-                    FilaDato("Edad", textoEdad(it))
+                    FilaDato(L10n.t("Edad"), textoEdad(it))
                     if (it.semanasPrematuro > 0) {
                         HorizontalDivider(color = colores.separador)
-                        FilaDato("Prematuridad", "${it.semanasPrematuro} semanas")
+                        FilaDato(L10n.t("Prematuridad"), "${it.semanasPrematuro} ${L10n.t("semanas")}")
                     }
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
@@ -1470,7 +1477,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                     ) {
                         Icono(IconoNubi.LAPIZ, tint = colores.tinta, tamano = 14.dp)
                         Spacer(Modifier.width(7.dp))
-                        Text("Editar datos")
+                        Text(L10n.t("Editar datos"))
                     }
                 }
             }
@@ -1485,15 +1492,15 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             Column(Modifier.padding(16.dp)) {
                 Text("Nubi", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
-                FilaEnlace(IconoNubi.NUBE, colores.menta, "Sueño seguro") {
+                FilaEnlace(IconoNubi.NUBE, colores.menta, L10n.t("Sueño seguro")) {
                     mostrarHojaSuenoSeguro = true
                 }
                 HorizontalDivider(color = colores.separador)
-                FilaEnlace(IconoNubi.CANDADO, colores.lila, "Política de privacidad") {
+                FilaEnlace(IconoNubi.CANDADO, colores.lila, L10n.t("Política de privacidad")) {
                     abrirUrl(contexto, "https://appnubi.netlify.app/privacidad")
                 }
                 HorizontalDivider(color = colores.separador)
-                FilaEnlace(IconoNubi.CALENDARIO, colores.cielo, "Términos de uso") {
+                FilaEnlace(IconoNubi.CALENDARIO, colores.cielo, L10n.t("Términos de uso")) {
                     abrirUrl(contexto, "https://appnubi.netlify.app/terminos")
                 }
             }
@@ -1509,14 +1516,14 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(Modifier.padding(16.dp)) {
-                Text("Cuenta", style = MaterialTheme.typography.titleMedium)
+                Text(L10n.t("Cuenta"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
                 OutlinedButton(
                     onClick = alCerrarSesion,
                     shape = RoundedCornerShape(NubiGeometria.radioChico),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cerrar sesión")
+                    Text(L10n.t("Cerrar sesión"))
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1524,7 +1531,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                         onClick = { confirmarEliminarCuenta = true },
                         enabled = !eliminandoCuenta
                     ) {
-                        Text("Eliminar cuenta", color = colores.coral)
+                        Text(L10n.t("Eliminar cuenta"), color = colores.coral)
                     }
                     if (eliminandoCuenta) {
                         Spacer(Modifier.width(8.dp))
@@ -1552,7 +1559,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
     if (confirmarEliminarCuenta) {
         AlertDialog(
             onDismissRequest = { confirmarEliminarCuenta = false },
-            title = { Text("¿Eliminar tu cuenta?") },
+            title = { Text(L10n.t("¿Eliminar tu cuenta?")) },
             text = {
                 Text(
                     "Se elimina tu cuenta de Nubi y todos tus datos guardados en la nube: bebé, registros, medidas, citas y diario. No se puede deshacer.\n\nSi tienes una suscripción activa, cancélala en Google Play: eliminar la cuenta no la cancela."
@@ -1572,12 +1579,12 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                         eliminandoCuenta = false
                     }
                 }) {
-                    Text("Eliminar cuenta", color = colores.coral)
+                    Text(L10n.t("Eliminar cuenta"), color = colores.coral)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmarEliminarCuenta = false }) {
-                    Text("Cancelar")
+                    Text(L10n.t("Cancelar"))
                 }
             }
         )
@@ -1589,7 +1596,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             title = { Text("No se pudo eliminar la cuenta") },
             text = { Text("Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa, escribe a nubibabyapp@gmail.com.") },
             confirmButton = {
-                TextButton(onClick = { errorEliminarCuenta = false }) { Text("Listo") }
+                TextButton(onClick = { errorEliminarCuenta = false }) { Text(L10n.t("Listo")) }
             }
         )
     }
@@ -1767,6 +1774,75 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
+        }
+    }
+}
+
+/**
+ * Selector de idioma — mismo sitio que tarjetaIdioma en VistaAjustes.swift
+ * (justo debajo del estado de la cuenta). "Automático" sigue el idioma del
+ * teléfono (L10n.idiomaEfectivo); los otros cuatro fuerzan ese idioma.
+ */
+@Composable
+private fun TarjetaIdioma() {
+    val colores = NubiTheme.colores
+    var abierto by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(L10n.t("Idioma"), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+
+            Box {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .clickable { abierto = true }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BadgeIcono(
+                        IconoNubi.BOMBILLA,
+                        colorFondo = colores.cielo,
+                        colorIcono = colores.tinta,
+                        tamano = 34.dp,
+                        tamanoIcono = 16.dp
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        L10n.idioma.nombre,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+                }
+
+                DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
+                    IdiomaNubi.entries.forEach { opcion ->
+                        DropdownMenuItem(
+                            text = { Text(opcion.nombre) },
+                            onClick = {
+                                abierto = false
+                                L10n.idioma = opcion
+                                Repositorio.guardarIdioma(opcion.rawValue)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L10n.t("Elige tu idioma"),
+                style = MaterialTheme.typography.bodySmall,
+                color = colores.tintaTenue
+            )
         }
     }
 }

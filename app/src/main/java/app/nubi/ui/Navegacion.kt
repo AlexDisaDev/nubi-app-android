@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Repositorio
+import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 
@@ -91,6 +93,14 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
     var enAjustes by remember { mutableStateOf(false) }
     val colores = NubiTheme.colores
 
+    // Idioma: se guarda igual que el tema (preferencia de este móvil, no se
+    // sincroniza). Esto es lo que recupera lo elegido la última vez al
+    // volver a abrir la app — sin esto, L10n.idioma volvería siempre a
+    // "Automático" aunque en Ajustes se hubiera elegido otro.
+    LaunchedEffect(datos.idioma) {
+        L10n.sincronizarDesdeGuardado(datos.idioma)
+    }
+
     // El mismo cálculo que en MainActivity: sin tema explícito, se sigue
     // el del sistema. El botón de sol/luna de Hoy alterna entre los dos
     // modos explícitos, nunca vuelve a "seguir al sistema" por sí solo.
@@ -101,8 +111,8 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
     }
 
     val titulo = when {
-        enAjustes -> "Ajustes"
-        destino is Destino.Arriba -> (destino as Destino.Arriba).vista.titulo
+        enAjustes -> L10n.t("Ajustes")
+        destino is Destino.Arriba -> L10n.t((destino as Destino.Arriba).vista.titulo)
         else -> ""
     }
 
@@ -121,7 +131,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                         // solo hace falta un modo de volver a cerrarlo.
                         if (enAjustes) {
                             TextButton(onClick = { enAjustes = false }) {
-                                Text("Cerrar")
+                                Text(L10n.t("Cerrar"))
                             }
                         }
                     }
@@ -143,7 +153,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    v.titulo,
+                                    L10n.t(v.titulo),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = tinte
                                 )
@@ -171,7 +181,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                                     tamano = 22.dp
                                 )
                             },
-                            label = { Text(p.titulo) },
+                            label = { Text(L10n.t(p.titulo)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = colores.lila,
                                 selectedTextColor = colores.lila,

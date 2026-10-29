@@ -58,6 +58,14 @@ data class DatosNubi(
     val tema: String = "sistema",
 
     /**
+     * Idioma elegido en Ajustes (rawValue de IdiomaNubi — ver
+     * app.nubi.i18n.Idioma.kt): "sistema", "es", "en", "it" o "fr". Igual que
+     * el tema, es una preferencia de este móvil, no se sincroniza. Con
+     * "sistema" (el valor por defecto) la app sigue el idioma del teléfono.
+     */
+    val idioma: String = "sistema",
+
+    /**
      * Comunidad autónoma elegida para el calendario vacunal (nombre del
      * enum Comunidad, p. ej. "MADRID"). Igual que el tema, es una
      * preferencia de este móvil: no hay columna para esto en Supabase.
