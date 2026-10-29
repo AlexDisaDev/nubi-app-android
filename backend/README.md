@@ -8,6 +8,7 @@ Se guardan aquí para tener constancia de qué se ha ejecutado y en qué orden. 
 |---|---|---|
 | `001_cuenta_y_premium.sql` | ✅ Ejecutado 21-10-2026 | Tabla `perfiles`, RLS, trigger de alta con 7 días de prueba, `puede_registrar()` y `canjear_codigo_regalo()`. Añade `redeemed_by` a `gift_codes`. |
 | `002_datos_bebe.sql` | ⬜ Pendiente | Los datos del bebé (registros, medicinas, crecimiento, citas, vacunas, diario, banco de leche, alimentación, enfermedades) con RLS. |
+| `004_eliminar_cuenta.sql` | ⬜ Pendiente | Función `eliminar_mi_cuenta()`: el usuario borra su cuenta y todos sus datos desde iOS (Ajustes → Eliminar cuenta). |
 
 ## Antes de ejecutar cualquier script
 
