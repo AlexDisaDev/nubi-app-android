@@ -39,7 +39,7 @@ import kotlin.math.sin
 enum class IconoNubi {
     NUBE, RELOJ, CRECE, MALETIN, LIBRETA,
     BIBERON, CRONOMETRO, ONDAS,
-    SOL, LUNA, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
+    SOL, LUNA, OJO_ABIERTO, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
     MEDICINA, BANO, EQUIS,
     MAS, BASCULA, REGLA, PAPELERA,
     JERINGA, CALENDARIO, BOTIQUIN, CHECK,
@@ -69,6 +69,7 @@ fun Icono(
             IconoNubi.ONDAS -> dibujarOndas(tint)
             IconoNubi.SOL -> dibujarSol(tint)
             IconoNubi.LUNA -> dibujarLuna(tint)
+            IconoNubi.OJO_ABIERTO -> dibujarOjoAbierto(tint)
             IconoNubi.CORAZON -> dibujarCorazon(tint)
             IconoNubi.GOTA -> dibujarGota(tint)
             IconoNubi.BOMBILLA -> dibujarBombilla(tint)
@@ -398,54 +399,85 @@ private fun DrawScope.dibujarControles(color: Color) {
     }
 }
 
+/** Bote de medicina: tapón sólido arriba, cuerpo con una cruz — se lee
+ *  como "medicina" de un vistazo, a diferencia del dibujo anterior
+ *  (una caja con rayas sueltas que a tamaño pequeño parecía una nota
+ *  musical). */
 private fun DrawScope.dibujarMedicina(color: Color) {
     val w = size.width
     val h = size.height
     val grosor = w * 0.09f
+    // Tapón, sólido
     drawRoundRect(
         color = color,
-        topLeft = Offset(w * 0.36f, h * 0.3f),
-        size = Size(w * 0.28f, h * 0.42f),
-        cornerRadius = CornerRadius(w * 0.08f),
+        topLeft = Offset(w * 0.38f, h * 0.06f),
+        size = Size(w * 0.24f, h * 0.16f),
+        cornerRadius = CornerRadius(w * 0.04f)
+    )
+    // Cuerpo del bote
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.22f, h * 0.22f),
+        size = Size(w * 0.56f, h * 0.7f),
+        cornerRadius = CornerRadius(w * 0.14f),
         style = Stroke(width = grosor)
     )
+    // Cruz en la etiqueta
     drawLine(
-        color, Offset(w * 0.32f, h * 0.22f), Offset(w * 0.68f, h * 0.22f),
-        strokeWidth = grosor * 0.9f, cap = StrokeCap.Round
+        color, Offset(w * 0.5f, h * 0.46f), Offset(w * 0.5f, h * 0.68f),
+        strokeWidth = grosor * 0.8f, cap = StrokeCap.Round
     )
-    listOf(0.42f, 0.54f).forEach { fy ->
-        drawLine(
-            color, Offset(w * 0.4f, h * fy), Offset(w * 0.48f, h * fy),
-            strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
-        )
-    }
     drawLine(
-        color, Offset(w * 0.4f, h * 0.72f), Offset(w * 0.22f, h * 0.88f),
+        color, Offset(w * 0.39f, h * 0.57f), Offset(w * 0.61f, h * 0.57f),
         strokeWidth = grosor * 0.8f, cap = StrokeCap.Round
     )
 }
 
+/** Bañera sólida con burbujas encima — más legible a tamaño pequeño que
+ *  el contorno fino de antes, que a 18dp se confundía con un globo de
+ *  chat. El relleno sólido es el mismo lenguaje que NUBE, GOTA o
+ *  CORAZON, los iconos que mejor se leen de todo el set. */
 private fun DrawScope.dibujarBano(color: Color) {
     val w = size.width
     val h = size.height
-    val grosor = w * 0.09f
+    // Base de la bañera
     drawRoundRect(
         color = color,
-        topLeft = Offset(w * 0.14f, h * 0.42f),
-        size = Size(w * 0.72f, h * 0.36f),
-        cornerRadius = CornerRadius(w * 0.16f),
-        style = Stroke(width = grosor)
+        topLeft = Offset(w * 0.1f, h * 0.5f),
+        size = Size(w * 0.8f, h * 0.36f),
+        cornerRadius = CornerRadius(w * 0.18f)
+    )
+    // Patas
+    drawLine(
+        color, Offset(w * 0.22f, h * 0.84f), Offset(w * 0.22f, h * 0.94f),
+        strokeWidth = w * 0.08f, cap = StrokeCap.Round
     )
     drawLine(
-        color, Offset(w * 0.2f, h * 0.42f), Offset(w * 0.8f, h * 0.42f),
-        strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
+        color, Offset(w * 0.78f, h * 0.84f), Offset(w * 0.78f, h * 0.94f),
+        strokeWidth = w * 0.08f, cap = StrokeCap.Round
     )
-    listOf(0.24f, 0.76f).forEach { fx ->
-        drawLine(
-            color, Offset(w * fx, h * 0.8f), Offset(w * fx, h * 0.86f),
-            strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
-        )
+    // Burbujas de jabón sobre el agua
+    drawCircle(color, radius = w * 0.08f, center = Offset(w * 0.32f, h * 0.3f))
+    drawCircle(color, radius = w * 0.11f, center = Offset(w * 0.54f, h * 0.18f))
+    drawCircle(color, radius = w * 0.06f, center = Offset(w * 0.7f, h * 0.32f))
+}
+
+/** Ojo abierto — "se despertó": distinto de LUNA para que "Sueño
+ *  nocturno" y "Despertar nocturno" no se vean como el mismo icono en
+ *  la botonera. */
+private fun DrawScope.dibujarOjoAbierto(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.09f
+    val c = Offset(w * 0.5f, h * 0.5f)
+    val ojo = Path().apply {
+        moveTo(w * 0.08f, h * 0.5f)
+        cubicTo(w * 0.24f, h * 0.22f, w * 0.76f, h * 0.22f, w * 0.92f, h * 0.5f)
+        cubicTo(w * 0.76f, h * 0.78f, w * 0.24f, h * 0.78f, w * 0.08f, h * 0.5f)
+        close()
     }
+    drawPath(ojo, color, style = Stroke(width = grosor, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    drawCircle(color, radius = w * 0.14f, center = c)
 }
 
 private fun DrawScope.dibujarEquis(color: Color) {

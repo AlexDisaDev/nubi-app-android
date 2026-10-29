@@ -707,7 +707,7 @@ fun iconoDeTipo(tipo: TipoRegistro): IconoNubi = when (tipo) {
     TipoRegistro.BIBERON -> IconoNubi.BIBERON
     TipoRegistro.PECHO -> IconoNubi.CORAZON
     TipoRegistro.PANAL -> IconoNubi.GOTA
-    TipoRegistro.DESPERTAR -> IconoNubi.LUNA
+    TipoRegistro.DESPERTAR -> IconoNubi.OJO_ABIERTO
     TipoRegistro.MEDICINA -> IconoNubi.MEDICINA
     TipoRegistro.BANO -> IconoNubi.BANO
 }
