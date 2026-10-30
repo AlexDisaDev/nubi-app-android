@@ -738,7 +738,6 @@ private fun CabeceraHoja(icono: IconoNubi, colorFondo: Color, titulo: String, su
 // registro. Al guardar se actualiza el mismo registro (mismo id), nunca
 // se crea uno nuevo.
 // =====================================================================
-const val SUBTITULO_EDITAR = L10n.t("Corrige la hora sin perder el registro")
 
 /** Barra superior de toda hoja en modo edición: "Cancelar" a la izquierda,
  *  título centrado — igual que en iOS. */
@@ -769,7 +768,7 @@ fun CabeceraHojaEditar(icono: IconoNubi, colorFondo: Color, titulo: String) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            CabeceraHoja(icono, colorFondo, titulo, SUBTITULO_EDITAR)
+            CabeceraHoja(icono, colorFondo, titulo, L10n.t("Corrige la hora sin perder el registro"))
         }
     }
 }

@@ -1626,7 +1626,7 @@ fun HojaMedicinaDia(
                         Text(L10n.t("Medicina"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            SUBTITULO_EDITAR,
+                            L10n.t("Corrige la hora sin perder el registro"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colores.tintaSuave
                         )
