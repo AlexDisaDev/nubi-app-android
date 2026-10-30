@@ -62,6 +62,7 @@ import app.nubi.i18n.L10n
 import app.nubi.ui.Navegacion
 import app.nubi.ui.PantallaBienvenida
 import app.nubi.ui.PantallaNuevoBebe
+import app.nubi.ui.PantallaPaywall
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
@@ -170,6 +171,21 @@ fun ContenidoApp() {
 
         datos.bebe == null ->
             PantallaNuevoBebe(alGuardar = { })
+
+        // Muro de pago duro, tal cual como iOS: hace falta una
+        // suscripción vigente (o un código de regalo canjeado) para
+        // entrar, no solo estar dentro de fechaCortePrueba — ver
+        // Perfil.tieneAccesoPagado() en Modelos.kt para el porqué no es
+        // lo mismo que puedeUsarApp(). Mientras el perfil no ha llegado
+        // todavía de Supabase (datos.perfil == null, p. ej. justo tras
+        // iniciar sesión en un móvil nuevo), se espera en vez de dejar
+        // pasar: un hueco aquí sería la manera más fácil de saltarse el
+        // muro de pago.
+        datos.perfil == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+
+        datos.perfil?.tieneAccesoPagado() != true -> PantallaPaywall()
 
         else -> Navegacion(
             alCerrarSesion = {

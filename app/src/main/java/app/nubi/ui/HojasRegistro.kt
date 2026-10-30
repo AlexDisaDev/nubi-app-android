@@ -1485,19 +1485,13 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
                 L10n.t("Han pasado tus 7 días de prueba. Canjea un código de regalo o hazte premium para seguir registrando.")
             )
             Spacer(Modifier.height(20.dp))
+            SelectorPlanesPremium()
+            Spacer(Modifier.height(16.dp))
             BloqueCanjearCodigo(
                 alCanjear = {
                     Repositorio.sincronizarEnSegundoPlano()
                     onCerrar()
                 }
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                L10n.t("Suscripción mensual, trimestral o anual: muy pronto."),
-                style = MaterialTheme.typography.bodySmall,
-                color = colores.tintaTenue,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
             )
         }
     }

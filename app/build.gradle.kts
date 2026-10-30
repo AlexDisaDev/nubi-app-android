@@ -76,6 +76,8 @@ dependencies {
     implementation(platform("io.github.jan-tennert.supabase:bom:3.6.0"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
+    // Para llamar al Edge Function verificar-compra-android (ver Compras.kt).
+    implementation("io.github.jan-tennert.supabase:functions-kt")
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
 
     // Google Play Billing (suscripción Premium) — ver app.nubi.data.Compras.

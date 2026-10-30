@@ -339,6 +339,17 @@ data class Perfil(
         val enPrueba = ahora.isBefore(fechaCortePrueba)
         return premiumActivo || enPrueba
     }
+
+    /**
+     * ¿Tiene una suscripción o código de regalo con acceso vigente AHORA
+     * MISMO? A diferencia de puedeUsarApp(), NO cuenta fechaCortePrueba:
+     * esto es lo que usa el muro de pago de Android para decidir si deja
+     * pasar a la app o no, y el trial de Android ya no es silencioso
+     * (fechaCortePrueba, sin tarjeta) sino el trial nativo de Play
+     * Billing (con tarjeta) — ver app.nubi.data.Compras.
+     */
+    fun tieneAccesoPagado(ahora: Instant = Instant.now()): Boolean =
+        premiumHasta != null && ahora.isBefore(premiumHasta)
 }
 
 @Serializable

@@ -2,6 +2,7 @@ package app.nubi.data
 
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 
 /**
@@ -30,5 +31,9 @@ object Supabase {
             host = "login-callback"
         }
         install(Postgrest)
+        // Para verificar-compra-android (ver app.nubi.data.Compras):
+        // comprueba las compras de Play Billing contra Google antes de
+        // activar premium.
+        install(Functions)
     }
 }
