@@ -685,4 +685,29 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     "Hora de la siguiente toma" to mapOf("en" to "Next dose", "it" to "Prossima dose", "fr" to "Prochaine prise"),
     "Tienes una cita" to mapOf("en" to "You have an appointment", "it" to "Hai una visita", "fr" to "Vous avez un rendez-vous"),
     "Cita mañana" to mapOf("en" to "Appointment tomorrow", "it" to "Visita domani", "fr" to "Rendez-vous demain"),
+
+    // Pantalla del paywall (muro de pago duro, Play Billing) — ver PantallaPaywall.kt.
+    "Prueba Nubi Premium gratis 7 días" to mapOf(
+        "en" to "Try Nubi Premium free for 7 days",
+        "it" to "Prova Nubi Premium gratis per 7 giorni",
+        "fr" to "Essayez Nubi Premium gratuitement pendant 7 jours"
+    ),
+    "Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play." to mapOf(
+        "en" to "After the seventh day, you'll be charged for the plan you choose. Cancel anytime from Google Play.",
+        "it" to "Dopo il settimo giorno verrà addebitato il piano scelto. Annulla quando vuoi da Google Play.",
+        "fr" to "Après le septième jour, le plan choisi sera facturé. Annulez quand vous voulez depuis Google Play."
+    ),
+    "Cargando los planes…" to mapOf("en" to "Loading plans…", "it" to "Caricamento dei piani…", "fr" to "Chargement des offres…"),
+    "Comprobando tu compra…" to mapOf("en" to "Checking your purchase…", "it" to "Verifica del tuo acquisto…", "fr" to "Vérification de votre achat…"),
+    "¿Ya pagaste? Restaurar compra" to mapOf("en" to "Already paid? Restore purchase", "it" to "Hai già pagato? Ripristina acquisto", "fr" to "Déjà payé ? Restaurer l'achat"),
+    "gratis" to mapOf("en" to "free", "it" to "gratis", "fr" to "gratuit"),
+    "luego" to mapOf("en" to "then", "it" to "poi", "fr" to "puis"),
+    "Empezar prueba" to mapOf("en" to "Start trial", "it" to "Inizia la prova", "fr" to "Démarrer l'essai"),
+    "Elegir" to mapOf("en" to "Choose", "it" to "Scegli", "fr" to "Choisir"),
+    "3 días" to mapOf("en" to "3 days", "it" to "3 giorni", "fr" to "3 jours"),
+    "7 días" to mapOf("en" to "7 days", "it" to "7 giorni", "fr" to "7 jours"),
+    "14 días" to mapOf("en" to "14 days", "it" to "14 giorni", "fr" to "14 jours"),
+    "1 mes" to mapOf("en" to "1 month", "it" to "1 mese", "fr" to "1 mois"),
+    "1 año" to mapOf("en" to "1 year", "it" to "1 anno", "fr" to "1 an"),
+    "año" to mapOf("en" to "year", "it" to "anno", "fr" to "an"),
 )
