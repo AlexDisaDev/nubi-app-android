@@ -30,20 +30,20 @@ import com.android.billingclient.api.QueryPurchasesParams
  * paso, una compra se reconoce (para no arriesgar el dinero del usuario a
  * un reembolso automático) pero todavía no desbloquea nada dentro de Nubi.
  *
- * IDs: PLACEHOLDERS — tienen que coincidir EXACTAMENTE (mayúsculas y todo)
- * con el ID del producto y los IDs de los planes base que crees en Play
- * Console → Monetizar con Play → Productos → Suscripciones. Si allí les
- * pones otro nombre, cámbialos también aquí.
+ * IDs: tienen que coincidir EXACTAMENTE con el producto "Nubi Pro" ya
+ * creado en Play Console → Monetizar con Play → Productos → Suscripciones
+ * (creado el 28 oct 2026). Si alguna vez renombras el producto o los
+ * planes base ahí, cámbialos también aquí.
  */
 object Compras : PurchasesUpdatedListener {
 
-    /** ID del producto de suscripción en Play Console. */
-    const val ID_PRODUCTO = "nubi_premium"
+    /** ID del producto de suscripción en Play Console ("Nubi Pro"). */
+    const val ID_PRODUCTO = "nubi_pro"
 
     /** IDs de los planes base dentro de ese producto. */
-    const val PLAN_MENSUAL = "mensual"
-    const val PLAN_TRIMESTRAL = "trimestral"
-    const val PLAN_ANUAL = "anual"
+    const val PLAN_MENSUAL = "plan-mensual"
+    const val PLAN_TRIMESTRAL = "plan-trimestral"
+    const val PLAN_ANUAL = "plan-anual"
 
     private var iniciado = false
     private lateinit var cliente: BillingClient
