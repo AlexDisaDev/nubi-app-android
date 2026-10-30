@@ -77,4 +77,9 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
+
+    // Google Play Billing (suscripción Premium) — ver app.nubi.data.Compras.
+    // 9.1.0 es la última estable (jun 2026); Google exige v8+ desde el
+    // 31 ago 2026 para subir versiones nuevas, así que no vale quedarse en 7.x.
+    implementation("com.android.billingclient:billing-ktx:9.1.0")
 }
