@@ -69,6 +69,16 @@ class Sincronizador(private val local: AlmacenLocal) {
     private val _ultimoError = MutableStateFlow<String?>(null)
     val ultimoError: StateFlow<String?> = _ultimoError.asStateFlow()
 
+    // Para que la UI pueda esperar a que termine (con éxito o sin él) el
+    // primer intento de sincronizar antes de decidir que no hay bebé — ver
+    // el comentario de uso en MainActivity.ContenidoApp(). Sin esto, en un
+    // móvil nuevo con una cuenta YA existente, local.cargar() deja
+    // datos.bebe en null casi al instante (el archivo local está vacío) y
+    // la app ofrece crear un bebé duplicado mientras el bebé real de
+    // Supabase todavía está bajando en segundo plano.
+    private val _primeraSincronizacionHecha = MutableStateFlow(false)
+    val primeraSincronizacionHecha: StateFlow<Boolean> = _primeraSincronizacionHecha.asStateFlow()
+
     /**
      * Sube lo pendiente y baja lo que haya cambiado. Es seguro llamarla
      * tantas veces como haga falta: si no hay sesión o no hay red, no hace
@@ -92,6 +102,11 @@ class Sincronizador(private val local: AlmacenLocal) {
             // Lo pendiente se queda pendiente y se reintenta más tarde.
             _estado.value = Estado.SIN_CONEXION
             _ultimoError.value = e.message
+        } finally {
+            // Se marca pase lo que pase (éxito, sin conexión o error): si
+            // de verdad no hay red, no tiene sentido dejar a alguien
+            // esperando para siempre a un intento que nunca llegará.
+            _primeraSincronizacionHecha.value = true
         }
     }
 

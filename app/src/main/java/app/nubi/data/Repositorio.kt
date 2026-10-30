@@ -7,6 +7,7 @@ import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -151,6 +152,15 @@ object Repositorio {
     fun sincronizarEnSegundoPlano() {
         ambito.launch { sincronizador.sincronizar() }
     }
+
+    /**
+     * ¿Ya terminó (con éxito o sin él) el primer intento de sincronizar
+     * desde que arrancó la app? Lo usa MainActivity.ContenidoApp() para no
+     * ofrecer crear un bebé nuevo mientras todavía podría estar bajando el
+     * bebé real de una cuenta ya existente.
+     */
+    val primeraSincronizacionHecha: StateFlow<Boolean>
+        get() = sincronizador.primeraSincronizacionHecha
 
     /**
      * ¿Puede usar ahora mismo las funciones de pago (prueba de 7 días o

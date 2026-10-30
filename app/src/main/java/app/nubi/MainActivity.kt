@@ -131,6 +131,7 @@ fun PantallaRaiz() {
 fun ContenidoApp() {
     val datos by Repositorio.local.datos.collectAsState()
     val cargando by Repositorio.local.cargando.collectAsState()
+    val primeraSincronizacionHecha by Repositorio.primeraSincronizacionHecha.collectAsState()
     var bienvenidaVista by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
 
@@ -165,6 +166,16 @@ fun ContenidoApp() {
                 CircularProgressIndicator()
             }
         }
+
+        // Antes de ofrecer "crear bebé", se espera a que termine el primer
+        // intento de sincronizar: en un móvil nuevo con una cuenta YA
+        // existente, el archivo local está vacío y se lee casi al
+        // instante, pero el bebé real todavía puede estar bajando de
+        // Supabase — sin este hueco, se ofrecería crear un bebé duplicado.
+        datos.bebe == null && !primeraSincronizacionHecha ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
 
         datos.bebe == null && !bienvenidaVista ->
             PantallaBienvenida(alContinuar = { bienvenidaVista = true })
