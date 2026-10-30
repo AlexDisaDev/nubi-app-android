@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import app.nubi.MainActivity
 import app.nubi.R
 import app.nubi.data.Repositorio
+import app.nubi.i18n.L10n
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,10 +40,10 @@ object AvisosNubi {
         val gestor = contexto.getSystemService(NotificationManager::class.java) ?: return
         val canal = NotificationChannel(
             CANAL_ID,
-            "Avisos de Nubi",
+            L10n.t("Avisos de Nubi"),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Recordatorios de medicina, citas y sueño"
+            description = L10n.t("Recordatorios de medicina, citas y sueño")
         }
         gestor.createNotificationChannel(canal)
     }

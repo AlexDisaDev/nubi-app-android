@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
+import app.nubi.i18n.L10n
 import app.nubi.ui.Navegacion
 import app.nubi.ui.PantallaBienvenida
 import app.nubi.ui.PantallaNuevoBebe
@@ -204,7 +205,7 @@ private fun BotonGoogle(entrando: Boolean, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            if (entrando) "Un momento…" else "Continuar con Google",
+            if (entrando) L10n.t("Un momento…") else L10n.t("Continuar con Google"),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = colores.tinta
@@ -247,7 +248,7 @@ fun PantallaLogin() {
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "Inicia sesión para continuar",
+            L10n.t("Inicia sesión para continuar"),
             style = MaterialTheme.typography.bodyMedium,
             color = NubiTheme.colores.tintaSuave
         )
@@ -259,7 +260,7 @@ fun PantallaLogin() {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "¿Ya eras usuario de Nubi? Tranquilo: tus datos no se van a borrar, siguen guardados tal y como estaban.",
+                L10n.t("¿Ya eras usuario de Nubi? Tranquilo: tus datos no se van a borrar, siguen guardados tal y como estaban."),
                 style = MaterialTheme.typography.bodySmall,
                 color = NubiTheme.colores.tintaSuave,
                 modifier = Modifier.padding(14.dp)
@@ -277,7 +278,7 @@ fun PantallaLogin() {
                         Supabase.client.auth.signInWith(Google)
                         error = null
                     } catch (e: Exception) {
-                        error = "No se pudo entrar con Google: ${e.message}"
+                        error = "${L10n.t("No se pudo entrar con Google:")} ${e.message}"
                     }
                     entrandoConGoogle = false
                 }
@@ -286,7 +287,7 @@ fun PantallaLogin() {
 
         Spacer(Modifier.height(28.dp))
         Text(
-            "o con tu email",
+            L10n.t("o con tu email"),
             style = MaterialTheme.typography.bodySmall,
             color = NubiTheme.colores.tintaTenue
         )
@@ -294,7 +295,7 @@ fun PantallaLogin() {
 
         if (enlaceEnviado) {
             Text(
-                "Te hemos enviado un enlace a $correo. Ábrelo desde el correo en este móvil para entrar.",
+                "${L10n.t("Te hemos enviado un enlace a")} $correo. ${L10n.t("Ábrelo desde el correo en este móvil para entrar.")}",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
@@ -302,7 +303,7 @@ fun PantallaLogin() {
             OutlinedTextField(
                 value = correo,
                 onValueChange = { correo = it },
-                label = { Text("Tu email") },
+                label = { Text(L10n.t("Tu email")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -315,13 +316,13 @@ fun PantallaLogin() {
                             enlaceEnviado = true
                             error = null
                         } catch (e: Exception) {
-                            error = "No se pudo enviar el enlace: ${e.message}"
+                            error = "${L10n.t("No se pudo enviar el enlace:")} ${e.message}"
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Enviarme un enlace")
+                Text(L10n.t("Enviarme un enlace"))
             }
         }
 
@@ -337,7 +338,7 @@ fun PantallaLogin() {
 
         Spacer(Modifier.height(28.dp))
         Text(
-            "Al continuar aceptas nuestros términos y la política de privacidad de Nubi.",
+            L10n.t("Al continuar aceptas nuestros términos y la política de privacidad de Nubi."),
             style = MaterialTheme.typography.bodySmall,
             color = NubiTheme.colores.tintaTenue,
             textAlign = TextAlign.Center,

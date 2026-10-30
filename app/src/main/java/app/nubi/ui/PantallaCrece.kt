@@ -58,6 +58,7 @@ import app.nubi.data.Repositorio
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -71,9 +72,9 @@ import java.util.Locale
 // =====================================================================
 
 private enum class Magnitud(val titulo: String, val unidad: String, val icono: IconoNubi) {
-    PESO("Peso", "kg", IconoNubi.BASCULA),
-    ALTURA("Estatura", "cm", IconoNubi.REGLA),
-    PERIMETRO("Cabeza", "cm", IconoNubi.ONDAS);
+    PESO(L10n.t("Peso"), "kg", IconoNubi.BASCULA),
+    ALTURA(L10n.t("Estatura"), "cm", IconoNubi.REGLA),
+    PERIMETRO(L10n.t("Cabeza"), "cm", IconoNubi.ONDAS);
 
     val decimales: Int get() = if (this == PESO) 2 else 1
 
@@ -106,25 +107,25 @@ private fun numeroDesde(texto: String): Double? {
 
 private fun textoFechaCorta(fecha: Instant): String {
     val dia = fecha.atZone(zonaCrece).toLocalDate()
-    val mes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+    val mes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
     return "${dia.dayOfMonth} $mes".lowercase()
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("es", "ES")) else it.toString() }
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(L10n.localeJava) else it.toString() }
 }
 
 private fun textoFechaLarga(fecha: Instant): String {
     val dia = fecha.atZone(zonaCrece).toLocalDate()
-    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
-    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
+    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, L10n.localeJava)
+    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, L10n.localeJava)
     return "$nombreDia, ${dia.dayOfMonth} de $nombreMes"
-        .replaceFirstChar { it.titlecase(Locale("es", "ES")) }
+        .replaceFirstChar { it.titlecase(L10n.localeJava) }
 }
 
 private fun resumenMedida(m: Medida): String {
     val partes = mutableListOf<String>()
     m.pesoKg?.let { partes.add("${formatoNumero(it, 2)} kg") }
     m.alturaCm?.let { partes.add("${formatoNumero(it, 1)} cm") }
-    m.perimetroCm?.let { partes.add("cabeza ${formatoNumero(it, 1)} cm") }
-    return if (partes.isEmpty()) "Sin datos" else partes.joinToString(" · ")
+    m.perimetroCm?.let { partes.add("${L10n.t("Cabeza").lowercase()} ${formatoNumero(it, 1)} cm") }
+    return if (partes.isEmpty()) L10n.t("Sin datos") else partes.joinToString(" · ")
 }
 
 /** La medida más reciente que tenga valor para esta magnitud, con su fecha. */
@@ -150,13 +151,9 @@ fun PantallaCrece(bebe: Bebe, medidas: List<Medida>) {
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text("Cómo crece", style = MaterialTheme.typography.displaySmall)
+                Text(L10n.t("Cómo crece"), style = MaterialTheme.typography.displaySmall)
                 Text(
-                    when (medidas.size) {
-                        0 -> "Sin medidas todavía"
-                        1 -> "1 medida anotada"
-                        else -> "${medidas.size} medidas anotadas"
-                    },
+                    if (medidas.isEmpty()) L10n.t("Sin medidas todavía") else L10n.medidasAnotadas(medidas.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colores.tintaSuave
                 )
@@ -196,8 +193,8 @@ fun PantallaCrece(bebe: Bebe, medidas: List<Medida>) {
             ) {
                 EstadoVacio(
                     icono = magnitud.icono,
-                    titulo = "Aún no hay ${magnitud.titulo.lowercase()}",
-                    texto = "Apunta lo que te digan en la revisión y verás cómo evoluciona entre visita y visita.",
+                    titulo = L10n.aunNoHayMedida(magnitud.titulo),
+                    texto = L10n.t("Apunta lo que te digan en la revisión y verás cómo evoluciona entre visita y visita."),
                     color = colorDeMagnitud(magnitud, colores)
                 )
             }
@@ -212,7 +209,7 @@ fun PantallaCrece(bebe: Bebe, medidas: List<Medida>) {
 
         Spacer(Modifier.height(16.dp))
         Text(
-            "Nubi guarda tus medidas y te enseña la tendencia. Los percentiles y su interpretación corresponden a tu pediatra.",
+            L10n.t("Nubi guarda tus medidas y te enseña la tendencia. Los percentiles y su interpretación corresponden a tu pediatra."),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )
@@ -337,7 +334,7 @@ private fun TarjetaEvolucion(magnitud: Magnitud, serie: List<PuntoSerie>, colore
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Evolución de ${magnitud.titulo.lowercase()}",
+                    "${L10n.t("Evolución de")} ${L10n.t(magnitud.titulo).lowercase()}",
                     style = MaterialTheme.typography.labelMedium,
                     color = colores.tintaTenue,
                     modifier = Modifier.weight(1f)
@@ -423,7 +420,7 @@ private fun TarjetaHistorial(medidas: List<Medida>, onEditar: (Medida) -> Unit) 
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
-            Text("Historial", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+            Text(L10n.t("Historial"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
             Spacer(Modifier.height(10.dp))
             medidas.forEachIndexed { indice, m ->
                 Row(
@@ -481,7 +478,7 @@ private fun HojaMedida(
                 .padding(bottom = 28.dp)
         ) {
             Text(
-                if (esNueva) "Nueva medida" else "Medida",
+                if (esNueva) L10n.t("Nueva medida") else L10n.t("Medida"),
                 style = MaterialTheme.typography.titleLarge,
                 color = colores.tinta
             )
@@ -493,7 +490,7 @@ private fun HojaMedida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Fecha", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Fecha"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { mostrarSelectorFecha = true }) {
                         Text(textoFechaLarga(fecha))
@@ -509,11 +506,11 @@ private fun HojaMedida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
-                    CampoMedida("Peso", "kg", peso, { peso = it }, IconoNubi.BASCULA, colores.menta)
+                    CampoMedida(L10n.t("Peso"), "kg", peso, { peso = it }, IconoNubi.BASCULA, colores.menta)
                     HorizontalDivider(color = colores.separador)
-                    CampoMedida("Estatura", "cm", altura, { altura = it }, IconoNubi.REGLA, colores.cielo)
+                    CampoMedida(L10n.t("Estatura"), "cm", altura, { altura = it }, IconoNubi.REGLA, colores.cielo)
                     HorizontalDivider(color = colores.separador)
-                    CampoMedida("Perímetro craneal", "cm", perimetro, { perimetro = it }, IconoNubi.ONDAS, colores.rosa)
+                    CampoMedida(L10n.t("Perímetro craneal"), "cm", perimetro, { perimetro = it }, IconoNubi.ONDAS, colores.rosa)
                 }
             }
 
@@ -525,12 +522,12 @@ private fun HojaMedida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Nota", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Nota"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = nota,
                         onValueChange = { nota = it },
-                        placeholder = { Text("Lo que te dijeron en la consulta…") },
+                        placeholder = { Text(L10n.t("Lo que te dijeron en la consulta…")) },
                         minLines = 2,
                         maxLines = 5,
                         modifier = Modifier.fillMaxWidth()
@@ -555,7 +552,7 @@ private fun HojaMedida(
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar")
+                Text(L10n.t("Guardar"))
             }
 
             if (!esNueva) {
@@ -563,7 +560,7 @@ private fun HojaMedida(
                 TextButton(onClick = onBorrar, modifier = Modifier.fillMaxWidth()) {
                     Icono(IconoNubi.PAPELERA, tint = colores.indigo, tamano = 14.dp)
                     Spacer(Modifier.width(7.dp))
-                    Text("Borrar esta medida", color = colores.indigo)
+                    Text(L10n.t("Borrar esta medida"), color = colores.indigo)
                 }
             }
         }
@@ -577,10 +574,10 @@ private fun HojaMedida(
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { fecha = millisUtcAFecha(it) }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") }
+                TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) }
             }
         ) {
             DatePicker(state = estado)

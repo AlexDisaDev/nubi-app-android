@@ -67,6 +67,7 @@ import app.nubi.data.Repositorio
 import app.nubi.data.nuevoId
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -100,7 +101,7 @@ fun PantallaAlimentacion(bebe: Bebe, comidas: List<ComidaComplementaria>) {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text("Alimentación", style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
+        Text(L10n.t("Alimentación"), style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
         Spacer(Modifier.height(18.dp))
 
         Card(
@@ -124,7 +125,7 @@ fun PantallaAlimentacion(bebe: Bebe, comidas: List<ComidaComplementaria>) {
         ) {
             Icono(IconoNubi.MAS, tint = colores.tinta, tamano = 16.dp)
             Spacer(Modifier.width(6.dp))
-            Text("Registrar comida", fontWeight = FontWeight.SemiBold)
+            Text(L10n.t("Registrar comida"), fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -146,10 +147,10 @@ fun PantallaAlimentacion(bebe: Bebe, comidas: List<ComidaComplementaria>) {
                         tamanoIcono = 26.dp
                     )
                     Spacer(Modifier.height(14.dp))
-                    Text("Aún no hay comidas", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                    Text(L10n.t("Aún no hay comidas"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Registra la primera papilla, fruta o cereal de tu bebé.",
+                        L10n.t("Registra la primera papilla, fruta o cereal de tu bebé."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave,
                         textAlign = TextAlign.Center
@@ -311,7 +312,7 @@ fun HojaComida(
                     Icono(IconoNubi.EQUIS, tint = colores.tinta, tamano = 14.dp)
                 }
                 Text(
-                    if (comida != null) "Editar comida" else "Nueva comida",
+                    if (comida != null) L10n.t("Editar comida") else L10n.t("Nueva comida"),
                     style = MaterialTheme.typography.titleLarge,
                     color = colores.tinta
                 )
@@ -324,7 +325,7 @@ fun HojaComida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionAlim("Fecha y hora")
+                    EtiquetaSeccionAlim(L10n.t("Fecha y hora"))
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ChipFechaHoraAlim(textoFechaConAnoAlim(fecha)) { mostrarSelectorFecha = true }
@@ -332,16 +333,16 @@ fun HojaComida(
                     }
 
                     Spacer(Modifier.height(16.dp))
-                    EtiquetaSeccionAlim("¿Qué comió?")
+                    EtiquetaSeccionAlim(L10n.t("¿Qué comió?"))
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = nombre, onValueChange = { nombre = it },
-                        placeholder = { Text("Puré de calabaza") },
+                        placeholder = { Text(L10n.t("Puré de calabaza")) },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(Modifier.height(16.dp))
-                    EtiquetaSeccionAlim("Categoría")
+                    EtiquetaSeccionAlim(L10n.t("Categoría"))
                     Spacer(Modifier.height(8.dp))
                     Box {
                         Row(
@@ -371,15 +372,15 @@ fun HojaComida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionAlim("Fotos (máx 2)")
+                    EtiquetaSeccionAlim(L10n.t("Fotos (máx 2)"))
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        BotonFotoAlim(IconoNubi.CAMARA, "Hacer foto", habilitado = fotos.size < 2) {
+                        BotonFotoAlim(IconoNubi.CAMARA, L10n.t("Hacer foto"), habilitado = fotos.size < 2) {
                             val fichero = FotosNubi.nuevoFichero(contexto)
                             ficheroTemporalCamara = fichero
                             lanzadorCamara.launch(FotosNubi.uriParaFichero(contexto, fichero))
                         }
-                        BotonFotoAlim(IconoNubi.GALERIA, "Elegir foto", habilitado = fotos.size < 2) {
+                        BotonFotoAlim(IconoNubi.GALERIA, L10n.t("Elegir foto"), habilitado = fotos.size < 2) {
                             lanzadorGaleria.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -403,19 +404,19 @@ fun HojaComida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionAlim("¿Le gustó?")
+                    EtiquetaSeccionAlim(L10n.t("¿Le gustó?"))
                     Spacer(Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         OpcionGusto(
                             icono = IconoNubi.PULGAR_ARRIBA,
-                            etiqueta = "Le gustó",
+                            etiqueta = L10n.t("Le gustó"),
                             seleccionado = gusto == GustoComida.LE_GUSTO,
                             colorActivo = colores.menta,
                             modifier = Modifier.weight(1f)
                         ) { gusto = if (gusto == GustoComida.LE_GUSTO) null else GustoComida.LE_GUSTO }
                         OpcionGusto(
                             icono = IconoNubi.PULGAR_ABAJO,
-                            etiqueta = "No le gustó",
+                            etiqueta = L10n.t("No le gustó"),
                             seleccionado = gusto == GustoComida.NO_LE_GUSTO,
                             colorActivo = colores.coral,
                             modifier = Modifier.weight(1f)
@@ -431,11 +432,11 @@ fun HojaComida(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionAlim("Nota")
+                    EtiquetaSeccionAlim(L10n.t("Nota"))
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = nota, onValueChange = { nota = it },
-                        placeholder = { Text("Cantidad, reacción, cómo se lo tomó…") },
+                        placeholder = { Text(L10n.t("Cantidad, reacción, cómo se lo tomó…")) },
                         minLines = 2, maxLines = 5,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -448,7 +449,7 @@ fun HojaComida(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.menta, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 
@@ -464,9 +465,9 @@ fun HojaComida(
                         fecha = diaNuevo.atTime(horaVieja).atZone(zonaAlim).toInstant()
                     }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -480,9 +481,9 @@ fun HojaComida(
                     val dia = fecha.atZone(zonaAlim).toLocalDate()
                     fecha = dia.atTime(estado.hour, estado.minute).atZone(zonaAlim).toInstant()
                     mostrarSelectorHora = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } }
         ) { TimePicker(state = estado) }
     }
 }
@@ -604,12 +605,12 @@ private fun EtiquetaSeccionAlim(texto: String) {
 }
 
 private fun etiquetaCategoria(c: CategoriaAlimento): String = when (c) {
-    CategoriaAlimento.FRUTA -> "Fruta"
-    CategoriaAlimento.VERDURA -> "Verdura"
-    CategoriaAlimento.PROTEINA -> "Proteína"
-    CategoriaAlimento.CEREAL -> "Cereal"
-    CategoriaAlimento.LACTEO -> "Lácteo"
-    CategoriaAlimento.OTRO -> "Otro"
+    CategoriaAlimento.FRUTA -> L10n.t("Fruta")
+    CategoriaAlimento.VERDURA -> L10n.t("Verdura")
+    CategoriaAlimento.PROTEINA -> L10n.t("Proteína")
+    CategoriaAlimento.CEREAL -> L10n.t("Cereal")
+    CategoriaAlimento.LACTEO -> L10n.t("Lácteo")
+    CategoriaAlimento.OTRO -> L10n.t("Otro")
 }
 
 private val zonaAlim: ZoneId = ZoneId.systemDefault()
@@ -619,9 +620,9 @@ private val formatoHoraAlim: DateTimeFormatter =
 
 private fun textoFechaConAnoAlim(fecha: Instant): String {
     val dia = fecha.atZone(zonaAlim).toLocalDate()
-    val mes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
-        .lowercase(Locale("es", "ES"))
-        .replaceFirstChar { it.titlecase(Locale("es", "ES")) }
+    val mes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
+        .lowercase(L10n.localeJava)
+        .replaceFirstChar { it.titlecase(L10n.localeJava) }
     return "${dia.dayOfMonth} $mes ${dia.year}"
 }
 

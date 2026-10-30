@@ -61,6 +61,7 @@ import app.nubi.data.UnidadBiberon
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -93,16 +94,16 @@ fun HojaPecho(bebeId: String, onCerrar: () -> Unit) {
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Pecho", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            Text(L10n.t("Pecho"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
             Spacer(Modifier.height(6.dp))
             Text(
-                "¿Qué lado ha tomado?",
+                L10n.t("¿Qué lado ha tomado?"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colores.tintaSuave
             )
             Spacer(Modifier.height(18.dp))
 
-            FilaLadoPecho(titulo = "Pecho izquierdo", subtitulo = "Pecho I") {
+            FilaLadoPecho(titulo = L10n.t("Pecho izquierdo"), subtitulo = L10n.t("Pecho I")) {
                 Repositorio.guardarRegistro(
                     Registro(
                         bebeId = bebeId,
@@ -114,7 +115,7 @@ fun HojaPecho(bebeId: String, onCerrar: () -> Unit) {
                 onCerrar()
             }
             Spacer(Modifier.height(10.dp))
-            FilaLadoPecho(titulo = "Pecho derecho", subtitulo = "Pecho D") {
+            FilaLadoPecho(titulo = L10n.t("Pecho derecho"), subtitulo = L10n.t("Pecho D")) {
                 Repositorio.guardarRegistro(
                     Registro(
                         bebeId = bebeId,
@@ -215,7 +216,7 @@ fun HojaBiberon(
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.BIBERON, colores.mantequilla, "Biberón")
+                CabeceraHojaEditar(IconoNubi.BIBERON, colores.mantequilla, L10n.t("Biberón"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
@@ -229,10 +230,10 @@ fun HojaBiberon(
                         tamanoIcono = 24.dp
                     )
                     Spacer(Modifier.height(10.dp))
-                    Text("Biberón", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                    Text(L10n.t("Biberón"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        if (dia != null) "Elige la hora del registro" else "¿Cuánto ha bebido?",
+                        if (dia != null) L10n.t("Elige la hora del registro") else L10n.t("¿Cuánto ha bebido?"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave
                     )
@@ -251,16 +252,16 @@ fun HojaBiberon(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionHoja("Tipo de leche")
+                    EtiquetaSeccionHoja(L10n.t("Tipo de leche"))
                     Spacer(Modifier.height(8.dp))
                     SelectorSegmentado(
-                        opciones = listOf(TipoLeche.MATERNA to "Materna", TipoLeche.FORMULA to "Fórmula"),
+                        opciones = listOf(TipoLeche.MATERNA to L10n.t("Materna"), TipoLeche.FORMULA to L10n.t("Fórmula")),
                         actual = tipoLeche,
                         onCambiar = { tipoLeche = it }
                     )
 
                     Spacer(Modifier.height(16.dp))
-                    EtiquetaSeccionHoja("Unidad")
+                    EtiquetaSeccionHoja(L10n.t("Unidad"))
                     Spacer(Modifier.height(8.dp))
                     SelectorSegmentado(
                         opciones = listOf(UnidadBiberon.ML to "ml", UnidadBiberon.OZ to "oz"),
@@ -294,7 +295,7 @@ fun HojaBiberon(
                     }
 
                     Spacer(Modifier.height(18.dp))
-                    EtiquetaSeccionHoja("Rápido")
+                    EtiquetaSeccionHoja(L10n.t("Rápido"))
                     Spacer(Modifier.height(8.dp))
                     sugerencias.chunked(4).forEach { fila ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -318,13 +319,13 @@ fun HojaBiberon(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.mantequilla, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
 
             TextButton(
                 onClick = { guardar(conCantidad = false) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar sin cantidad", color = colores.tintaSuave)
+                Text(L10n.t("Guardar sin cantidad"), color = colores.tintaSuave)
             }
         }
     }
@@ -424,11 +425,11 @@ fun HojaPanal(
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.GOTA, colores.cielo, "Pañal")
+                CabeceraHojaEditar(IconoNubi.GOTA, colores.cielo, L10n.t("Pañal"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
-                EtiquetaSeccionHoja("¿Qué hizo?")
+                EtiquetaSeccionHoja(L10n.t("¿Qué hizo?"))
                 Spacer(Modifier.height(8.dp))
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -441,7 +442,7 @@ fun HojaPanal(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        if (dia != null) "Pañal" else "¿Qué hizo?",
+                        if (dia != null) L10n.t("Pañal") else L10n.t("¿Qué hizo?"),
                         style = MaterialTheme.typography.titleLarge,
                         color = colores.tinta
                     )
@@ -450,14 +451,14 @@ fun HojaPanal(
 
                 if (dia != null) {
                     Text(
-                        "Elige la hora del registro",
+                        L10n.t("Elige la hora del registro"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave
                     )
                     Spacer(Modifier.height(10.dp))
                     RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
                     Spacer(Modifier.height(18.dp))
-                    EtiquetaSeccionHoja("¿Qué hizo?")
+                    EtiquetaSeccionHoja(L10n.t("¿Qué hizo?"))
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -465,7 +466,7 @@ fun HojaPanal(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TogglePanal(
                     icono = IconoNubi.GOTA,
-                    etiqueta = "Pis",
+                    etiqueta = L10n.t("Pis"),
                     activo = pis,
                     color = colores.cielo,
                     colores = colores,
@@ -473,7 +474,7 @@ fun HojaPanal(
                 ) { pis = !pis }
                 TogglePanal(
                     icono = IconoNubi.CACA,
-                    etiqueta = "Caca",
+                    etiqueta = L10n.t("Caca"),
                     activo = caca,
                     color = colores.mantequilla,
                     colores = colores,
@@ -494,7 +495,7 @@ fun HojaPanal(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -613,10 +614,10 @@ fun HojaEtapa(etapa: EtapaBebe, onCerrar: () -> Unit) {
             }
 
             Spacer(Modifier.height(16.dp))
-            TarjetaEtapaTexto("¿Por qué ocurre?", etapa.porQue, colores)
+            TarjetaEtapaTexto(L10n.t("¿Por qué ocurre?"), etapa.porQue, colores)
 
             Spacer(Modifier.height(14.dp))
-            TarjetaEtapaTexto("¿Qué pasará?", etapa.quePasara, colores)
+            TarjetaEtapaTexto(L10n.t("¿Qué pasará?"), etapa.quePasara, colores)
 
             Spacer(Modifier.height(14.dp))
             Card(
@@ -625,7 +626,7 @@ fun HojaEtapa(etapa: EtapaBebe, onCerrar: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Consejos", style = MaterialTheme.typography.labelLarge, color = colores.indigo)
+                    Text(L10n.t("Consejos"), style = MaterialTheme.typography.labelLarge, color = colores.indigo)
                     Spacer(Modifier.height(10.dp))
                     etapa.consejos.forEachIndexed { indice, consejo ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
@@ -657,7 +658,7 @@ fun HojaEtapa(etapa: EtapaBebe, onCerrar: () -> Unit) {
 
             Spacer(Modifier.height(14.dp))
             Text(
-                "Recuerda: cada bebé es único. Si tienes dudas, consulta siempre con tu pediatra.",
+                L10n.t("Recuerda: cada bebé es único. Si tienes dudas, consulta siempre con tu pediatra."),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -737,7 +738,7 @@ private fun CabeceraHoja(icono: IconoNubi, colorFondo: Color, titulo: String, su
 // registro. Al guardar se actualiza el mismo registro (mismo id), nunca
 // se crea uno nuevo.
 // =====================================================================
-const val SUBTITULO_EDITAR = "Corrige la hora sin perder el registro"
+const val SUBTITULO_EDITAR = L10n.t("Corrige la hora sin perder el registro")
 
 /** Barra superior de toda hoja en modo edición: "Cancelar" a la izquierda,
  *  título centrado — igual que en iOS. */
@@ -746,10 +747,10 @@ fun BarraEditarRegistro(onCancelar: () -> Unit) {
     val colores = NubiTheme.colores
     Box(Modifier.fillMaxWidth()) {
         TextButton(onClick = onCancelar, modifier = Modifier.align(Alignment.CenterStart)) {
-            Text("Cancelar", color = colores.lila, style = MaterialTheme.typography.bodyLarge)
+            Text(L10n.t("Cancelar"), color = colores.lila, style = MaterialTheme.typography.bodyLarge)
         }
         Text(
-            "Editar registro",
+            L10n.t("Editar registro"),
             style = MaterialTheme.typography.titleMedium,
             color = colores.tinta,
             modifier = Modifier.align(Alignment.Center)
@@ -785,7 +786,7 @@ fun TarjetaHoraInicioEditar(hora: Int, minuto: Int, onHoraCambiar: (Int) -> Unit
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
-            EtiquetaSeccionHoja("Hora de inicio")
+            EtiquetaSeccionHoja(L10n.t("Hora de inicio"))
             Spacer(Modifier.height(6.dp))
             RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = onHoraCambiar, onMinutoCambiar = onMinutoCambiar)
         }
@@ -889,7 +890,7 @@ private fun SelectorDiaRelativo(esAyer: Boolean, onCambiar: (Boolean) -> Unit) {
     val colores = NubiTheme.colores
     var expandido by remember { mutableStateOf(false) }
     Column {
-        EtiquetaSeccionHoja("Día")
+        EtiquetaSeccionHoja(L10n.t("Día"))
         Spacer(Modifier.height(6.dp))
         Box {
             Row(
@@ -900,7 +901,7 @@ private fun SelectorDiaRelativo(esAyer: Boolean, onCambiar: (Boolean) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (esAyer) "Ayer" else "Hoy",
+                    if (esAyer) L10n.t("Ayer") else L10n.t("Hoy"),
                     style = MaterialTheme.typography.bodyLarge,
                     color = colores.indigo
                 )
@@ -913,8 +914,8 @@ private fun SelectorDiaRelativo(esAyer: Boolean, onCambiar: (Boolean) -> Unit) {
                 )
             }
             DropdownMenu(expanded = expandido, onDismissRequest = { expandido = false }) {
-                DropdownMenuItem(text = { Text("Hoy") }, onClick = { onCambiar(false); expandido = false })
-                DropdownMenuItem(text = { Text("Ayer") }, onClick = { onCambiar(true); expandido = false })
+                DropdownMenuItem(text = { Text(L10n.t("Hoy")) }, onClick = { onCambiar(false); expandido = false })
+                DropdownMenuItem(text = { Text(L10n.t("Ayer")) }, onClick = { onCambiar(true); expandido = false })
             }
         }
     }
@@ -942,9 +943,9 @@ private fun FilaAunDurmiendo(activo: Boolean, onClick: () -> Unit) {
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text("Aún está soñando", style = MaterialTheme.typography.bodyLarge, color = colores.tinta)
+            Text(L10n.t("Aún está soñando"), style = MaterialTheme.typography.bodyLarge, color = colores.tinta)
             Text(
-                "Se guarda abierto y aparece en la pantalla de bloqueo",
+                L10n.t("Se guarda abierto y aparece en la pantalla de bloqueo"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -968,7 +969,7 @@ private fun BloqueDuracion(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
-            EtiquetaSeccionHoja("Duración")
+            EtiquetaSeccionHoja(L10n.t("Duración"))
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 ContadorDuracion("horas", horas, 0, 23) { onHorasCambiar(it) }
@@ -1038,12 +1039,12 @@ private fun iconoDeLugar(lugar: LugarSueno): IconoNubi = when (lugar) {
 }
 
 private fun nombreLugar(lugar: LugarSueno): String = when (lugar) {
-    LugarSueno.BRAZOS -> "Brazos"
-    LugarSueno.PECHO -> "Pecho"
-    LugarSueno.BIBERON -> "Biberón"
-    LugarSueno.CUNA -> "Cuna"
-    LugarSueno.CARRITO -> "Carrito"
-    LugarSueno.COCHE -> "Coche"
+    LugarSueno.BRAZOS -> L10n.t("Brazos")
+    LugarSueno.PECHO -> L10n.t("Pecho")
+    LugarSueno.BIBERON -> L10n.t("Biberón")
+    LugarSueno.CUNA -> L10n.t("Cuna")
+    LugarSueno.CARRITO -> L10n.t("Carrito")
+    LugarSueno.COCHE -> L10n.t("Coche")
 }
 
 // =====================================================================
@@ -1076,14 +1077,14 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.NUBE, colores.menta, "Siesta")
+                CabeceraHojaEditar(IconoNubi.NUBE, colores.menta, L10n.t("Siesta"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
             } else {
-                CabeceraHoja(IconoNubi.NUBE, colores.menta, "Siesta", "¿Cuándo durmió y cuánto?")
+                CabeceraHoja(IconoNubi.NUBE, colores.menta, L10n.t("Siesta"), L10n.t("¿Cuándo durmió y cuánto?"))
                 Spacer(Modifier.height(18.dp))
-                EtiquetaSeccionHoja("Hora")
+                EtiquetaSeccionHoja(L10n.t("Hora"))
                 Spacer(Modifier.height(6.dp))
                 RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
                 Spacer(Modifier.height(18.dp))
@@ -1097,7 +1098,7 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
             }
 
             Spacer(Modifier.height(18.dp))
-            EtiquetaSeccionHoja("¿Dónde se durmió? · Opcional")
+            EtiquetaSeccionHoja(L10n.t("¿Dónde se durmió? · Opcional"))
             Spacer(Modifier.height(8.dp))
             GrillaLugarSueno(lugar = lugar) { lugar = if (lugar == it) null else it }
 
@@ -1115,7 +1116,7 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
                 colors = ButtonDefaults.buttonColors(containerColor = colores.menta, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -1153,12 +1154,12 @@ fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = 
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.LUNA, colores.lila, "Sueño nocturno")
+                CabeceraHojaEditar(IconoNubi.LUNA, colores.lila, L10n.t("Sueño nocturno"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
             } else {
-                CabeceraHoja(IconoNubi.LUNA, colores.lila, "Sueño nocturno", "¿Cuándo durmió y cuánto?")
+                CabeceraHoja(IconoNubi.LUNA, colores.lila, L10n.t("Sueño nocturno"), L10n.t("¿Cuándo durmió y cuánto?"))
                 Spacer(Modifier.height(18.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1193,7 +1194,7 @@ fun HojaSuenoNocturnoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = 
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -1225,20 +1226,20 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.LUNA, colores.coral, "Despertar nocturno")
+                CabeceraHojaEditar(IconoNubi.LUNA, colores.coral, L10n.t("Despertar nocturno"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
             } else {
-                CabeceraHoja(IconoNubi.LUNA, colores.coral, "Despertar nocturno", "¿A qué hora se despertó y cuánto duró?")
+                CabeceraHoja(IconoNubi.LUNA, colores.coral, L10n.t("Despertar nocturno"), L10n.t("¿A qué hora se despertó y cuánto duró?"))
                 Spacer(Modifier.height(18.dp))
 
-                EtiquetaSeccionHoja("Hora del despertar")
+                EtiquetaSeccionHoja(L10n.t("Hora del despertar"))
                 Spacer(Modifier.height(6.dp))
                 RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
                 Spacer(Modifier.height(18.dp))
             }
-            EtiquetaSeccionHoja("Duración del despertar")
+            EtiquetaSeccionHoja(L10n.t("Duración del despertar"))
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1268,7 +1269,7 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Resumen:", style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+                Text(L10n.t("Resumen:"), style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
                 Text(
                     "%02d:%02d · %d min".format(hora, minuto, duracionMin),
                     style = MaterialTheme.typography.bodyMedium,
@@ -1289,7 +1290,7 @@ fun HojaDespertarNocturno(bebeId: String, dia: LocalDate, horaInicial: Instant =
                 colors = ButtonDefaults.buttonColors(containerColor = colores.coral, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -1319,24 +1320,24 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.BANO, colores.rosa, "Baño")
+                CabeceraHojaEditar(IconoNubi.BANO, colores.rosa, L10n.t("Baño"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
             } else {
-                CabeceraHoja(IconoNubi.BANO, colores.rosa, "Baño", "Elige la hora del registro")
+                CabeceraHoja(IconoNubi.BANO, colores.rosa, L10n.t("Baño"), L10n.t("Elige la hora del registro"))
                 Spacer(Modifier.height(18.dp))
-                EtiquetaSeccionHoja("Hora")
+                EtiquetaSeccionHoja(L10n.t("Hora"))
                 Spacer(Modifier.height(6.dp))
                 RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
                 Spacer(Modifier.height(18.dp))
             }
-            EtiquetaSeccionHoja("¿Cómo lo llevó? · Opcional")
+            EtiquetaSeccionHoja(L10n.t("¿Cómo lo llevó? · Opcional"))
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TogglePanal(
                     icono = IconoNubi.CONTENTO,
-                    etiqueta = "Contento",
+                    etiqueta = L10n.t("Contento"),
                     activo = contento == true,
                     color = colores.menta,
                     colores = colores,
@@ -1344,7 +1345,7 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
                 ) { contento = if (contento == true) null else true }
                 TogglePanal(
                     icono = IconoNubi.MOLESTO,
-                    etiqueta = "Molesto",
+                    etiqueta = L10n.t("Molesto"),
                     activo = contento == false,
                     color = colores.coral,
                     colores = colores,
@@ -1363,7 +1364,7 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
                 colors = ButtonDefaults.buttonColors(containerColor = colores.rosa, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -1376,8 +1377,8 @@ fun HojaBanoDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant.n
 @Composable
 fun MenuPecho(expandido: Boolean, onCerrar: () -> Unit, onElegir: (LadoPecho) -> Unit) {
     DropdownMenu(expanded = expandido, onDismissRequest = onCerrar) {
-        FilaMenuPecho("Pecho izquierdo") { onElegir(LadoPecho.IZQUIERDA) }
-        FilaMenuPecho("Pecho derecho") { onElegir(LadoPecho.DERECHA) }
+        FilaMenuPecho(L10n.t("Pecho izquierdo")) { onElegir(LadoPecho.IZQUIERDA) }
+        FilaMenuPecho(L10n.t("Pecho derecho")) { onElegir(LadoPecho.DERECHA) }
     }
 }
 
@@ -1388,7 +1389,7 @@ private fun FilaMenuPecho(titulo: String, onClick: () -> Unit) {
         text = {
             Column {
                 Text(titulo, style = MaterialTheme.typography.bodyLarge, color = colores.tinta)
-                Text("Elegir hora", style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
+                Text(L10n.t("Elegir hora"), style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
             }
         },
         leadingIcon = {
@@ -1422,7 +1423,7 @@ fun HojaPechoHora(
     val horaLocalInicial = remember { (registro?.inicio ?: horaInicial).atZone(ZoneId.systemDefault()).toLocalTime() }
     var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
-    val titulo = if (lado == LadoPecho.IZQUIERDA) "Pecho izquierdo" else "Pecho derecho"
+    val titulo = if (lado == LadoPecho.IZQUIERDA) L10n.t("Pecho izquierdo") else L10n.t("Pecho derecho")
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
@@ -1438,7 +1439,7 @@ fun HojaPechoHora(
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
             } else {
-                CabeceraHoja(IconoNubi.CORAZON, colores.melocoton, titulo, "Elige la hora del registro")
+                CabeceraHoja(IconoNubi.CORAZON, colores.melocoton, titulo, L10n.t("Elige la hora del registro"))
                 Spacer(Modifier.height(18.dp))
                 RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
             }
@@ -1454,7 +1455,7 @@ fun HojaPechoHora(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.melocoton, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 }
@@ -1481,8 +1482,8 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
             CabeceraHoja(
                 IconoNubi.CANDADO,
                 colores.lila,
-                "Se acabó tu prueba gratuita",
-                "Han pasado tus 7 días de prueba. Canjea un código de regalo o hazte premium para seguir registrando."
+                L10n.t("Se acabó tu prueba gratuita"),
+                L10n.t("Han pasado tus 7 días de prueba. Canjea un código de regalo o hazte premium para seguir registrando.")
             )
             Spacer(Modifier.height(20.dp))
             BloqueCanjearCodigo(
@@ -1493,7 +1494,7 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                "Suscripción mensual, trimestral o anual: muy pronto.",
+                L10n.t("Suscripción mensual, trimestral o anual: muy pronto."),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue,
                 textAlign = TextAlign.Center,

@@ -50,6 +50,7 @@ import app.nubi.data.TipoRegistro
 import app.nubi.data.VentanaIdeal
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -302,14 +303,14 @@ fun RelojDelDia(
                                     clave = "nocturno",
                                     icono = IconoNubi.LUNA,
                                     colorIcono = colores.lila,
-                                    titulo = "Sueño nocturno",
+                                    titulo = L10n.t("Sueño nocturno"),
                                     subtitulo = if (realizada) {
-                                        "Ventana ideal era ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}"
+                                        "${L10n.t("Ventana ideal era")} ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}"
                                     } else {
-                                        "Ventana ideal"
+                                        L10n.t("Ventana ideal")
                                     },
                                     detalle = if (realizada) {
-                                        "Realizada: ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
+                                        "${L10n.t("Realizada:")} ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
                                     } else {
                                         "${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}"
                                     }
@@ -338,13 +339,13 @@ fun RelojDelDia(
                                     clave = "siesta-${ideal.numero}",
                                     icono = IconoNubi.NUBE,
                                     colorIcono = colores.menta,
-                                    titulo = "Siesta ${ideal.numero}",
-                                    subtitulo = "Ventana ideal era ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}",
+                                    titulo = "${L10n.t("Siesta")} ${ideal.numero}",
+                                    subtitulo = "${L10n.t("Ventana ideal era")} ${formatoHoraReloj.format(ideal.rangoInicioDesde)} – ${formatoHoraReloj.format(ideal.rangoInicioHasta)}",
                                     detalle = when {
                                         ideal.realizada ->
-                                            "Realizada: ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
-                                        perdida -> "No se hizo en su ventana"
-                                        else -> "Todavía no se ha hecho"
+                                            "${L10n.t("Realizada:")} ${formatoHoraReloj.format(ideal.inicioReal!!)} – ${formatoHoraReloj.format(ideal.finReal ?: ahora)}"
+                                        perdida -> L10n.t("No se hizo en su ventana")
+                                        else -> L10n.t("Todavía no se ha hecho")
                                     }
                                 )
                             )
@@ -369,9 +370,9 @@ fun RelojDelDia(
                                 clave = "despertar",
                                 icono = IconoNubi.SOL,
                                 colorIcono = colores.mantequilla,
-                                titulo = "Buenos días",
-                                subtitulo = "Despertar del día",
-                                detalle = "$nombre se despertó a las ${formatoHoraReloj.format(fecha)}"
+                                titulo = L10n.t("Buenos días"),
+                                subtitulo = L10n.t("Despertar del día"),
+                                detalle = "${L10n.seDespertó(nombre)} ${L10n.aLasHora(formatoHoraReloj.format(fecha))}"
                             )
                         )
                     }
@@ -405,7 +406,7 @@ fun RelojDelDia(
 
         if (intervalos.isEmpty() && eventos.isEmpty()) {
             Text(
-                "Sin datos aún",
+                L10n.t("Sin datos aún"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue,
                 modifier = Modifier.offsetPx(centro.x - dp(40f), centro.y)

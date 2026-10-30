@@ -58,6 +58,20 @@ object L10n {
             }
         }
 
+    /**
+     * Locale de Java para formatear nombres de día/mes y mayúsculas/
+     * minúsculas acorde al idioma efectivo — Android por sí solo usaría el
+     * locale del sistema, no el elegido en Ajustes (que puede ser distinto
+     * si el usuario forzó un idioma).
+     */
+    val localeJava: Locale
+        get() = when (idiomaEfectivo) {
+            IdiomaNubi.INGLES -> Locale("en", "US")
+            IdiomaNubi.ITALIANO -> Locale("it", "IT")
+            IdiomaNubi.FRANCES -> Locale("fr", "FR")
+            else -> Locale("es", "ES")
+        }
+
     private val claveIdioma: String?
         get() = when (idiomaEfectivo) {
             IdiomaNubi.INGLES -> "en"
@@ -72,7 +86,8 @@ object L10n {
      */
     fun t(textoEspanol: String): String {
         val clave = claveIdioma ?: return textoEspanol
-        return tablaTraducciones[textoEspanol]?.get(clave) ?: textoEspanol
+        val entrada = tablaTraducciones[textoEspanol] ?: tablaTraduccionesExtra[textoEspanol]
+        return entrada?.get(clave) ?: textoEspanol
     }
 
     // -----------------------------------------------------------------
@@ -204,5 +219,267 @@ object L10n {
         IdiomaNubi.ITALIANO -> "A questa età di solito dorme tra $a e $b h al giorno."
         IdiomaNubi.FRANCES -> "À cet âge, un bébé dort généralement entre $a et $b h par jour."
         else -> "A su edad se suele dormir entre $a y $b h al día."
+    }
+
+    /** "5 d de vida"/"3 sem de vida"/"2 m de vida" — edad abreviada. */
+    fun textoEdadCorta(dias: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> when {
+            dias < 14 -> "$dias d old"
+            dias < 61 -> "${dias / 7} wk old"
+            else -> "${(dias / 30.44).toInt()} mo old"
+        }
+        IdiomaNubi.ITALIANO -> when {
+            dias < 14 -> "$dias g di vita"
+            dias < 61 -> "${dias / 7} sett di vita"
+            else -> "${(dias / 30.44).toInt()} m di vita"
+        }
+        IdiomaNubi.FRANCES -> when {
+            dias < 14 -> "$dias j de vie"
+            dias < 61 -> "${dias / 7} sem de vie"
+            else -> "${(dias / 30.44).toInt()} m de vie"
+        }
+        else -> when {
+            dias < 14 -> "$dias d de vida"
+            dias < 61 -> "${dias / 7} sem de vida"
+            else -> "${(dias / 30.44).toInt()} m de vida"
+        }
+    }
+
+    fun nMeses(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 month" else "$n months"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 mese" else "$n mesi"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 mois" else "$n mois"
+        else -> if (n == 1) "1 mes" else "$n meses"
+    }
+
+    fun nSemanas(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 week" else "$n weeks"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 settimana" else "$n settimane"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 semaine" else "$n semaines"
+        else -> if (n == 1) "1 semana" else "$n semanas"
+    }
+
+    fun medidasAnotadas(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 measurement logged" else "$n measurements logged"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 misura registrata" else "$n misure registrate"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 mesure enregistrée" else "$n mesures enregistrées"
+        else -> if (n == 1) "1 medida anotada" else "$n medidas anotadas"
+    }
+
+    /** Puerto de aúnNoHayMedida(_:) de Traducciones.swift — construcción
+     *  gramatical distinta por idioma, no una simple concatenación. Recibe
+     *  el título en español de la magnitud (Peso/Estatura/Cabeza). */
+    fun aunNoHayMedida(magnitudTitulo: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> {
+            val n = when (magnitudTitulo) {
+                "Peso" -> "weight"
+                "Estatura" -> "height"
+                else -> "head measurements"
+            }
+            "No $n yet"
+        }
+        IdiomaNubi.ITALIANO -> {
+            val n = when (magnitudTitulo) {
+                "Peso" -> "dato sul peso"
+                "Estatura" -> "dato sull'altezza"
+                else -> "dato sulla circonferenza cranica"
+            }
+            "Ancora nessun $n"
+        }
+        IdiomaNubi.FRANCES -> {
+            val n = when (magnitudTitulo) {
+                "Peso" -> "poids"
+                "Estatura" -> "taille"
+                else -> "périmètre crânien"
+            }
+            "Pas encore de $n"
+        }
+        else -> "Aún no hay ${magnitudTitulo.lowercase()}"
+    }
+
+    fun vacunasMarcadas(puestas: Int, total: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$puestas of $total given"
+        IdiomaNubi.ITALIANO -> "$puestas di $total fatte"
+        IdiomaNubi.FRANCES -> "$puestas sur $total faits"
+        else -> "$puestas de $total marcadas"
+    }
+
+    fun citasPendientes(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 appointment pending" else "$n appointments pending"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 visita in sospeso" else "$n visite in sospeso"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 rendez-vous à venir" else "$n rendez-vous à venir"
+        else -> if (n == 1) "1 cita pendiente" else "$n citas pendientes"
+    }
+
+    fun enfermedadesPasadas(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 past illness" else "$n past illnesses"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 malattia passata" else "$n malattie passate"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 maladie passée" else "$n maladies passées"
+        else -> if (n == 1) "1 enfermedad pasada" else "$n enfermedades pasadas"
+    }
+
+    fun enfermedadesResumen(activas: Int, total: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$activas ongoing · $total total"
+        IdiomaNubi.ITALIANO -> "$activas in corso · $total in totale"
+        IdiomaNubi.FRANCES -> "$activas en cours · $total au total"
+        else -> "$activas en curso · $total en total"
+    }
+
+    fun vacunasTotalTexto(puestas: Int, total: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (puestas == 0) (if (total == 1) "1 vaccine" else "$total vaccines") else "$puestas of $total given"
+        IdiomaNubi.ITALIANO -> if (puestas == 0) (if (total == 1) "1 vaccino" else "$total vaccini") else "$puestas di $total fatti"
+        IdiomaNubi.FRANCES -> if (puestas == 0) (if (total == 1) "1 vaccin" else "$total vaccins") else "$puestas sur $total faits"
+        else -> if (puestas == 0) (if (total == 1) "1 vacuna" else "$total vacunas") else "$puestas de $total puestas"
+    }
+
+    fun revisionCon(tipo: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Visit with $tipo"
+        IdiomaNubi.ITALIANO -> "Visita con $tipo"
+        IdiomaNubi.FRANCES -> "Rendez-vous avec $tipo"
+        else -> "Revisión con $tipo"
+    }
+
+    fun nEntradas(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 entry" else "$n entries"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 voce" else "$n voci"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 entrée" else "$n entrées"
+        else -> if (n == 1) "1 entrada" else "$n entradas"
+    }
+
+    fun nHitos(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 milestone" else "$n milestones"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 tappa" else "$n tappe"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 étape" else "$n étapes"
+        else -> if (n == 1) "1 hito" else "$n hitos"
+    }
+
+    /** "5 d"/"3 m"/"2 a" — edad abreviada en la fecha de una entrada del diario. */
+    fun textoEdadAbrev(dias: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> when {
+            dias < 31 -> "$dias d"
+            else -> { val meses = (dias / 30.44).toInt(); if (meses < 24) "$meses mo" else "${meses / 12} y" }
+        }
+        IdiomaNubi.ITALIANO -> when {
+            dias < 31 -> "$dias g"
+            else -> { val meses = (dias / 30.44).toInt(); if (meses < 24) "$meses m" else "${meses / 12} a" }
+        }
+        IdiomaNubi.FRANCES -> when {
+            dias < 31 -> "$dias j"
+            else -> { val meses = (dias / 30.44).toInt(); if (meses < 24) "$meses m" else "${meses / 12} a" }
+        }
+        else -> when {
+            dias < 31 -> "$dias d"
+            else -> { val meses = (dias / 30.44).toInt(); if (meses < 24) "$meses m" else "${meses / 12} a" }
+        }
+    }
+
+    fun nExtracciones(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 pumping session" else "$n pumping sessions"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 estrazione" else "$n estrazioni"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 extraction" else "$n extractions"
+        else -> if (n == 1) "1 extracción" else "$n extracciones"
+    }
+
+    fun nUsos(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> if (n == 1) "1 use" else "$n uses"
+        IdiomaNubi.ITALIANO -> if (n == 1) "1 utilizzo" else "$n utilizzi"
+        IdiomaNubi.FRANCES -> if (n == 1) "1 utilisation" else "$n utilisations"
+        else -> if (n == 1) "1 uso" else "$n usos"
+    }
+
+    fun duraFrigorifico(dias: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Lasts up to $dias days in the fridge"
+        IdiomaNubi.ITALIANO -> "Dura fino a $dias giorni in frigorifero"
+        IdiomaNubi.FRANCES -> "Se conserve jusqu'à $dias jours au réfrigérateur"
+        else -> "Dura hasta $dias días en el frigorífico"
+    }
+
+    fun duraCongelador(meses: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Lasts up to $meses months in the freezer"
+        IdiomaNubi.ITALIANO -> "Dura fino a $meses mesi nel congelatore"
+        IdiomaNubi.FRANCES -> "Se conserve jusqu'à $meses mois au congélateur"
+        else -> "Dura hasta $meses meses en el congelador"
+    }
+
+    fun diasRestantesPrueba(dias: Long): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$dias trial ${if (dias == 1L) "day" else "days"} left"
+        IdiomaNubi.ITALIANO -> "Ti restano $dias giorni di prova"
+        IdiomaNubi.FRANCES -> "Il vous reste $dias jours d'essai"
+        else -> "Te quedan $dias días de prueba"
+    }
+
+    /**
+     * Edad corta (días/semanas/meses, sin resto) — usada en la cabecera del
+     * bebé. Sin equivalente directo en iOS: escrita a mano siguiendo el
+     * mismo estilo que el resto de funciones de esta clase.
+     */
+    fun textoEdad(dias: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> when {
+            dias < 14 -> if (dias == 1) "1 day" else "$dias days"
+            dias < 61 -> "${dias / 7} weeks"
+            else -> "${(dias / 30.44).toInt()} months"
+        }
+        IdiomaNubi.ITALIANO -> when {
+            dias < 14 -> if (dias == 1) "1 giorno" else "$dias giorni"
+            dias < 61 -> "${dias / 7} settimane"
+            else -> "${(dias / 30.44).toInt()} mesi"
+        }
+        IdiomaNubi.FRANCES -> when {
+            dias < 14 -> if (dias == 1) "1 jour" else "$dias jours"
+            dias < 61 -> "${dias / 7} semaines"
+            else -> "${(dias / 30.44).toInt()} mois"
+        }
+        else -> when {
+            dias < 14 -> if (dias == 1) "1 día" else "$dias días"
+            dias < 61 -> "${dias / 7} semanas"
+            else -> "${(dias / 30.44).toInt()} meses"
+        }
+    }
+
+    /**
+     * Edad detallada (días/semanas/meses y resto en días) — más precisa que
+     * [textoEdad], usada en la ficha del bebé. Tampoco tiene equivalente
+     * directo en iOS.
+     */
+    fun textoEdadDetallada(dias: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> when {
+            dias < 14 -> if (dias == 1) "1 day" else "$dias days"
+            dias < 61 -> "${dias / 7} weeks"
+            else -> {
+                val meses = dias / 30
+                val resto = dias % 30
+                if (resto == 0) "$meses ${if (meses == 1) "month" else "months"}"
+                else "$meses ${if (meses == 1) "month" else "months"} $resto ${if (resto == 1) "day" else "days"}"
+            }
+        }
+        IdiomaNubi.ITALIANO -> when {
+            dias < 14 -> if (dias == 1) "1 giorno" else "$dias giorni"
+            dias < 61 -> "${dias / 7} settimane"
+            else -> {
+                val meses = dias / 30
+                val resto = dias % 30
+                if (resto == 0) "$meses ${if (meses == 1) "mese" else "mesi"}"
+                else "$meses ${if (meses == 1) "mese" else "mesi"} e $resto ${if (resto == 1) "giorno" else "giorni"}"
+            }
+        }
+        IdiomaNubi.FRANCES -> when {
+            dias < 14 -> if (dias == 1) "1 jour" else "$dias jours"
+            dias < 61 -> "${dias / 7} semaines"
+            else -> {
+                val meses = dias / 30
+                val resto = dias % 30
+                if (resto == 0) "$meses mois"
+                else "$meses mois et $resto ${if (resto == 1) "jour" else "jours"}"
+            }
+        }
+        else -> when {
+            dias < 14 -> if (dias == 1) "1 día" else "$dias días"
+            dias < 61 -> "${dias / 7} semanas"
+            else -> {
+                val meses = dias / 30
+                val resto = dias % 30
+                if (resto == 0) "$meses meses" else "$meses meses y $resto días"
+            }
+        }
     }
 }

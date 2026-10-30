@@ -1,6 +1,7 @@
 package app.nubi.data
 
 import android.content.Context
+import app.nubi.i18n.L10n
 import app.nubi.notificaciones.AvisosNubi
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
@@ -110,10 +111,10 @@ object Repositorio {
             return
         }
         if (prediccion.tipo == TipoPrediccion.NOCHE) {
-            AvisosNubi.programar(contexto, id, prediccion.desde, "Hora de dormir", "Es hora de dormir 🌙")
+            AvisosNubi.programar(contexto, id, prediccion.desde, L10n.t("Hora de dormir"), L10n.t("Es hora de dormir 🌙"))
         } else {
-            val texto = "Buena ventana ahora · hasta ${formatoHoraAviso.format(prediccion.hasta)}"
-            AvisosNubi.programar(contexto, id, prediccion.desde, "Hora de la siesta", texto)
+            val texto = "${L10n.t("Buena ventana ahora · hasta")} ${formatoHoraAviso.format(prediccion.hasta)}"
+            AvisosNubi.programar(contexto, id, prediccion.desde, L10n.t("Hora de la siesta"), texto)
         }
     }
 
@@ -124,8 +125,8 @@ object Repositorio {
             AvisosNubi.cancelar(contexto, id)
             return
         }
-        val texto = medicina.nombre.ifBlank { "Toca la siguiente toma" }
-        AvisosNubi.programar(contexto, id, siguiente, "Hora de la siguiente toma", texto)
+        val texto = medicina.nombre.ifBlank { L10n.t("Toca la siguiente toma") }
+        AvisosNubi.programar(contexto, id, siguiente, L10n.t("Hora de la siguiente toma"), texto)
     }
 
     private fun avisarDeCita(contexto: Context, cita: Cita) {
@@ -141,10 +142,10 @@ object Repositorio {
             .atZone(zona)
             .toInstant()
         val texto = buildString {
-            append(cita.titulo.ifBlank { "Tienes una cita" })
+            append(cita.titulo.ifBlank { L10n.t("Tienes una cita") })
             if (cita.lugar.isNotBlank()) append(" · ${cita.lugar}")
         }
-        AvisosNubi.programar(contexto, id, vispera, "Cita mañana", texto)
+        AvisosNubi.programar(contexto, id, vispera, L10n.t("Cita mañana"), texto)
     }
 
     fun sincronizarEnSegundoPlano() {

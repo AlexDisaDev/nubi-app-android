@@ -50,6 +50,7 @@ import app.nubi.data.EntradaDiario
 import app.nubi.data.Repositorio
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -83,7 +84,7 @@ fun PantallaDiario(bebe: Bebe, entradas: List<EntradaDiario>) {
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text("Diario", style = MaterialTheme.typography.displaySmall)
+                Text(L10n.t("Diario"), style = MaterialTheme.typography.displaySmall)
                 Text(
                     subtituloDiario(entradas.size, hitos),
                     style = MaterialTheme.typography.bodyMedium,
@@ -111,15 +112,15 @@ fun PantallaDiario(bebe: Bebe, entradas: List<EntradaDiario>) {
             Tarjeta {
                 EstadoVacioDiario(
                     icono = IconoNubi.LIBRETA,
-                    titulo = if (soloHitos) "Ningún hito todavía" else "El cuaderno está en blanco",
-                    texto = if (soloHitos) "Marca una entrada como hito cuando pase algo por primera vez."
-                    else "La primera sonrisa, la noche que durmió del tirón, lo que dijo el pediatra. Dentro de un año no te acordarás si no lo escribes.",
+                    titulo = if (soloHitos) L10n.t("Ningún hito todavía") else L10n.t("El cuaderno está en blanco"),
+                    texto = if (soloHitos) L10n.t("Marca una entrada como hito cuando pase algo por primera vez.")
+                    else L10n.t("La primera sonrisa, la noche que durmió del tirón, lo que dijo el pediatra. Dentro de un año no te acordarás si no lo escribes."),
                     color = colores.mantequilla
                 )
             }
             if (!soloHitos) {
                 Spacer(Modifier.height(14.dp))
-                BotonPrimarioDiario("Escribe tu nota", IconoNubi.LAPIZ, colores.lila) {
+                BotonPrimarioDiario(L10n.t("Escribe tu nota"), IconoNubi.LAPIZ, colores.lila) {
                     editando = EntradaDiario(bebeId = bebe.id, fecha = Instant.now())
                 }
             }
@@ -153,7 +154,7 @@ private fun SelectorTodoHitos(soloHitos: Boolean, onCambiar: (Boolean) -> Unit) 
             .background(colores.lienzoAlto)
             .padding(4.dp)
     ) {
-        listOf(false to "Todo", true to "Solo hitos").forEach { (valor, titulo) ->
+        listOf(false to L10n.t("Todo"), true to L10n.t("Solo hitos")).forEach { (valor, titulo) ->
             val sel = soloHitos == valor
             Box(
                 modifier = Modifier
@@ -231,13 +232,13 @@ private fun HojaDiario(
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Text(if (esNueva) "Nueva entrada" else "Entrada", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            Text(if (esNueva) L10n.t("Nueva entrada") else L10n.t("Entrada"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
             Spacer(Modifier.height(18.dp))
 
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        EtiquetaSeccionDiario("Fecha")
+                        EtiquetaSeccionDiario(L10n.t("Fecha"))
                         Spacer(Modifier.weight(1f))
                         OutlinedButton(onClick = { mostrarSelectorFecha = true }) { Text(textoFechaCortaDiario(fecha)) }
                     }
@@ -249,7 +250,7 @@ private fun HojaDiario(
                         Icono(IconoNubi.ESTRELLA, tint = colores.mantequilla, tamano = 16.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Marcar como hito",
+                            L10n.t("Marcar como hito"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colores.tinta,
                             modifier = Modifier.weight(1f)
@@ -264,14 +265,14 @@ private fun HojaDiario(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = titulo, onValueChange = { titulo = it },
-                        placeholder = { Text("Título") },
+                        placeholder = { Text(L10n.t("Título")) },
                         textStyle = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.fillMaxWidth()
                     )
                     HorizontalDivider(color = colores.separador)
                     OutlinedTextField(
                         value = texto, onValueChange = { texto = it },
-                        placeholder = { Text("Hoy ha pasado que…") },
+                        placeholder = { Text(L10n.t("Hoy ha pasado que…")) },
                         minLines = 6, maxLines = 20,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -290,14 +291,14 @@ private fun HojaDiario(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
 
             if (!esNueva) {
                 Spacer(Modifier.height(10.dp))
                 TextButton(onClick = onBorrar, modifier = Modifier.fillMaxWidth()) {
                     Icono(IconoNubi.PAPELERA, tint = colores.indigo, tamano = 14.dp)
                     Spacer(Modifier.width(7.dp))
-                    Text("Borrar esta entrada", color = colores.indigo)
+                    Text(L10n.t("Borrar esta entrada"), color = colores.indigo)
                 }
             }
         }
@@ -311,9 +312,9 @@ private fun HojaDiario(
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { fecha = millisUtcAFechaDiario(it) }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 }
@@ -334,7 +335,7 @@ private fun Tarjeta(content: @Composable () -> Unit) {
 @Composable
 private fun EtiquetaSeccionDiario(texto: String) {
     Text(
-        texto.uppercase(Locale("es", "ES")),
+        texto.uppercase(L10n.localeJava),
         style = MaterialTheme.typography.labelSmall,
         color = NubiTheme.colores.tintaTenue,
         letterSpacing = 0.5.sp
@@ -386,41 +387,38 @@ private fun EstadoVacioDiario(icono: IconoNubi, titulo: String, texto: String, c
 // -----------------------------------------------------------------
 
 private fun subtituloDiario(n: Int, hitos: Int): String {
-    val entradasTxt = if (n == 1) "1 entrada" else "$n entradas"
+    val entradasTxt = L10n.nEntradas(n)
     if (hitos == 0) return entradasTxt
-    val hitosTxt = if (hitos == 1) "1 hito" else "$hitos hitos"
-    return "$entradasTxt · $hitosTxt"
+    return "$entradasTxt · ${L10n.nHitos(hitos)}"
 }
 
 private fun tituloVisibleEntrada(e: EntradaDiario): String {
     if (e.titulo.isNotEmpty()) return e.titulo
-    val primera = e.texto.split("\n").firstOrNull { it.isNotEmpty() } ?: "Sin título"
+    val primera = e.texto.split("\n").firstOrNull { it.isNotEmpty() } ?: L10n.t("Sin título")
     return primera.take(60)
 }
 
 /** Edad del bebé en la fecha de la entrada, igual que Fmt.edadEnFecha en iOS. */
 private fun textoEdadEnFecha(fecha: Instant, bebe: Bebe): String {
     val dias = java.time.Duration.between(bebe.fechaNacimiento, fecha).toDays().toInt()
-    if (dias < 31) return "$dias d"
-    val meses = (dias / 30.44).toInt()
-    return if (meses < 24) "$meses m" else "${meses / 12} a"
+    return L10n.textoEdadAbrev(dias)
 }
 
 private val zonaDiario: ZoneId = ZoneId.systemDefault()
 
 private fun textoFechaCortaDiario(fecha: Instant): String {
     val dia = fecha.atZone(zonaDiario).toLocalDate()
-    val mes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+    val mes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
     return "${dia.dayOfMonth} $mes".lowercase()
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("es", "ES")) else it.toString() }
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(L10n.localeJava) else it.toString() }
 }
 
 private fun textoFechaLargaDiario(fecha: Instant): String {
     val dia = fecha.atZone(zonaDiario).toLocalDate()
-    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
-    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
+    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, L10n.localeJava)
+    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, L10n.localeJava)
     return "$nombreDia, ${dia.dayOfMonth} de $nombreMes"
-        .replaceFirstChar { it.titlecase(Locale("es", "ES")) }
+        .replaceFirstChar { it.titlecase(L10n.localeJava) }
 }
 
 private fun fechaAMillisUtcDiario(fecha: Instant): Long =

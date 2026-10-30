@@ -75,6 +75,7 @@ import app.nubi.data.VacunaPropia
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -85,7 +86,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 private enum class SeccionSalud(val titulo: String) {
-    VACUNAS("Vacunas"), CITAS("Citas"), ENFERMEDADES("Enfermedades")
+    VACUNAS(L10n.t("Vacunas")), CITAS(L10n.t("Citas")), ENFERMEDADES(L10n.t("Enfermedades"))
 }
 
 /**
@@ -136,25 +137,21 @@ fun PantallaSalud(
     val subtitulo = when (seccion) {
         SeccionSalud.VACUNAS -> {
             val total = totalVacunasCalendario + vacunasPropias.size
-            if (total == 0) "Sin vacunas añadidas" else "$totalVacunasPuestas de $total marcadas"
+            if (total == 0) L10n.t("Sin vacunas añadidas") else L10n.vacunasMarcadas(totalVacunasPuestas, total)
         }
 
         SeccionSalud.CITAS -> {
             val n = citasProximas.size
-            when {
-                n == 0 -> "Sin citas pendientes"
-                n == 1 -> "1 cita pendiente"
-                else -> "$n citas pendientes"
-            }
+            if (n == 0) L10n.t("Sin citas pendientes") else L10n.citasPendientes(n)
         }
 
         SeccionSalud.ENFERMEDADES -> {
             val activas = enfermedadesActivas.size
             val total = enfermedades.size
             when {
-                total == 0 -> "Sin enfermedades registradas"
-                activas == 0 -> if (total == 1) "1 enfermedad pasada" else "$total enfermedades pasadas"
-                else -> "$activas en curso · $total en total"
+                total == 0 -> L10n.t("Sin enfermedades registradas")
+                activas == 0 -> L10n.enfermedadesPasadas(total)
+                else -> L10n.enfermedadesResumen(activas, total)
             }
         }
     }
@@ -167,7 +164,7 @@ fun PantallaSalud(
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text("Salud", style = MaterialTheme.typography.displaySmall)
+                Text(L10n.t("Salud"), style = MaterialTheme.typography.displaySmall)
                 Text(subtitulo, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
             }
             when (seccion) {
@@ -327,14 +324,14 @@ private fun BloqueVacunas(
     if (comunidad == Comunidad.OTROS) {
         Tarjeta {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                EtiquetaSeccion("Otros países")
+                EtiquetaSeccion(L10n.t("Otros países"))
                 Text(
-                    "Cada país tiene su propio calendario oficial",
+                    L10n.t("Cada país tiene su propio calendario oficial"),
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = colores.tinta
                 )
                 Text(
-                    "Para no mostrar un calendario que no corresponda a tu país, aquí puedes anotar manualmente las vacunas que le pongan.",
+                    L10n.t("Para no mostrar un calendario que no corresponda a tu país, aquí puedes anotar manualmente las vacunas que le pongan."),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaSuave
                 )
@@ -352,7 +349,7 @@ private fun BloqueVacunas(
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        EtiquetaSeccion("Siguiente tanda")
+                        EtiquetaSeccion(L10n.t("Siguiente tanda"))
                         Text(siguiente.etiqueta, style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                         Text(
                             siguiente.items.joinToString(" · ") { it.nombre },
@@ -418,9 +415,9 @@ private fun SelectorComunidad(comunidad: Comunidad, onClick: () -> Unit) {
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    EtiquetaSeccion("Calendario de")
+                    EtiquetaSeccion(L10n.t("Calendario de"))
                     Text(
-                        comunidad.nombre,
+                        L10n.t(comunidad.nombre),
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = colores.tinta
                     )
@@ -444,9 +441,9 @@ private fun BloquePropio(
     val grupos = remember(gruposVacunas) { gruposVacunas.sortedBy { it.meses } }
 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        EtiquetaSeccion("Añadidas por ti")
+        EtiquetaSeccion(L10n.t("Añadidas por ti"))
         Spacer(Modifier.weight(1f))
-        BotonSecundarioChico("Añadir edad", IconoNubi.MAS, onCrearGrupo)
+        BotonSecundarioChico(L10n.t("Añadir edad"), IconoNubi.MAS, onCrearGrupo)
     }
     Spacer(Modifier.height(10.dp))
 
@@ -454,12 +451,12 @@ private fun BloquePropio(
         Tarjeta {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    "Tu propio bloque",
+                    L10n.t("Tu propio bloque"),
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = colores.tinta
                 )
                 Text(
-                    "Crea una edad (“5 meses”, “antes del viaje”) y añade dentro las vacunas que le hayan puesto y no estén en el calendario de arriba.",
+                    L10n.t("Crea una edad (“5 meses”, “antes del viaje”) y añade dentro las vacunas que le hayan puesto y no estén en el calendario de arriba."),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaSuave
                 )
@@ -472,7 +469,7 @@ private fun BloquePropio(
             Tarjeta {
                 Desplegable(
                     titulo = grupo.etiqueta,
-                    subtitulo = if (vacunasDeEsteGrupo.isEmpty()) "Sin vacunas todavía"
+                    subtitulo = if (vacunasDeEsteGrupo.isEmpty()) L10n.t("Sin vacunas todavía")
                     else estadoGrupoTexto(puestas, vacunasDeEsteGrupo.size),
                     icono = IconoNubi.JERINGA,
                     colorIcono = colores.mantequilla,
@@ -487,7 +484,7 @@ private fun BloquePropio(
                     }
                     Spacer(Modifier.height(6.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        BotonSecundarioChico("Añadir vacuna", IconoNubi.MAS) { onAnadirAGrupo(grupo) }
+                        BotonSecundarioChico(L10n.t("Añadir vacuna"), IconoNubi.MAS) { onAnadirAGrupo(grupo) }
                         Spacer(Modifier.weight(1f))
                         Box(
                             modifier = Modifier.size(34.dp).clickable { Repositorio.borrarGrupoPropio(grupo.id) },
@@ -564,7 +561,7 @@ private fun FilaVacunaCalendario(item: ItemVacuna, puesta: Boolean, fecha: Insta
             }
             if (puesta && fecha != null) {
                 Text(
-                    "Puesta el ${textoFechaCorta(fecha)}",
+                    "${L10n.t("Puesta el")} ${textoFechaCorta(fecha)}",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = colores.indigo
                 )
@@ -588,7 +585,7 @@ private fun FilaVacunaPropia(vacuna: VacunaPropia, onToggle: () -> Unit, onBorra
             )
             if (vacuna.puesta && vacuna.fecha != null) {
                 Text(
-                    "Puesta el ${textoFechaCorta(vacuna.fecha)}",
+                    "${L10n.t("Puesta el")} ${textoFechaCorta(vacuna.fecha)}",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                     color = colores.indigo
                 )
@@ -635,18 +632,18 @@ private fun BloqueCitas(
         Tarjeta {
             EstadoVacio(
                 icono = IconoNubi.CALENDARIO,
-                titulo = "Ninguna cita apuntada",
-                texto = "Anota la próxima revisión para no perderla de vista.",
+                titulo = L10n.t("Ninguna cita apuntada"),
+                texto = L10n.t("Anota la próxima revisión para no perderla de vista."),
                 color = colores.menta
             )
         }
         Spacer(Modifier.height(14.dp))
-        BotonPrimario("Apuntar una cita", IconoNubi.MAS, colores.lila, onNueva)
+        BotonPrimario(L10n.t("Apuntar una cita"), IconoNubi.MAS, colores.lila, onNueva)
     } else {
         if (citasProximas.isNotEmpty()) {
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    EtiquetaSeccion("Pendientes")
+                    EtiquetaSeccion(L10n.t("Pendientes"))
                     citasProximas.forEachIndexed { i, c ->
                         FilaCita(c, destacada = c.id == proximaCitaId, onClick = { onEditar(c) })
                         if (i != citasProximas.lastIndex) HorizontalDivider(color = colores.separador)
@@ -659,7 +656,7 @@ private fun BloqueCitas(
             val mostrar = citasPasadas.take(10)
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    EtiquetaSeccion("Ya pasadas")
+                    EtiquetaSeccion(L10n.t("Ya pasadas"))
                     mostrar.forEachIndexed { i, c ->
                         FilaCita(c, destacada = false, onClick = { onEditar(c) })
                         if (i != mostrar.lastIndex) HorizontalDivider(color = colores.separador)
@@ -698,7 +695,7 @@ private fun FilaCita(c: Cita, destacada: Boolean, onClick: () -> Unit) {
             )
         }
         if (destacada) {
-            Pastilla("Próxima", colores.menta)
+            Pastilla(L10n.t("Próxima"), colores.menta)
             Spacer(Modifier.width(8.dp))
         }
         Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 13.dp)
@@ -721,18 +718,18 @@ private fun BloqueEnfermedades(
         Tarjeta {
             EstadoVacio(
                 icono = IconoNubi.BOTIQUIN,
-                titulo = "Ninguna enfermedad registrada",
-                texto = "Anota resfriados, gripes, alergias o cualquier proceso de salud que quieras recordar.",
+                titulo = L10n.t("Ninguna enfermedad registrada"),
+                texto = L10n.t("Anota resfriados, gripes, alergias o cualquier proceso de salud que quieras recordar."),
                 color = colores.coral
             )
         }
         Spacer(Modifier.height(14.dp))
-        BotonPrimario("Registra una enfermedad", IconoNubi.MAS, colores.lila, onNueva)
+        BotonPrimario(L10n.t("Registra una enfermedad"), IconoNubi.MAS, colores.lila, onNueva)
     } else {
         if (enfermedadesActivas.isNotEmpty()) {
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    EtiquetaSeccion("En curso")
+                    EtiquetaSeccion(L10n.t("En curso"))
                     enfermedadesActivas.forEachIndexed { i, e ->
                         FilaEnfermedad(e) { onEditar(e) }
                         if (i != enfermedadesActivas.lastIndex) HorizontalDivider(color = colores.separador)
@@ -745,7 +742,7 @@ private fun BloqueEnfermedades(
             val mostrar = enfermedadesPasadas.take(20)
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    EtiquetaSeccion("Pasadas")
+                    EtiquetaSeccion(L10n.t("Pasadas"))
                     mostrar.forEachIndexed { i, e ->
                         FilaEnfermedad(e) { onEditar(e) }
                         if (i != mostrar.lastIndex) HorizontalDivider(color = colores.separador)
@@ -771,7 +768,7 @@ private fun FilaEnfermedad(e: Enfermedad, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                e.nombre.ifEmpty { "Sin nombre" },
+                e.nombre.ifEmpty { L10n.t("Sin nombre") },
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = if (e.activa) colores.tinta else colores.tintaSuave
             )
@@ -787,7 +784,7 @@ private fun FilaEnfermedad(e: Enfermedad, onClick: () -> Unit) {
             }
         }
         if (e.activa) {
-            Pastilla("En curso", colores.coral)
+            Pastilla(L10n.t("En curso"), colores.coral)
             Spacer(Modifier.width(8.dp))
         }
         Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 13.dp)
@@ -810,7 +807,7 @@ private fun Tarjeta(content: @Composable () -> Unit) {
 @Composable
 private fun EtiquetaSeccion(texto: String) {
     Text(
-        texto.uppercase(Locale("es", "ES")),
+        texto.uppercase(L10n.localeJava),
         style = MaterialTheme.typography.labelSmall,
         color = NubiTheme.colores.tintaTenue,
         letterSpacing = 0.5.sp
@@ -915,12 +912,12 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Text(if (esNueva) "Nueva cita" else "Cita", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            Text(if (esNueva) L10n.t("Nueva cita") else L10n.t("Cita"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
             Spacer(Modifier.height(18.dp))
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccion("Con quién")
+                    EtiquetaSeccion(L10n.t("Con quién"))
                     Spacer(Modifier.height(10.dp))
                     SelectorTipoCita(tipo) { tipo = it }
                 }
@@ -929,26 +926,26 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Motivo", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Motivo"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = titulo, onValueChange = { titulo = it },
-                        placeholder = { Text("Revisión de los 4 meses") },
+                        placeholder = { Text(L10n.t("Revisión de los 4 meses")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Cuándo", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Cuándo"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(onClick = { mostrarSelectorFecha = true }) { Text(textoFechaCorta(fecha)) }
                         OutlinedButton(onClick = { mostrarSelectorHora = true }) { Text(formatoHoraSalud.format(fecha)) }
                     }
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Dónde", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Dónde"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = lugar, onValueChange = { lugar = it },
-                        placeholder = { Text("Centro de salud") },
+                        placeholder = { Text(L10n.t("Centro de salud")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -962,17 +959,17 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Avisarme la tarde de antes", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
-                            Text("Aviso local en este móvil", style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
+                            Text(L10n.t("Avisarme la tarde de antes"), style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                            Text(L10n.t("Aviso local en este móvil"), style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
                         }
                         Switch(checked = recordar, onCheckedChange = { recordar = it })
                     }
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Notas", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Notas"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = nota, onValueChange = { nota = it },
-                        placeholder = { Text("Preguntas que quieres hacer…") },
+                        placeholder = { Text(L10n.t("Preguntas que quieres hacer…")) },
                         minLines = 2, maxLines = 5,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -987,14 +984,14 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar cita") }
+            ) { Text(L10n.t("Guardar cita")) }
 
             if (!esNueva) {
                 Spacer(Modifier.height(10.dp))
                 TextButton(onClick = onBorrar, modifier = Modifier.fillMaxWidth()) {
                     Icono(IconoNubi.PAPELERA, tint = colores.indigo, tamano = 14.dp)
                     Spacer(Modifier.width(7.dp))
-                    Text("Borrar esta cita", color = colores.indigo)
+                    Text(L10n.t("Borrar esta cita"), color = colores.indigo)
                 }
             }
         }
@@ -1012,9 +1009,9 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
                         fecha = diaNuevo.atTime(horaVieja).atZone(zonaSalud).toInstant()
                     }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -1028,9 +1025,9 @@ private fun HojaCita(cita: Cita, esNueva: Boolean, onGuardar: (Cita) -> Unit, on
                     val dia = fecha.atZone(zonaSalud).toLocalDate()
                     fecha = dia.atTime(estado.hour, estado.minute).atZone(zonaSalud).toInstant()
                     mostrarSelectorHora = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } },
             text = { TimePicker(state = estado) }
         )
     }
@@ -1098,7 +1095,7 @@ private fun HojaEnfermedad(
                 BadgeIcono(IconoNubi.BOTIQUIN, colorFondo = colores.coral, colorIcono = colores.tinta, tamano = 54.dp, tamanoIcono = 24.dp)
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    if (esNueva) "Nueva enfermedad" else "Editar enfermedad",
+                    if (esNueva) L10n.t("Nueva enfermedad") else L10n.t("Editar enfermedad"),
                     style = MaterialTheme.typography.titleLarge, color = colores.tinta
                 )
             }
@@ -1106,15 +1103,15 @@ private fun HojaEnfermedad(
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Enfermedad", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Enfermedad"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = nombre, onValueChange = { nombre = it },
-                        placeholder = { Text("Resfriado, gripe, otitis…") },
+                        placeholder = { Text(L10n.t("Resfriado, gripe, otitis…")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                    Text("Fecha de inicio", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Fecha de inicio"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { mostrarSelectorInicio = true }) { Text(textoFechaLarga(fechaInicio)) }
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
@@ -1126,14 +1123,14 @@ private fun HojaEnfermedad(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Todavía en curso", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
-                            Text("Desactívalo para marcar la fecha de fin", style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
+                            Text(L10n.t("Todavía en curso"), style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                            Text(L10n.t("Desactívalo para marcar la fecha de fin"), style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
                         }
                         Switch(checked = enCurso, onCheckedChange = { enCurso = it; if (it) fechaFin = Instant.now() })
                     }
                     if (!enCurso) {
                         HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                        Text("Fecha de fin", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                        Text(L10n.t("Fecha de fin"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(onClick = { mostrarSelectorFin = true }) { Text(textoFechaLarga(fechaFin)) }
                     }
@@ -1143,11 +1140,11 @@ private fun HojaEnfermedad(
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Medicación", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Medicación"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = medicacion, onValueChange = { medicacion = it },
-                        placeholder = { Text("Apiretal cada 8h, Augmentine…") },
+                        placeholder = { Text(L10n.t("Apiretal cada 8h, Augmentine…")) },
                         minLines = 2, maxLines = 4,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1157,11 +1154,11 @@ private fun HojaEnfermedad(
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Notas", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Notas"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = notas, onValueChange = { notas = it },
-                        placeholder = { Text("Síntomas, evolución, visitas al médico…") },
+                        placeholder = { Text(L10n.t("Síntomas, evolución, visitas al médico…")) },
                         minLines = 3, maxLines = 8,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1184,14 +1181,14 @@ private fun HojaEnfermedad(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
 
             if (!esNueva) {
                 Spacer(Modifier.height(10.dp))
                 TextButton(onClick = onBorrar, modifier = Modifier.fillMaxWidth()) {
                     Icono(IconoNubi.PAPELERA, tint = colores.indigo, tamano = 14.dp)
                     Spacer(Modifier.width(7.dp))
-                    Text("Borrar esta enfermedad", color = colores.indigo)
+                    Text(L10n.t("Borrar esta enfermedad"), color = colores.indigo)
                 }
             }
         }
@@ -1205,9 +1202,9 @@ private fun HojaEnfermedad(
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { fechaInicio = millisUtcAFecha(it) }
                     mostrarSelectorInicio = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorInicio = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorInicio = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
     if (mostrarSelectorFin) {
@@ -1218,9 +1215,9 @@ private fun HojaEnfermedad(
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { fechaFin = millisUtcAFecha(it) }
                     mostrarSelectorFin = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFin = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFin = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 }
@@ -1237,10 +1234,10 @@ private fun HojaComunidad(seleccion: Comunidad, onElegir: (Comunidad) -> Unit, o
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Calendario", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            Text(L10n.t("Calendario"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
             Spacer(Modifier.height(10.dp))
             Text(
-                "Elige el calendario oficial que quieres ver. Si no estás en España, selecciona Otros países y añade manualmente las vacunas.",
+                L10n.t("Elige el calendario oficial que quieres ver. Si no estás en España, selecciona Otros países y añade manualmente las vacunas."),
                 style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave
             )
             Spacer(Modifier.height(14.dp))
@@ -1255,7 +1252,7 @@ private fun HojaComunidad(seleccion: Comunidad, onElegir: (Comunidad) -> Unit, o
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                c.nombre,
+                                L10n.t(c.nombre),
                                 style = if (seleccion == c) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                 else MaterialTheme.typography.bodyLarge,
                                 color = colores.tinta,
@@ -1287,31 +1284,31 @@ private fun HojaNuevaEdad(onCrear: (String, Double) -> Unit, onCerrar: () -> Uni
                 .padding(horizontal = NubiGeometria.margen)
                 .padding(bottom = 28.dp)
         ) {
-            Text("Nueva edad", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            Text(L10n.t("Nueva edad"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
             Spacer(Modifier.height(18.dp))
             Tarjeta {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SelectorPorTextoOMeses(usarTexto) { usarTexto = it }
                     if (usarTexto) {
                         Column {
-                            Text("Nombre del bloque", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                            Text(L10n.t("Nombre del bloque"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                             Spacer(Modifier.height(6.dp))
                             OutlinedTextField(
                                 value = etiqueta, onValueChange = { etiqueta = it },
-                                placeholder = { Text("Antes del viaje") },
+                                placeholder = { Text(L10n.t("Antes del viaje")) },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     } else {
                         Column {
-                            Text("Edad", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                            Text(L10n.t("Edad"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                             Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                                 TextButton(onClick = { if (meses > 0) meses-- }) {
                                     Text("–", style = MaterialTheme.typography.headlineSmall, color = colores.tinta)
                                 }
                                 Text(
-                                    if (meses == 1) "1 mes" else "$meses meses",
+                                    L10n.nMeses(meses),
                                     style = MaterialTheme.typography.bodyLarge, color = colores.tinta
                                 )
                                 TextButton(onClick = { if (meses < 216) meses++ }) {
@@ -1325,13 +1322,13 @@ private fun HojaNuevaEdad(onCrear: (String, Double) -> Unit, onCerrar: () -> Uni
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val nombre = if (usarTexto) etiqueta.trim() else if (meses == 1) "1 mes" else "$meses meses"
+                    val nombre = if (usarTexto) etiqueta.trim() else L10n.nMeses(meses)
                     if (nombre.isNotEmpty()) onCrear(nombre, if (usarTexto) 999.0 else meses.toDouble())
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Crear bloque") }
+            ) { Text(L10n.t("Crear bloque")) }
         }
     }
 }
@@ -1346,7 +1343,7 @@ private fun SelectorPorTextoOMeses(usarTexto: Boolean, onCambiar: (Boolean) -> U
             .background(colores.lienzoAlto)
             .padding(4.dp)
     ) {
-        listOf(false to "Por meses", true to "Texto libre").forEach { (valor, titulo) ->
+        listOf(false to L10n.t("Por meses"), true to L10n.t("Texto libre")).forEach { (valor, titulo) ->
             val sel = usarTexto == valor
             Box(
                 modifier = Modifier
@@ -1393,11 +1390,11 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Buscar o escribir", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+                    Text(L10n.t("Buscar o escribir"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = busqueda, onValueChange = { busqueda = it },
-                        placeholder = { Text("Nombre de la vacuna") },
+                        placeholder = { Text(L10n.t("Nombre de la vacuna")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -1410,13 +1407,13 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
                         modifier = Modifier.fillMaxWidth().clickable { yaPuesta = !yaPuesta },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Ya se la han puesto", style = MaterialTheme.typography.bodyMedium, color = colores.tinta, modifier = Modifier.weight(1f))
+                        Text(L10n.t("Ya se la han puesto"), style = MaterialTheme.typography.bodyMedium, color = colores.tinta, modifier = Modifier.weight(1f))
                         Switch(checked = yaPuesta, onCheckedChange = { yaPuesta = it })
                     }
                     if (yaPuesta) {
                         HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Fecha", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue, modifier = Modifier.weight(1f))
+                            Text(L10n.t("Fecha"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue, modifier = Modifier.weight(1f))
                             OutlinedButton(onClick = { mostrarSelectorFecha = true }) { Text(textoFechaCorta(fecha)) }
                         }
                     }
@@ -1425,7 +1422,7 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
 
             if (esNombreNuevo) {
                 Spacer(Modifier.height(14.dp))
-                BotonPrimario("Añadir “$textoLimpio”", IconoNubi.MAS, colores.mantequilla) { anadir(textoLimpio) }
+                BotonPrimario("${L10n.t("Añadir")} “$textoLimpio”", IconoNubi.MAS, colores.mantequilla) { anadir(textoLimpio) }
             }
 
             if (resultados.isNotEmpty()) {
@@ -1461,9 +1458,9 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { fecha = millisUtcAFecha(it) }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 }
@@ -1473,9 +1470,8 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
 // -----------------------------------------------------------------
 
 private fun estadoGrupoTexto(puestas: Int, total: Int): String = when {
-    puestas == 0 -> if (total == 1) "1 vacuna" else "$total vacunas"
-    puestas == total -> "Todas puestas"
-    else -> "$puestas de $total puestas"
+    puestas == total -> L10n.t("Todas puestas")
+    else -> L10n.vacunasTotalTexto(puestas, total)
 }
 
 private fun colorGrupo(puestas: Int, total: Int, mesesGrupo: Double, mesesBebe: Double, c: NubiColores): Color = when {
@@ -1485,9 +1481,9 @@ private fun colorGrupo(puestas: Int, total: Int, mesesGrupo: Double, mesesBebe: 
 }
 
 private fun tituloTipoCita(t: TipoCita): String = when (t) {
-    TipoCita.PEDIATRA -> "Pediatra"
-    TipoCita.ENFERMERIA -> "Enfermería"
-    TipoCita.OTRA -> "Otra"
+    TipoCita.PEDIATRA -> L10n.t("Pediatra")
+    TipoCita.ENFERMERIA -> L10n.t("Enfermería")
+    TipoCita.OTRA -> L10n.t("Otra")
 }
 
 private fun iconoTipoCita(t: TipoCita): IconoNubi = when (t) {
@@ -1503,12 +1499,12 @@ private fun colorTipoCita(t: TipoCita, c: NubiColores): Color = when (t) {
 }
 
 private fun tituloVisibleCita(c: Cita): String =
-    c.titulo.ifEmpty { "Revisión con ${tituloTipoCita(c.tipo).lowercase()}" }
+    c.titulo.ifEmpty { L10n.revisionCon(tituloTipoCita(c.tipo).lowercase()) }
 
 private fun textoDuracionEnfermedad(e: Enfermedad): String {
     val ini = textoFechaCorta(e.fechaInicio)
     val fin = e.fechaFin
-    return if (fin != null) "$ini – ${textoFechaCorta(fin)}" else "$ini – en curso"
+    return if (fin != null) "$ini – ${textoFechaCorta(fin)}" else "$ini – ${L10n.t("en curso")}"
 }
 
 private val zonaSalud: ZoneId = ZoneId.systemDefault()
@@ -1518,29 +1514,29 @@ private val formatoHoraSalud: DateTimeFormatter =
 
 private fun textoFechaCorta(fecha: Instant): String {
     val dia = fecha.atZone(zonaSalud).toLocalDate()
-    val mes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+    val mes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
     return "${dia.dayOfMonth} $mes".lowercase()
-        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("es", "ES")) else it.toString() }
+        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(L10n.localeJava) else it.toString() }
 }
 
 private fun textoFechaLarga(fecha: Instant): String {
     val dia = fecha.atZone(zonaSalud).toLocalDate()
-    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
-    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, Locale("es", "ES"))
+    val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.FULL, L10n.localeJava)
+    val nombreMes = dia.month.getDisplayName(TextStyle.FULL, L10n.localeJava)
     return "$nombreDia, ${dia.dayOfMonth} de $nombreMes"
-        .replaceFirstChar { it.titlecase(Locale("es", "ES")) }
+        .replaceFirstChar { it.titlecase(L10n.localeJava) }
 }
 
 private fun textoCuandoFalta(fecha: Instant, ahora: Instant = Instant.now()): String {
     val hoy = ahora.atZone(zonaSalud).toLocalDate()
     val dia = fecha.atZone(zonaSalud).toLocalDate()
     return when {
-        dia == hoy -> "hoy a las ${formatoHoraSalud.format(fecha)}"
-        dia == hoy.plusDays(1) -> "mañana a las ${formatoHoraSalud.format(fecha)}"
-        dia == hoy.minusDays(1) -> "ayer"
+        dia == hoy -> "${L10n.t("hoy a las")} ${formatoHoraSalud.format(fecha)}"
+        dia == hoy.plusDays(1) -> "${L10n.t("mañana a las")} ${formatoHoraSalud.format(fecha)}"
+        dia == hoy.minusDays(1) -> L10n.t("ayer")
         else -> {
             val dias = ChronoUnit.DAYS.between(hoy, dia).toInt()
-            if (dias in 1..29) (if (dias == 1) "en 1 día" else "en $dias días") else textoFechaCorta(fecha)
+            if (dias in 1..29) L10n.enDias(dias) else textoFechaCorta(fecha)
         }
     }
 }
@@ -1627,7 +1623,7 @@ fun HojaMedicinaDia(
                             tamanoIcono = 24.dp
                         )
                         Spacer(Modifier.height(10.dp))
-                        Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                        Text(L10n.t("Medicina"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                         Spacer(Modifier.height(4.dp))
                         Text(
                             SUBTITULO_EDITAR,
@@ -1646,10 +1642,10 @@ fun HojaMedicinaDia(
                         tamanoIcono = 24.dp
                     )
                     Spacer(Modifier.height(10.dp))
-                    Text("Medicina", style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+                    Text(L10n.t("Medicina"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Anota la toma y programa un aviso",
+                        L10n.t("Anota la toma y programa un aviso"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave
                     )
@@ -1659,15 +1655,15 @@ fun HojaMedicinaDia(
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccion("Nombre de la medicina")
+                    EtiquetaSeccion(L10n.t("Nombre de la medicina"))
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = nombre, onValueChange = { nombre = it },
-                        placeholder = { Text("Apiretal, Augmentine…") },
+                        placeholder = { Text(L10n.t("Apiretal, Augmentine…")) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     HorizontalDivider(color = colores.separador, modifier = Modifier.padding(vertical = 12.dp))
-                    EtiquetaSeccion("Hora de la toma")
+                    EtiquetaSeccion(L10n.t("Hora de la toma"))
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(onClick = { mostrarSelectorFecha = true }) { Text(textoFechaCorta(fecha)) }
@@ -1686,9 +1682,9 @@ fun HojaMedicinaDia(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("Avisar de la siguiente toma", style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                            Text(L10n.t("Avisar de la siguiente toma"), style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
                             Text(
-                                "Te avisamos cuando llegue la hora",
+                                L10n.t("Te avisamos cuando llegue la hora"),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colores.tintaTenue
                             )
@@ -1712,11 +1708,11 @@ fun HojaMedicinaDia(
 
             Tarjeta {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccion("Notas")
+                    EtiquetaSeccion(L10n.t("Notas"))
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = nota, onValueChange = { nota = it },
-                        placeholder = { Text("Dosis, indicaciones, reacciones…") },
+                        placeholder = { Text(L10n.t("Dosis, indicaciones, reacciones…")) },
                         minLines = 2, maxLines = 5,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -1752,7 +1748,7 @@ fun HojaMedicinaDia(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 
@@ -1768,9 +1764,9 @@ fun HojaMedicinaDia(
                         fecha = diaNuevo.atTime(horaVieja).atZone(zonaSalud).toInstant()
                     }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -1784,9 +1780,9 @@ fun HojaMedicinaDia(
                     val diaActual = fecha.atZone(zonaSalud).toLocalDate()
                     fecha = diaActual.atTime(estado.hour, estado.minute).atZone(zonaSalud).toInstant()
                     mostrarSelectorHora = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } },
             text = { TimePicker(state = estado) }
         )
     }
@@ -1804,9 +1800,9 @@ fun HojaMedicinaDia(
                         horaSiguiente = diaNuevo.atTime(horaVieja).atZone(zonaSalud).toInstant()
                     }
                     mostrarSelectorFechaSiguiente = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFechaSiguiente = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFechaSiguiente = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -1825,9 +1821,9 @@ fun HojaMedicinaDia(
                     val diaActual = base.atZone(zonaSalud).toLocalDate()
                     horaSiguiente = diaActual.atTime(estadoSiguiente.hour, estadoSiguiente.minute).atZone(zonaSalud).toInstant()
                     mostrarSelectorHoraSiguiente = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHoraSiguiente = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { mostrarSelectorHoraSiguiente = false }) { Text(L10n.t("Cancelar")) } },
             text = { TimePicker(state = estadoSiguiente) }
         )
     }

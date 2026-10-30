@@ -57,6 +57,7 @@ import app.nubi.data.nuevoId
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -104,7 +105,7 @@ fun PantallaBanco(bebe: Bebe, extracciones: List<ExtraccionLeche>, usosLeche: Li
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text("Banco de leche", style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
+        Text(L10n.t("Banco de leche"), style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
         Spacer(Modifier.height(18.dp))
 
         Card(
@@ -147,13 +148,13 @@ fun PantallaBanco(bebe: Bebe, extracciones: List<ExtraccionLeche>, usosLeche: Li
                 Spacer(Modifier.height(12.dp))
                 Row {
                     Text(
-                        "${extracciones.size} extracciones",
+                        L10n.nExtracciones(extracciones.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = colores.tintaTenue
                     )
                     Spacer(Modifier.width(14.dp))
                     Text(
-                        "${usosLeche.size} usos",
+                        L10n.nUsos(usosLeche.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = colores.tintaTenue
                     )
@@ -171,7 +172,7 @@ fun PantallaBanco(bebe: Bebe, extracciones: List<ExtraccionLeche>, usosLeche: Li
             ) {
                 Icono(IconoNubi.MAS, tint = colores.tinta, tamano = 16.dp)
                 Spacer(Modifier.width(6.dp))
-                Text("Extracción", fontWeight = FontWeight.SemiBold)
+                Text(L10n.t("Extracción"), fontWeight = FontWeight.SemiBold)
             }
 
             Box(modifier = Modifier.weight(1f)) {
@@ -183,18 +184,18 @@ fun PantallaBanco(bebe: Bebe, extracciones: List<ExtraccionLeche>, usosLeche: Li
                 ) {
                     Icono(IconoNubi.RELOJ, tint = colores.tinta, tamano = 16.dp)
                     Spacer(Modifier.width(6.dp))
-                    Text("Ordenar", fontWeight = FontWeight.SemiBold)
+                    Text(L10n.t("Ordenar"), fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(4.dp))
                     Icono(IconoNubi.CHEVRON, tint = colores.tinta, tamano = 11.dp, modifier = Modifier.rotate(90f))
                 }
                 DropdownMenu(expanded = mostrarOrdenar, onDismissRequest = { mostrarOrdenar = false }) {
                     DropdownMenuItem(
-                        text = { Text("Más reciente") },
+                        text = { Text(L10n.t("Más reciente")) },
                         leadingIcon = { if (orden == OrdenBanco.MAS_RECIENTE) Icono(IconoNubi.CHECK, tint = colores.lila, tamano = 16.dp) },
                         onClick = { orden = OrdenBanco.MAS_RECIENTE; mostrarOrdenar = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Menos reciente") },
+                        text = { Text(L10n.t("Menos reciente")) },
                         leadingIcon = { if (orden == OrdenBanco.MENOS_RECIENTE) Icono(IconoNubi.CHECK, tint = colores.lila, tamano = 16.dp) },
                         onClick = { orden = OrdenBanco.MENOS_RECIENTE; mostrarOrdenar = false }
                     )
@@ -208,7 +209,7 @@ fun PantallaBanco(bebe: Bebe, extracciones: List<ExtraccionLeche>, usosLeche: Li
         TextButton(onClick = { mostrarNuevoUso = true }, modifier = Modifier.fillMaxWidth()) {
             Icono(IconoNubi.MAS, tint = colores.tintaSuave, tamano = 14.dp)
             Spacer(Modifier.width(6.dp))
-            Text("Registrar uso", color = colores.tintaSuave)
+            Text(L10n.t("Registrar uso"), color = colores.tintaSuave)
         }
 
         if (movimientos.isNotEmpty()) {
@@ -298,7 +299,7 @@ private fun FilaMovimientoBanco(
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                if (esExtraccion) "Extracción" else "Uso",
+                if (esExtraccion) L10n.t("Extracción") else L10n.t("Uso"),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colores.tinta
             )
@@ -307,7 +308,7 @@ private fun FilaMovimientoBanco(
                 append(textoFechaHoraBanco(fecha))
                 if (movimiento is Movimiento.Extraccion) {
                     append(" · ")
-                    append(if (movimiento.dato.almacenamiento == AlmacenamientoLeche.CONGELADOR) "Congelador" else "Frigorífico")
+                    append(if (movimiento.dato.almacenamiento == AlmacenamientoLeche.CONGELADOR) L10n.t("Congelador") else L10n.t("Frigorífico"))
                 }
             }
             Text(subtitulo, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
@@ -375,10 +376,10 @@ fun HojaExtraccion(
                 .padding(bottom = 28.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onCerrar) { Text("Cancelar") }
+                TextButton(onClick = onCerrar) { Text(L10n.t("Cancelar")) }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (editando) "Editar extracción" else "Extracción",
+                    if (editando) L10n.t("Editar extracción") else L10n.t("Extracción"),
                     style = MaterialTheme.typography.titleMedium,
                     color = colores.tinta
                 )
@@ -405,7 +406,7 @@ fun HojaExtraccion(
                     )
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        if (editando) "Editar extracción" else "Nueva extracción",
+                        if (editando) L10n.t("Editar extracción") else L10n.t("Nueva extracción"),
                         style = MaterialTheme.typography.titleLarge,
                         color = colores.tinta
                     )
@@ -419,7 +420,7 @@ fun HojaExtraccion(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionBanco("Fecha y hora")
+                    EtiquetaSeccionBanco(L10n.t("Fecha y hora"))
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ChipFechaHoraBanco(textoFechaConAnoBanco(fecha)) { mostrarSelectorFecha = true }
@@ -432,7 +433,7 @@ fun HojaExtraccion(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        EtiquetaSeccionBanco("Cantidad")
+                        EtiquetaSeccionBanco(L10n.t("Cantidad"))
                         Box(modifier = Modifier.widthIn(max = 140.dp)) {
                             SelectorSegmentadoBanco(
                                 opciones = listOf(UnidadBiberon.ML to "ml", UnidadBiberon.OZ to "oz"),
@@ -465,21 +466,21 @@ fun HojaExtraccion(
                     }
 
                     Spacer(Modifier.height(18.dp))
-                    EtiquetaSeccionBanco("Almacenamiento")
+                    EtiquetaSeccionBanco(L10n.t("Almacenamiento"))
                     Spacer(Modifier.height(8.dp))
                     SelectorSegmentadoBanco(
                         opciones = listOf(
-                            AlmacenamientoLeche.FRIGORIFICO to "Frigorífico",
-                            AlmacenamientoLeche.CONGELADOR to "Congelador"
+                            AlmacenamientoLeche.FRIGORIFICO to L10n.t("Frigorífico"),
+                            AlmacenamientoLeche.CONGELADOR to L10n.t("Congelador")
                         ),
                         actual = almacenamiento,
                         onCambiar = { almacenamiento = it }
                     )
                     Spacer(Modifier.height(6.dp))
                     val textoDuracion = if (almacenamiento == AlmacenamientoLeche.FRIGORIFICO)
-                        "Dura hasta ${almacenamiento.duracionDias} días en el frigorífico"
+                        L10n.duraFrigorifico(almacenamiento.duracionDias)
                     else
-                        "Dura hasta ${almacenamiento.duracionDias / 30} meses en el congelador"
+                        L10n.duraCongelador(almacenamiento.duracionDias / 30)
                     Text(textoDuracion, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
                 }
             }
@@ -490,7 +491,7 @@ fun HojaExtraccion(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 
@@ -506,9 +507,9 @@ fun HojaExtraccion(
                         fecha = diaNuevo.atTime(horaVieja).atZone(zonaBanco).toInstant()
                     }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -522,9 +523,9 @@ fun HojaExtraccion(
                     val dia = fecha.atZone(zonaBanco).toLocalDate()
                     fecha = dia.atTime(estado.hour, estado.minute).atZone(zonaBanco).toInstant()
                     mostrarSelectorHora = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } }
         ) { TimePicker(state = estado) }
     }
 }
@@ -574,10 +575,10 @@ fun HojaUso(
                 .padding(bottom = 28.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onCerrar) { Text("Cancelar") }
+                TextButton(onClick = onCerrar) { Text(L10n.t("Cancelar")) }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    if (editando) "Editar uso" else "Uso de leche",
+                    if (editando) L10n.t("Editar uso") else L10n.t("Uso de leche"),
                     style = MaterialTheme.typography.titleMedium,
                     color = colores.tinta
                 )
@@ -592,7 +593,7 @@ fun HojaUso(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    EtiquetaSeccionBanco("Fecha y hora")
+                    EtiquetaSeccionBanco(L10n.t("Fecha y hora"))
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         ChipFechaHoraBanco(textoFechaConAnoBanco(fecha)) { mostrarSelectorFecha = true }
@@ -605,7 +606,7 @@ fun HojaUso(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        EtiquetaSeccionBanco("Cantidad")
+                        EtiquetaSeccionBanco(L10n.t("Cantidad"))
                         Box(modifier = Modifier.widthIn(max = 140.dp)) {
                             SelectorSegmentadoBanco(
                                 opciones = listOf(UnidadBiberon.ML to "ml", UnidadBiberon.OZ to "oz"),
@@ -645,7 +646,7 @@ fun HojaUso(
                 colors = ButtonDefaults.buttonColors(containerColor = colores.melocoton, contentColor = colores.tinta),
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Guardar") }
+            ) { Text(L10n.t("Guardar")) }
         }
     }
 
@@ -661,9 +662,9 @@ fun HojaUso(
                         fecha = diaNuevo.atTime(horaVieja).atZone(zonaBanco).toInstant()
                     }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 
@@ -677,9 +678,9 @@ fun HojaUso(
                     val dia = fecha.atZone(zonaBanco).toLocalDate()
                     fecha = dia.atTime(estado.hour, estado.minute).atZone(zonaBanco).toInstant()
                     mostrarSelectorHora = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } }
         ) { TimePicker(state = estado) }
     }
 }
@@ -778,9 +779,9 @@ private val formatoHoraBanco: DateTimeFormatter =
 
 private fun textoFechaConAnoBanco(fecha: Instant): String {
     val dia = fecha.atZone(zonaBanco).toLocalDate()
-    val mes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
-        .lowercase(Locale("es", "ES"))
-        .replaceFirstChar { it.titlecase(Locale("es", "ES")) }
+    val mes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
+        .lowercase(L10n.localeJava)
+        .replaceFirstChar { it.titlecase(L10n.localeJava) }
     return "${dia.dayOfMonth} $mes ${dia.year}"
 }
 

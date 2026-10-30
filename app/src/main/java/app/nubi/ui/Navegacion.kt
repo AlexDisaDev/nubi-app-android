@@ -41,11 +41,11 @@ import app.nubi.ui.theme.NubiTheme
  * que en iOS (enum Pestana en NubiApp.swift).
  */
 private enum class Pestana(val titulo: String) {
-    HOY("Hoy"),
-    DIA("Día"),
-    CRECE("Crece"),
-    SALUD("Salud"),
-    DIARIO("Diario")
+    HOY(L10n.t("Hoy")),
+    DIA(L10n.t("Día")),
+    CRECE(L10n.t("Crece")),
+    SALUD(L10n.t("Salud")),
+    DIARIO(L10n.t("Diario"))
 }
 
 /**
@@ -54,9 +54,9 @@ private enum class Pestana(val titulo: String) {
  * su pantalla — solo que están arriba.
  */
 private enum class VistaSuperior(val titulo: String) {
-    BANCO("Banco"),
-    ALIMENTACION("Alimentación"),
-    SONIDOS("Sonidos")
+    BANCO(L10n.t("Banco")),
+    ALIMENTACION(L10n.t("Alimentación")),
+    SONIDOS(L10n.t("Sonidos"))
 }
 
 /**

@@ -41,6 +41,7 @@ import app.nubi.audio.TipoRuido
 import app.nubi.ui.theme.NubiColores
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.i18n.L10n
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,7 +59,7 @@ import kotlinx.coroutines.launch
 private enum class TemporizadorSonido(val etiqueta: String, val milisegundos: Long?) {
     MIN_30("30 min", 30L * 60_000),
     HORA_1("1 h", 60L * 60_000),
-    INFINITO("Infinito", null)
+    INFINITO(L10n.t("Infinito"), null)
 }
 
 @Composable
@@ -111,22 +112,22 @@ fun PantallaSonidos() {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text("Sonidos", style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
+        Text(L10n.t("Sonidos"), style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Generados matemáticamente. Sin descargas ni anuncios.",
+            L10n.t("Generados matemáticamente. Sin descargas ni anuncios."),
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave
         )
         Spacer(Modifier.height(22.dp))
 
-        EtiquetaSeccionSonidos("Tipo de sonido")
+        EtiquetaSeccionSonidos(L10n.t("Tipo de sonido"))
         Spacer(Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(
-                TipoRuido.BLANCO to "Ruido blanco",
-                TipoRuido.ROSA to "Ruido rosa",
-                TipoRuido.MARRON to "Ruido marrón"
+                TipoRuido.BLANCO to L10n.t("Ruido blanco"),
+                TipoRuido.ROSA to L10n.t("Ruido rosa"),
+                TipoRuido.MARRON to L10n.t("Ruido marrón")
             ).forEach { (tipo, etiqueta) ->
                 OpcionSonido(
                     etiqueta = etiqueta,
@@ -138,7 +139,7 @@ fun PantallaSonidos() {
         }
 
         Spacer(Modifier.height(22.dp))
-        EtiquetaSeccionSonidos("Temporizador")
+        EtiquetaSeccionSonidos(L10n.t("Temporizador"))
         Spacer(Modifier.height(10.dp))
         SelectorSegmentadoSonidos(
             opciones = TemporizadorSonido.entries.map { it to it.etiqueta },
@@ -194,14 +195,14 @@ fun PantallaSonidos() {
                         tamanoIcono = 15.dp
                     )
                     Spacer(Modifier.width(10.dp))
-                    Text("¿Cuál elegir?", style = MaterialTheme.typography.titleMedium, color = colores.tinta)
+                    Text(L10n.t("¿Cuál elegir?"), style = MaterialTheme.typography.titleMedium, color = colores.tinta)
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
                     buildString {
-                        append("Blanco: enmascara ruidos bruscos (portazos, perros, hermanos mayores).\n\n")
-                        append("Rosa: más suave y con menos agudos, ideal para quedarse dormido sin sobresaltos.\n\n")
-                        append("Marrón: aún más grave y envolvente, para bebés más sensibles al sonido.")
+                        append(L10n.t("Blanco: enmascara ruidos bruscos (portazos, perros, hermanos mayores).\n\n"))
+                        append(L10n.t("Rosa: más suave y con menos agudos, ideal para quedarse dormido sin sobresaltos.\n\n"))
+                        append(L10n.t("Marrón: aún más grave y envolvente, para bebés más sensibles al sonido."))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = colores.tintaSuave

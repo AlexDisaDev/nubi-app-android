@@ -116,7 +116,7 @@ fun BloqueCanjearCodigo(
         OutlinedTextField(
             value = codigo,
             onValueChange = { codigo = it },
-            label = { Text("Código de regalo") },
+            label = { Text(L10n.t("Código de regalo")) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -131,16 +131,16 @@ fun BloqueCanjearCodigo(
                             buildJsonObject { put("p_codigo", codigo.trim()) }
                         )
                         alCanjear()
-                        "¡Listo! Premium activado."
+                        L10n.t("¡Listo! Premium activado.")
                     } catch (e: Exception) {
                         // El servidor lanza 'codigo_invalido' o 'codigo_ya_usado';
                         // se traducen para que el mensaje signifique algo.
                         when {
                             e.message?.contains("codigo_ya_usado") == true ->
-                                "Ese código ya se había usado."
+                                L10n.t("Ese código ya se había usado.")
                             e.message?.contains("codigo_invalido") == true ->
-                                "No encontramos ese código. Revisa que esté bien escrito."
-                            else -> "No se pudo canjear ahora mismo. Inténtalo en un momento."
+                                L10n.t("No encontramos ese código. Revisa que esté bien escrito.")
+                            else -> L10n.t("No se pudo canjear ahora mismo. Inténtalo en un momento.")
                         }
                     }
                     enviando = false
@@ -150,7 +150,7 @@ fun BloqueCanjearCodigo(
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (enviando) "Canjeando…" else "Canjear")
+            Text(if (enviando) L10n.t("Canjeando…") else L10n.t("Canjear"))
         }
         mensaje?.let {
             Spacer(Modifier.height(8.dp))
@@ -173,7 +173,7 @@ fun PantallaBienvenida(alContinuar: () -> Unit) {
         Text("Nubi", style = MaterialTheme.typography.displayMedium)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Si te han regalado un código, puedes canjearlo ahora.",
+            L10n.t("Si te han regalado un código, puedes canjearlo ahora."),
             style = MaterialTheme.typography.bodyMedium,
             color = NubiTheme.colores.tintaSuave
         )
@@ -186,11 +186,11 @@ fun PantallaBienvenida(alContinuar: () -> Unit) {
             onClick = alContinuar,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Saltar")
+            Text(L10n.t("Saltar"))
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            "Tienes 7 días de prueba. Siempre puedes canjear un código más tarde desde Ajustes.",
+            L10n.t("Tienes 7 días de prueba. Siempre puedes canjear un código más tarde desde Ajustes."),
             style = MaterialTheme.typography.bodySmall,
             color = NubiTheme.colores.tintaTenue,
             textAlign = TextAlign.Center,
@@ -216,35 +216,35 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             .padding(NubiGeometria.margen),
         verticalArrangement = Arrangement.Center
     ) {
-        Text("¿Cómo se llama?", style = MaterialTheme.typography.headlineMedium)
+        Text(L10n.t("¿Cómo se llama?"), style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
             value = nombre,
             onValueChange = { nombre = it },
-            label = { Text("Nombre del bebé") },
+            label = { Text(L10n.t("Nombre del bebé")) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(Modifier.height(20.dp))
-        Text("Fecha de nacimiento", style = MaterialTheme.typography.titleMedium)
+        Text(L10n.t("Fecha de nacimiento"), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         Row(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = dia, onValueChange = { dia = it.filter(Char::isDigit).take(2) },
-                label = { Text("Día") }, singleLine = true, modifier = Modifier.weight(1f)
+                label = { Text(L10n.t("Día")) }, singleLine = true, modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
             OutlinedTextField(
                 value = mes, onValueChange = { mes = it.filter(Char::isDigit).take(2) },
-                label = { Text("Mes") }, singleLine = true, modifier = Modifier.weight(1f)
+                label = { Text(L10n.t("Mes")) }, singleLine = true, modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
             OutlinedTextField(
                 value = anio, onValueChange = { anio = it.filter(Char::isDigit).take(4) },
-                label = { Text("Año") }, singleLine = true, modifier = Modifier.weight(1.4f)
+                label = { Text(L10n.t("Año")) }, singleLine = true, modifier = Modifier.weight(1.4f)
             )
         }
 
@@ -263,13 +263,13 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
                 val miId = Supabase.client.auth.currentUserOrNull()?.id
 
                 when {
-                    nombre.isBlank() -> error = "Pon el nombre del bebé."
-                    fecha == null -> error = "Esa fecha no existe. Revísala."
-                    fecha.isAfter(LocalDate.now()) -> error = "La fecha no puede ser futura."
+                    nombre.isBlank() -> error = L10n.t("Pon el nombre del bebé.")
+                    fecha == null -> error = L10n.t("Esa fecha no existe. Revísala.")
+                    fecha.isAfter(LocalDate.now()) -> error = L10n.t("La fecha no puede ser futura.")
                     // No debería pasar nunca (esta pantalla solo se ve con
                     // sesión iniciada), pero mejor avisar que guardar un bebé
                     // que luego nunca podría subirse a Supabase.
-                    miId == null -> error = "No hay sesión iniciada. Vuelve a entrar e inténtalo de nuevo."
+                    miId == null -> error = L10n.t("No hay sesión iniciada. Vuelve a entrar e inténtalo de nuevo.")
                     else -> {
                         Repositorio.guardarBebe(
                             Bebe(
@@ -286,7 +286,7 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Empezar")
+            Text(L10n.t("Empezar"))
         }
     }
 }
@@ -668,7 +668,7 @@ private fun textoPrediccion(p: PrediccionDia, yaEnVentana: Boolean, pasada: Bool
 private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: Boolean, pasada: Boolean): String =
     when (p.tipo) {
         TipoPrediccion.SIESTA ->
-            L10n.t(if (p.ajustadaPorHistorial) "Ajustado a su ritmo real" else "Basado en su edad")
+            L10n.t(if (p.ajustadaPorHistorial) L10n.t("Ajustado a su ritmo real") else L10n.t("Basado en su edad"))
         TipoPrediccion.NOCHE -> {
             if (yaEnVentana || pasada) {
                 L10n.t("Última ventana del día")
@@ -764,10 +764,10 @@ private fun saludoSegunHora(): String {
     val hora = LocalTime.now().hour
     return L10n.t(
         when {
-            hora < 6 -> "Buenas noches"
-            hora < 12 -> "Buenos días"
-            hora < 20 -> "Buenas tardes"
-            else -> "Buenas noches"
+            hora < 6 -> L10n.t("Buenas noches")
+            hora < 12 -> L10n.t("Buenos días")
+            hora < 20 -> L10n.t("Buenas tardes")
+            else -> L10n.t("Buenas noches")
         }
     )
 }
@@ -785,18 +785,7 @@ private fun hace(instante: Instant): String {
     }
 }
 
-private fun textoEdadDetallada(bebe: Bebe): String {
-    val dias = bebe.edadEnDias()
-    return when {
-        dias < 14 -> if (dias == 1) "1 día" else "$dias días"
-        dias < 61 -> "${dias / 7} semanas"
-        else -> {
-            val meses = dias / 30
-            val resto = dias % 30
-            if (resto == 0) "$meses meses" else "$meses meses y $resto días"
-        }
-    }
-}
+private fun textoEdadDetallada(bebe: Bebe): String = L10n.textoEdadDetallada(bebe.edadEnDias())
 
 private fun textoDuracion(minutos: Long): String = when {
     minutos <= 0L -> "—"
@@ -830,24 +819,17 @@ private fun textoDuracionCompacta(minutos: Long): String {
 private fun textoFechaDia(dia: LocalDate): String {
     val hoy = LocalDate.now(zonaLocal)
     return when (dia) {
-        hoy -> "Hoy"
-        hoy.minusDays(1) -> "Ayer"
+        hoy -> L10n.t("Hoy")
+        hoy.minusDays(1) -> L10n.t("Ayer")
         else -> {
-            val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
-            val nombreMes = dia.month.getDisplayName(TextStyle.SHORT, Locale("es", "ES"))
+            val nombreDia = dia.dayOfWeek.getDisplayName(TextStyle.SHORT, L10n.localeJava)
+            val nombreMes = dia.month.getDisplayName(TextStyle.SHORT, L10n.localeJava)
             "$nombreDia ${dia.dayOfMonth} $nombreMes".lowercase()
         }
     }
 }
 
-private fun textoEdadCorta(bebe: Bebe, hasta: Instant): String {
-    val dias = bebe.edadEnDias(hasta)
-    return when {
-        dias < 14 -> "$dias d de vida"
-        dias < 61 -> "${dias / 7} sem de vida"
-        else -> "${(dias / 30.44).toInt()} m de vida"
-    }
-}
+private fun textoEdadCorta(bebe: Bebe, hasta: Instant): String = L10n.textoEdadCorta(bebe.edadEnDias(hasta))
 
 @Composable
 fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
@@ -896,12 +878,12 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text("Su día", style = MaterialTheme.typography.displaySmall)
+        Text(L10n.t("Su día"), style = MaterialTheme.typography.displaySmall)
         Text(
             buildString {
-                append(if (minutosSueno <= 0L) "Sin sueño aún" else "${textoDuracion(minutosSueno)} de sueño")
+                append(if (minutosSueno <= 0L) L10n.t("Sin sueño aún") else L10n.deSueno(textoDuracion(minutosSueno)))
                 append(" · ")
-                append(if (tomas == 1) "1 toma" else "$tomas tomas")
+                append(L10n.tomasResumen(tomas))
             },
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave
@@ -940,12 +922,12 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
 
         Spacer(Modifier.height(20.dp))
         Text(
-            "TODO LO DEL DÍA",
+            L10n.t("TODO LO DEL DÍA"),
             style = MaterialTheme.typography.labelMedium,
             color = colores.tintaTenue
         )
         Text(
-            "Toca un registro para editarlo · X para borrarlo",
+            L10n.t("Toca un registro para editarlo · X para borrarlo"),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )
@@ -953,7 +935,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
 
         if (listaCompleta.isEmpty()) {
             Text(
-                "Todavía no hay nada apuntado.",
+                L10n.t("Todavía no hay nada apuntado."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colores.tintaTenue
             )
@@ -975,7 +957,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
                     val despierto = Duration.between(registro.fin, siguiente.inicio)
                     if (!despierto.isNegative && !despierto.isZero) {
                         Text(
-                            "${textoDuracion(despierto.toMinutes())} despierto",
+                            L10n.despiertoDurante(textoDuracion(despierto.toMinutes())),
                             style = MaterialTheme.typography.bodySmall,
                             color = colores.tintaTenue,
                             modifier = Modifier
@@ -1067,7 +1049,7 @@ private fun BarraSuenoDia(
             Modifier.fillMaxWidth().padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("SUEÑO DE HOY", style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+            Text(L10n.t("SUEÑO DE HOY"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
             Spacer(Modifier.height(16.dp))
 
             Box(
@@ -1193,7 +1175,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                if (bloqueado) "Se acabó tu prueba gratuita" else "Toca para apuntarlo",
+                if (bloqueado) L10n.t("Se acabó tu prueba gratuita") else L10n.t("Toca para apuntarlo"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -1333,7 +1315,7 @@ private fun subtituloRegistro(registro: Registro): String = when (registro.tipo)
         if (registro.fin != null) {
             "${formatoHoraCorta.format(registro.inicio)} – ${formatoHoraCorta.format(registro.fin)}"
         } else {
-            "Desde las ${formatoHoraCorta.format(registro.inicio)}"
+            "${L10n.t("Desde las")} ${formatoHoraCorta.format(registro.inicio)}"
         }
 
     TipoRegistro.BIBERON -> {
@@ -1342,21 +1324,21 @@ private fun subtituloRegistro(registro: Registro): String = when (registro.tipo)
             val unidad = registro.unidadBiberon?.etiqueta ?: "ml"
             partes.add("${cantidad.toInt()} $unidad")
         }
-        registro.tipoLeche?.let { partes.add(if (it.name == "MATERNA") "Materna" else "Fórmula") }
+        registro.tipoLeche?.let { partes.add(if (it.name == "MATERNA") L10n.t("Materna") else L10n.t("Fórmula")) }
         partes.joinToString(" · ")
     }
 
     TipoRegistro.PECHO -> {
         val partes = mutableListOf(formatoHoraCorta.format(registro.inicio))
-        registro.lado?.let { partes.add(if (it.name == "IZQUIERDA") "Izquierdo" else "Derecho") }
+        registro.lado?.let { partes.add(if (it.name == "IZQUIERDA") L10n.t("Izquierdo") else L10n.t("Derecho")) }
         partes.joinToString(" · ")
     }
 
     TipoRegistro.PANAL -> {
         val detalle = when {
-            registro.panalPis == true && registro.panalCaca == true -> "Pis y caca"
-            registro.panalCaca == true -> "Caca"
-            registro.panalPis == true -> "Pis"
+            registro.panalPis == true && registro.panalCaca == true -> L10n.t("Pis y caca")
+            registro.panalCaca == true -> L10n.t("Caca")
+            registro.panalPis == true -> L10n.t("Pis")
             else -> null
         }
         listOfNotNull(formatoHoraCorta.format(registro.inicio), detalle).joinToString(" · ")
@@ -1370,24 +1352,17 @@ private fun subtituloRegistro(registro: Registro): String = when (registro.tipo)
 }
 
 private fun nombreTipo(tipo: TipoRegistro): String = when (tipo) {
-    TipoRegistro.SIESTA -> "Siesta"
-    TipoRegistro.NOCHE -> "Sueño nocturno"
-    TipoRegistro.BIBERON -> "Biberón"
-    TipoRegistro.PECHO -> "Pecho"
-    TipoRegistro.PANAL -> "Pañal"
-    TipoRegistro.DESPERTAR -> "Despertar"
-    TipoRegistro.MEDICINA -> "Medicina"
-    TipoRegistro.BANO -> "Baño"
+    TipoRegistro.SIESTA -> L10n.t("Siesta")
+    TipoRegistro.NOCHE -> L10n.t("Sueño nocturno")
+    TipoRegistro.BIBERON -> L10n.t("Biberón")
+    TipoRegistro.PECHO -> L10n.t("Pecho")
+    TipoRegistro.PANAL -> L10n.t("Pañal")
+    TipoRegistro.DESPERTAR -> L10n.t("Despertar")
+    TipoRegistro.MEDICINA -> L10n.t("Medicina")
+    TipoRegistro.BANO -> L10n.t("Baño")
 }
 
-private fun textoEdad(bebe: Bebe): String {
-    val dias = bebe.edadEnDias()
-    return when {
-        dias < 14 -> if (dias == 1) "1 día" else "$dias días"
-        dias < 61 -> "${dias / 7} semanas"
-        else -> "${(dias / 30.44).toInt()} meses"
-    }
-}
+private fun textoEdad(bebe: Bebe): String = L10n.textoEdad(bebe.edadEnDias())
 
 // =====================================================================
 // Pestañas todavía por portar
@@ -1399,7 +1374,7 @@ fun PantallaEnObras(nombre: String) {
             Text(nombre, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(
-                "Pendiente de portar desde iOS.",
+                L10n.t("Pendiente de portar desde iOS."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = NubiTheme.colores.tintaTenue
             )
@@ -1539,7 +1514,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                     }
                 }
                 Text(
-                    "Borra tu cuenta de Nubi y todos sus datos en la nube. Es permanente.",
+                    L10n.t("Borra tu cuenta de Nubi y todos sus datos en la nube. Es permanente."),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaTenue
                 )
@@ -1562,7 +1537,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             title = { Text(L10n.t("¿Eliminar tu cuenta?")) },
             text = {
                 Text(
-                    "Se elimina tu cuenta de Nubi y todos tus datos guardados en la nube: bebé, registros, medidas, citas y diario. No se puede deshacer.\n\nSi tienes una suscripción activa, cancélala en Google Play: eliminar la cuenta no la cancela."
+                    L10n.t("Se elimina tu cuenta de Nubi y todos tus datos guardados en la nube: bebé, registros, medidas, citas y diario. No se puede deshacer.\n\nSi tienes una suscripción activa, cancélala en Google Play: eliminar la cuenta no la cancela.")
                 )
             },
             confirmButton = {
@@ -1593,8 +1568,8 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
     if (errorEliminarCuenta) {
         AlertDialog(
             onDismissRequest = { errorEliminarCuenta = false },
-            title = { Text("No se pudo eliminar la cuenta") },
-            text = { Text("Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa, escribe a nubibabyapp@gmail.com.") },
+            title = { Text(L10n.t("No se pudo eliminar la cuenta")) },
+            text = { Text(L10n.t("Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa, escribe a nubibabyapp@gmail.com.")) },
             confirmButton = {
                 TextButton(onClick = { errorEliminarCuenta = false }) { Text(L10n.t("Listo")) }
             }
@@ -1609,7 +1584,7 @@ private fun abrirUrl(contexto: Context, url: String) {
 }
 
 private val formatoFecha: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMM yyyy", Locale("es", "ES")).withZone(zonaLocal)
+    DateTimeFormatter.ofPattern("d MMM yyyy", L10n.localeJava).withZone(zonaLocal)
 
 // Mismo patrón que fechaAMillisUtc/millisUtcAFecha de PantallaSalud.kt (son
 // privadas a ese archivo, así que se repiten aquí): el DatePicker de
@@ -1658,12 +1633,12 @@ private fun TarjetaRegalarNubi() {
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Regala Nubi",
+                    L10n.t("Regala Nubi"),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    "Un regalo perfecto para otra familia con bebé",
+                    L10n.t("Un regalo perfecto para otra familia con bebé"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaSuave
                 )
@@ -1694,27 +1669,27 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
 
     when {
         perfil == null -> {
-            titulo = "Comprobando tu cuenta…"
+            titulo = L10n.t("Comprobando tu cuenta…")
             subtitulo = ""
             colorBadge = colores.tintaTenue
             premiumActivo = false
         }
         premiumHasta != null && ahora.isBefore(premiumHasta) -> {
-            titulo = "Nubi Premium activo"
-            subtitulo = "Hasta el ${formatoFecha.format(premiumHasta)}"
+            titulo = L10n.t("Nubi Premium activo")
+            subtitulo = "${L10n.t("Hasta el")} ${formatoFecha.format(premiumHasta)}"
             colorBadge = colores.mantequilla
             premiumActivo = true
         }
         ahora.isBefore(perfil.fechaCortePrueba) -> {
             val dias = Duration.between(ahora, perfil.fechaCortePrueba).toDays() + 1
-            titulo = "Período de prueba"
-            subtitulo = if (dias <= 1L) "Último día de prueba" else "Te quedan $dias días de prueba"
+            titulo = L10n.t("Período de prueba")
+            subtitulo = if (dias <= 1L) L10n.t("Último día de prueba") else L10n.diasRestantesPrueba(dias)
             colorBadge = colores.lila
             premiumActivo = false
         }
         else -> {
-            titulo = "Prueba finalizada"
-            subtitulo = "Canjea un código de regalo para seguir usando Nubi"
+            titulo = L10n.t("Prueba finalizada")
+            subtitulo = L10n.t("Canjea un código de regalo para seguir usando Nubi")
             colorBadge = colores.coral
             premiumActivo = false
         }
@@ -1765,9 +1740,9 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Regalar Nubi", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(L10n.t("Regalar Nubi"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "Regala 1, 3 o 12 meses de Nubi",
+                        L10n.t("Regala 1, 3 o 12 meses de Nubi"),
                         style = MaterialTheme.typography.bodySmall,
                         color = colores.tintaSuave
                     )
@@ -1901,21 +1876,21 @@ private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
                 .fillMaxWidth()
                 .padding(NubiGeometria.margen)
         ) {
-            Text("Datos del bebé", style = MaterialTheme.typography.titleLarge)
+            Text(L10n.t("Datos del bebé"), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(20.dp))
 
-            Text("Nombre", style = MaterialTheme.typography.titleMedium)
+            Text(L10n.t("Nombre"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
-                label = { Text("Su nombre") },
+                label = { Text(L10n.t("Su nombre")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(18.dp))
-            Text("Fecha de nacimiento", style = MaterialTheme.typography.titleMedium)
+            Text(L10n.t("Fecha de nacimiento"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { mostrarSelectorFecha = true },
@@ -1925,7 +1900,7 @@ private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
             }
 
             Spacer(Modifier.height(18.dp))
-            Text("Semanas de prematuridad", style = MaterialTheme.typography.titleMedium)
+            Text(L10n.t("Semanas de prematuridad"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(
@@ -1933,7 +1908,7 @@ private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
                     enabled = semanasPrematuro > 0
                 ) { Text("−") }
                 Text(
-                    "$semanasPrematuro semanas",
+                    L10n.nSemanas(semanasPrematuro),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(horizontal = 18.dp)
                 )
@@ -1959,7 +1934,7 @@ private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar")
+                Text(L10n.t("Guardar"))
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -1978,9 +1953,9 @@ private fun HojaBebe(bebe: Bebe, alCerrar: () -> Unit) {
                 TextButton(onClick = {
                     estado.selectedDateMillis?.let { millis -> fechaNacimiento = millisUtcAFecha(millis) }
                     mostrarSelectorFecha = false
-                }) { Text("Aceptar") }
+                }) { Text(L10n.t("Aceptar")) }
             },
-            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { mostrarSelectorFecha = false }) { Text(L10n.t("Cancelar")) } }
         ) { DatePicker(state = estado) }
     }
 }
@@ -2010,12 +1985,12 @@ private fun HojaSuenoSeguro(alCerrar: () -> Unit) {
                 tamanoIcono = 28.dp
             )
             Spacer(Modifier.height(16.dp))
-            Text("Sueño seguro", style = MaterialTheme.typography.headlineMedium)
+            Text(L10n.t("Sueño seguro"), style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(14.dp))
             Text(
-                "Las recomendaciones generales de sueño seguro para lactantes incluyen acostar al bebé boca arriba, sobre una superficie firme y plana, sin almohadas, mantas sueltas ni peluches en la cuna, y compartir habitación pero no cama durante los primeros meses.\n\n" +
-                    "Evita el sobrecalentamiento y el humo del tabaco en el entorno del bebé.\n\n" +
-                    "Consulta siempre las guías de tu pediatra o de la sociedad de pediatría de tu país, que son la referencia válida para tu caso.",
+                L10n.t("Las recomendaciones generales de sueño seguro para lactantes incluyen acostar al bebé boca arriba, sobre una superficie firme y plana, sin almohadas, mantas sueltas ni peluches en la cuna, y compartir habitación pero no cama durante los primeros meses.\n\n") +
+                    L10n.t("Evita el sobrecalentamiento y el humo del tabaco en el entorno del bebé.\n\n") +
+                    L10n.t("Consulta siempre las guías de tu pediatra o de la sociedad de pediatría de tu país, que son la referencia válida para tu caso."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colores.tintaSuave
             )
