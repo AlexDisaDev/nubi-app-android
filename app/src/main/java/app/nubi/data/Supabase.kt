@@ -2,7 +2,7 @@
 
 package app.nubi.data
 
-import io.github.jan.supabase.SupabaseInternal
+import io.github.jan.supabase.annotations.SupabaseInternal
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
