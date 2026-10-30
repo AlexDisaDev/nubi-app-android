@@ -117,6 +117,20 @@ class MainActivity : ComponentActivity() {
 fun PantallaRaiz() {
     val sessionStatus by Supabase.client.auth.sessionStatus.collectAsState()
 
+    // Repositorio.iniciar() (NubiApplication) ya intenta sincronizar una vez
+    // al arrancar, pero en ese momento normalmente todavía no hay sesión
+    // (sincronizar() se cancela al instante si no la hay) y nadie vuelve a
+    // pedirlo después del login. Sin este disparador, un móvil nuevo con
+    // una cuenta ya existente se queda esperando para siempre la señal de
+    // ContenidoApp() (primeraSincronizacionHecha), porque esa sincronización
+    // nunca llega a ejecutarse de verdad. sincronizar() ya es seguro de
+    // llamar varias veces (se ignora si ya hay una en marcha).
+    LaunchedEffect(sessionStatus) {
+        if (sessionStatus is SessionStatus.Authenticated) {
+            Repositorio.sincronizarEnSegundoPlano()
+        }
+    }
+
     when (sessionStatus) {
         is SessionStatus.Authenticated -> ContenidoApp()
         else -> PantallaLogin()
