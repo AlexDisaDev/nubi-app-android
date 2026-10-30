@@ -4,6 +4,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
+import io.ktor.client.plugins.HttpTimeout
 
 /**
  * Cliente único de Supabase para toda la app — mismo proyecto que usan iOS
@@ -35,5 +36,19 @@ object Supabase {
         // comprueba las compras de Play Billing contra Google antes de
         // activar premium.
         install(Functions)
+
+        // Sin esto, el cliente HTTP no tiene ningún límite de tiempo: una
+        // conexión que se queda a medias (típico en emuladores recién
+        // creados, o con mala red) puede dejar colgada para siempre
+        // cualquier llamada — incluida Sincronizador.sincronizar(), que
+        // ahora bloquea la pantalla principal hasta que termina (ver
+        // MainActivity.ContenidoApp() y primeraSincronizacionHecha).
+        httpConfig {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 15_000
+                connectTimeoutMillis = 15_000
+                socketTimeoutMillis = 15_000
+            }
+        }
     }
 }
