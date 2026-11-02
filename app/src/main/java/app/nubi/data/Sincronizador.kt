@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 
 /**
@@ -93,6 +95,7 @@ class Sincronizador(private val local: AlmacenLocal) {
         try {
             withContext(Dispatchers.IO) {
                 subirPendientes()
+                registrarPlataformaSiHaceFalta()
                 subirEventosFunnelPendientes()
                 bajarCambios()
             }
@@ -204,6 +207,33 @@ class Sincronizador(private val local: AlmacenLocal) {
      * alguno falla (p. ej. sin red), se queda pendiente y se reintenta en
      * la siguiente sincronización, igual que subirPendientes().
      */
+    /**
+     * Deja constancia, una sola vez, de que esta cuenta usa Android.
+     *
+     * Los eventos que crea el servidor (registro_completado, bebe_creado)
+     * no pueden saber la plataforma: un trigger de Postgres no ve si el
+     * INSERT venía de un móvil o de otro. Guardándolo una vez en el perfil
+     * (ver backend/012_plataforma_por_usuario.sql), las vistas del embudo
+     * pueden resolverlo para todos los eventos de ese usuario, incluidos
+     * los que ya estaban guardados.
+     *
+     * Se marca en local al conseguirlo para no repetir la llamada en cada
+     * sincronización. Si falla, se reintenta en la siguiente.
+     */
+    private suspend fun registrarPlataformaSiHaceFalta() {
+        if (local.datos.value.plataformaRegistrada) return
+        if (Supabase.client.auth.currentUserOrNull() == null) return
+
+        val ok = runCatching {
+            Supabase.client.postgrest.rpc(
+                "registrar_plataforma",
+                buildJsonObject { put("p_plataforma", "android") }
+            )
+        }.isSuccess
+
+        if (ok) local.modificar { it.copy(plataformaRegistrada = true) }
+    }
+
     /**
      * Sube los eventos del embudo que estén pendientes.
      *

@@ -109,7 +109,15 @@ data class DatosNubi(
      * [AlmacenLocal.dispositivoIdEstable], que lo crea y lo persiste una
      * sola vez.
      */
-    val dispositivoId: String = ""
+    val dispositivoId: String = "",
+
+    /**
+     * Si ya se le ha dicho al servidor que esta cuenta usa Android
+     * (ver Sincronizador.registrarPlataformaSiHaceFalta). Solo evita
+     * repetir la llamada; si se perdiera, se volvería a mandar y el
+     * servidor lo trata igual.
+     */
+    val plataformaRegistrada: Boolean = false
 )
 
 /**
