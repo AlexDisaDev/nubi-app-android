@@ -154,6 +154,19 @@ object Repositorio {
     }
 
     /**
+     * Registra un evento del embudo de conversión (ver EventosFunnel.kt).
+     * Se encola en local primero (persistido en disco) y luego se intenta
+     * subir enseguida; si falla o no hay red, sincronizador.sincronizar()
+     * lo reintenta más tarde — nunca se pierde ni bloquea a quien llama.
+     */
+    fun registrarEventoFunnel(evento: String, metadata: Map<String, String> = emptyMap()) {
+        ambito.launch {
+            local.encolarEventoFunnel(evento, metadata)
+            sincronizador.sincronizar()
+        }
+    }
+
+    /**
      * ¿Ya terminó (con éxito o sin él) el primer intento de sincronizar
      * desde que arrancó la app? Lo usa MainActivity.ContenidoApp() para no
      * ofrecer crear un bebé nuevo mientras todavía podría estar bajando el

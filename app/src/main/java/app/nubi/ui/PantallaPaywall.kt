@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Compras
+import app.nubi.data.EventoNombre
+import app.nubi.data.EventosFunnel
 import app.nubi.data.Repositorio
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
@@ -52,6 +55,13 @@ import com.android.billingclient.api.ProductDetails
 @Composable
 fun PantallaPaywall() {
     val colores = NubiTheme.colores
+
+    // Una vez por composición (no en cada recomposición al escribir/tocar
+    // algo): marca el paso más arriba del embudo, "vio el paywall".
+    LaunchedEffect(Unit) {
+        EventosFunnel.registrar(EventoNombre.PAYWALL_MOSTRADO)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -152,7 +162,13 @@ fun SelectorPlanesPremium() {
         }
 
         Spacer(Modifier.height(4.dp))
-        TextButton(onClick = { Compras.refrescar() }, modifier = Modifier.fillMaxWidth()) {
+        TextButton(
+            onClick = {
+                EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
+                Compras.refrescar()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(L10n.t("¿Ya pagaste? Restaurar compra"))
         }
     }
@@ -197,7 +213,16 @@ private fun TarjetaPlan(
                 Spacer(Modifier.height(2.dp))
                 Text(textoPrueba, style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave)
             }
-            Button(onClick = onElegir, enabled = habilitado) {
+            Button(
+                onClick = {
+                    EventosFunnel.registrar(EventoNombre.PLAN_SELECCIONADO, mapOf("plan_id" to planId))
+                    if (hayPrueba) {
+                        EventosFunnel.registrar(EventoNombre.TRIAL_INICIADO, mapOf("plan_id" to planId))
+                    }
+                    onElegir()
+                },
+                enabled = habilitado
+            ) {
                 Text(if (hayPrueba) L10n.t("Empezar prueba") else L10n.t("Elegir"))
             }
         }

@@ -29,6 +29,7 @@ object Tablas {
     const val COMIDAS = "comidas_complementarias"
     const val ENFERMEDADES = "enfermedades"
     const val PERFILES = "perfiles"
+    const val EVENTOS_FUNNEL = "eventos_funnel"
 }
 
 /**
@@ -92,6 +93,7 @@ class Sincronizador(private val local: AlmacenLocal) {
         try {
             withContext(Dispatchers.IO) {
                 subirPendientes()
+                subirEventosFunnelPendientes()
                 bajarCambios()
             }
             _estado.value = Estado.EN_REPOSO
@@ -192,6 +194,42 @@ class Sincronizador(private val local: AlmacenLocal) {
 
     private suspend inline fun <reified T : Any> subir(tabla: String, fila: T) {
         Supabase.client.from(tabla).upsert(fila)
+    }
+
+    /**
+     * Sube los eventos del funnel pendientes (ver EventosFunnel.kt). Son
+     * filas de solo inserción —nunca se actualizan ni se leen de vuelta—,
+     * así que no entran en el merge de bajarCambios(): se suben uno a uno
+     * y se quitan de la cola local solo los que confirma el insert. Si
+     * alguno falla (p. ej. sin red), se queda pendiente y se reintenta en
+     * la siguiente sincronización, igual que subirPendientes().
+     */
+    private suspend fun subirEventosFunnelPendientes() {
+        val pendientes = local.datos.value.eventosFunnel
+        if (pendientes.isEmpty()) return
+
+        val miId = Supabase.client.auth.currentUserOrNull()?.id
+        val dispositivoId = local.datos.value.dispositivoId
+        val hechos = mutableListOf<EventoFunnelPendiente>()
+
+        for (evento in pendientes) {
+            val ok = runCatching {
+                Supabase.client.from(Tablas.EVENTOS_FUNNEL).insert(
+                    FilaEventoFunnel(
+                        usuarioId = miId,
+                        dispositivoId = dispositivoId,
+                        evento = evento.evento,
+                        metadata = evento.metadata,
+                        creadoEn = evento.creadoEn
+                    )
+                )
+            }.isSuccess
+            if (ok) hechos += evento
+        }
+
+        if (hechos.isNotEmpty()) {
+            local.modificar { d -> d.copy(eventosFunnel = d.eventosFunnel - hechos.toSet()) }
+        }
     }
 
     /**

@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Todo lo que Nubi guarda de un bebé, en un solo objeto.
@@ -84,7 +85,23 @@ data class DatosNubi(
     val pendientes: List<CambioPendiente> = emptyList(),
 
     /** Momento del último pull con éxito, para pedir solo lo que cambió. */
-    val ultimaSincronizacion: Fecha? = null
+    val ultimaSincronizacion: Fecha? = null,
+
+    /**
+     * Eventos del embudo de conversión (ver EventosFunnel.kt) todavía sin
+     * subir a Supabase. Misma idea que "pendientes" pero en su propia
+     * lista: son filas de solo inserción, nunca se "sustituyen" como un
+     * CambioPendiente de la misma fila.
+     */
+    val eventosFunnel: List<EventoFunnelPendiente> = emptyList(),
+
+    /**
+     * Id anónimo de esta instalación, generado una sola vez. Sirve para
+     * relacionar eventos del funnel aunque todavía no haya sesión iniciada
+     * (ver eventos_funnel.dispositivo_id). No es un identificador de
+     * usuario: una reinstalación genera uno nuevo.
+     */
+    val dispositivoId: String = UUID.randomUUID().toString()
 )
 
 /**
@@ -176,6 +193,13 @@ class AlmacenLocal(
                 pendientes = d.pendientes.filterNot { it.tabla == tabla && it.id == id } +
                     CambioPendiente(tabla, id, borrado)
             )
+        }
+    }
+
+    /** Encola un evento del embudo de conversión (ver EventosFunnel.kt). */
+    suspend fun encolarEventoFunnel(evento: String, metadata: Map<String, String>) {
+        modificar { d ->
+            d.copy(eventosFunnel = d.eventosFunnel + EventoFunnelPendiente(evento = evento, metadata = metadata))
         }
     }
 }

@@ -197,9 +197,22 @@ object Compras : PurchasesUpdatedListener {
             compras.forEach(::procesar)
         } else if (resultado.responseCode == BillingResponseCode.USER_CANCELED) {
             // El usuario cerró el diálogo de Play: no es un error que haya
-            // que mostrar como tal.
+            // que mostrar como tal, pero sí es una caída del embudo real
+            // (empezó el flujo de compra y no llegó a terminarlo).
+            EventosFunnel.registrar(
+                EventoNombre.COMPRA_FALLIDA,
+                mapOf("plan_id" to (planSolicitado ?: ""), "motivo" to "cancelado_por_usuario")
+            )
         } else {
             _ultimoError.value = resultado.debugMessage.ifBlank { "Error de Play (${resultado.responseCode})" }
+            EventosFunnel.registrar(
+                EventoNombre.COMPRA_FALLIDA,
+                mapOf(
+                    "plan_id" to (planSolicitado ?: ""),
+                    "motivo" to "error_play_${resultado.responseCode}",
+                    "mensaje_error" to resultado.debugMessage
+                )
+            )
         }
     }
 
@@ -227,12 +240,27 @@ object Compras : PurchasesUpdatedListener {
             _verificando.value = true
             try {
                 verificarEnServidor(compra, productoId, planSolicitado)
+                // El servidor ya confirmó la compra contra Google (no es
+                // solo que el cliente lo crea) — aquí es donde de verdad
+                // se sabe que el trial/la compra se activó.
+                EventosFunnel.registrar(
+                    EventoNombre.TRIAL_CONFIRMADO,
+                    mapOf("plan_id" to (planSolicitado ?: ""), "producto_id" to productoId)
+                )
                 // Trae el perfil actualizado (premium_hasta) desde
                 // Supabase; la pantalla de pago observa Repositorio, así
                 // que en cuanto llegue se quita sola el muro de pago.
                 Repositorio.sincronizarEnSegundoPlano()
             } catch (e: Exception) {
                 _ultimoError.value = e.message ?: "No se pudo verificar la compra"
+                EventosFunnel.registrar(
+                    EventoNombre.COMPRA_FALLIDA,
+                    mapOf(
+                        "plan_id" to (planSolicitado ?: ""),
+                        "motivo" to "verificacion_servidor",
+                        "mensaje_error" to (e.message ?: "")
+                    )
+                )
             } finally {
                 _verificando.value = false
             }
