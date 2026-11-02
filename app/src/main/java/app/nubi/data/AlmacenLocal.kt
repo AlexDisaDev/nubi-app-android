@@ -96,12 +96,20 @@ data class DatosNubi(
     val eventosFunnel: List<EventoFunnelPendiente> = emptyList(),
 
     /**
-     * Id anónimo de esta instalación, generado una sola vez. Sirve para
-     * relacionar eventos del funnel aunque todavía no haya sesión iniciada
-     * (ver eventos_funnel.dispositivo_id). No es un identificador de
-     * usuario: una reinstalación genera uno nuevo.
+     * Id anónimo de esta instalación. Sirve para relacionar eventos del
+     * funnel aunque todavía no haya sesión iniciada (ver
+     * eventos_funnel.dispositivo_id). No es un identificador de usuario:
+     * una reinstalación genera uno nuevo.
+     *
+     * Empieza vacío a propósito. Si el valor por defecto fuese un UUID
+     * nuevo, cada vez que se leyera un JSON guardado sin este campo (las
+     * instalaciones que ya existían antes de esta versión) se generaría uno
+     * distinto, y el id no sería estable hasta el primer guardado. Con la
+     * cadena vacía el caso "todavía no tiene id" es explícito y lo resuelve
+     * [AlmacenLocal.dispositivoIdEstable], que lo crea y lo persiste una
+     * sola vez.
      */
-    val dispositivoId: String = UUID.randomUUID().toString()
+    val dispositivoId: String = ""
 )
 
 /**
@@ -196,10 +204,42 @@ class AlmacenLocal(
         }
     }
 
-    /** Encola un evento del embudo de conversión (ver EventosFunnel.kt). */
+    /**
+     * Encola un evento del embudo de conversión (ver EventosFunnel.kt).
+     *
+     * La cola tiene tope. Sin él, si las subidas fallan mucho tiempo (sin
+     * red, servidor caído) la lista crece sin límite, y como DatosNubi se
+     * reescribe entero en cada `modificar`, cada guardado del resto de la
+     * app se iría volviendo más lento. Al llegar al tope se tiran los más
+     * viejos: para medir un embudo, perder eventos antiguos de un móvil que
+     * lleva semanas sin conexión es mucho menos grave que degradar la app.
+     */
     suspend fun encolarEventoFunnel(evento: String, metadata: Map<String, String>) {
         modificar { d ->
-            d.copy(eventosFunnel = d.eventosFunnel + EventoFunnelPendiente(evento = evento, metadata = metadata))
+            val cola = d.eventosFunnel + EventoFunnelPendiente(evento = evento, metadata = metadata)
+            d.copy(eventosFunnel = cola.takeLast(MAX_EVENTOS_FUNNEL))
         }
+    }
+
+    /**
+     * Devuelve el id de dispositivo, creándolo y guardándolo la primera vez.
+     * Así es estable de verdad, también en instalaciones que ya existían
+     * antes de que este campo apareciera (ver [DatosNubi.dispositivoId]).
+     */
+    suspend fun dispositivoIdEstable(): String {
+        datos.value.dispositivoId.takeIf { it.isNotEmpty() }?.let { return it }
+        val nuevo = UUID.randomUUID().toString()
+        modificar { d ->
+            // Se vuelve a mirar dentro del candado: otra corrutina puede
+            // haberlo creado mientras tanto, y dos ids distintos para la
+            // misma instalación falsearían el recuento de dispositivos.
+            if (d.dispositivoId.isEmpty()) d.copy(dispositivoId = nuevo) else d
+        }
+        return datos.value.dispositivoId
+    }
+
+    private companion object {
+        /** Tope de eventos del funnel guardados a la espera de subir. */
+        const val MAX_EVENTOS_FUNNEL = 200
     }
 }

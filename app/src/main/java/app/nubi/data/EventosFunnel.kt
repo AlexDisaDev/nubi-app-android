@@ -38,7 +38,16 @@ data class EventoFunnelPendiente(
     val idLocal: String = UUID.randomUUID().toString(),
     val evento: String,
     val metadata: Map<String, String> = emptyMap(),
-    val creadoEn: Fecha = Instant.now()
+    val creadoEn: Fecha = Instant.now(),
+    /**
+     * Veces que este evento concreto ha fallado al subir cuando otros del
+     * mismo lote sí subieron (ver Sincronizador.subirEventosFunnelPendientes).
+     * Un fallo general —sin red, servidor caído— no cuenta aquí: en ese caso
+     * no falla el evento, falla la conexión, y descartarlo sería perder un
+     * dato bueno. Solo se cuenta cuando el evento falla él solo, que es la
+     * señal de que trae algo mal y nunca va a entrar.
+     */
+    val intentos: Int = 0
 )
 
 /**

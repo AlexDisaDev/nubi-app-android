@@ -18,8 +18,16 @@ android {
         applicationId = "com.app.nubi"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        // versionCode: Play Console exige que sea MAYOR que el de cualquier
+        // AAB ya subido (a cualquier canal, incluido prueba cerrada); si se
+        // repite, rechaza la subida. En el repo solo ha existido el 1, pero
+        // se subieron builds con el número cambiado a mano sin commitear,
+        // así que se deja en 4 por seguridad.
+        // COMPROBAR en Play Console → Versiones → el número más alto
+        // existente, y subir este por encima si hiciera falta.
+        versionCode = 4
+        // versionName es solo lo que ve el usuario: no tiene que ser único.
+        versionName = "1.3"
     }
 
     buildFeatures {

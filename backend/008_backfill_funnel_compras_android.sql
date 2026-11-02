@@ -11,6 +11,15 @@
 --     antes (nunca se guardó si vio el paywall, qué plan tocó primero,
 --     etc.) — eso solo existe a partir de ahora.
 --
+-- SOBRE EL purchase_token: la versión anterior de este script lo copiaba
+-- tal cual dentro de metadata. Era un error: el purchase_token es la
+-- credencial con la que se consulta y reconoce una compra contra la API de
+-- Google Play, y eventos_funnel es una tabla de analítica, no de pagos —
+-- acaba leída por vistas agregadas y por el panel. Aquí se guarda solo un
+-- hash (sha256, pgcrypto vive en el esquema extensions) que sirve igual para lo único que hacía falta: no duplicar
+-- filas si este script se ejecuta dos veces. El token real sigue donde
+-- tiene que estar, en compras_google_play.
+--
 -- Es seguro ejecutar esto más de una vez: el "where not exists" evita
 -- duplicar filas si ya se corrió antes.
 -- =========================================================
@@ -26,7 +35,7 @@ select
   jsonb_build_object(
     'plan_id', c.plan_base_id,
     'producto_id', c.producto_id,
-    'purchase_token', c.purchase_token,
+    'compra_hash', encode(extensions.digest(c.purchase_token, 'sha256'), 'hex'),
     'estado', c.estado,
     'backfill', true
   ),
@@ -34,5 +43,5 @@ select
 from public.compras_google_play c
 where not exists (
   select 1 from public.eventos_funnel e
-  where e.metadata ->> 'purchase_token' = c.purchase_token
+  where e.metadata ->> 'compra_hash' = encode(extensions.digest(c.purchase_token, 'sha256'), 'hex')
 );

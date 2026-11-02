@@ -204,13 +204,29 @@ class Sincronizador(private val local: AlmacenLocal) {
      * alguno falla (p. ej. sin red), se queda pendiente y se reintenta en
      * la siguiente sincronización, igual que subirPendientes().
      */
+    /**
+     * Sube los eventos del embudo que estén pendientes.
+     *
+     * Dos tipos de fallo que conviene no confundir:
+     *
+     * - **Fallo general** (sin red, servidor caído): fallan todos. No se
+     *   descarta nada ni se cuenta ningún intento, porque los eventos están
+     *   bien; lo que no está es la conexión. Se reintentan enteros más
+     *   tarde.
+     * - **Fallo de un evento concreto** (algo en esa fila que el servidor
+     *   nunca va a aceptar): falla él mientras otros del mismo lote sí
+     *   entran. Ese sí suma intento, y tras [MAX_INTENTOS_EVENTO] se
+     *   descarta. Si no, se quedaría atascado para siempre, reintentándose
+     *   en cada sincronización y sin llegar nunca.
+     */
     private suspend fun subirEventosFunnelPendientes() {
         val pendientes = local.datos.value.eventosFunnel
         if (pendientes.isEmpty()) return
 
         val miId = Supabase.client.auth.currentUserOrNull()?.id
-        val dispositivoId = local.datos.value.dispositivoId
-        val hechos = mutableListOf<EventoFunnelPendiente>()
+        val dispositivoId = local.dispositivoIdEstable()
+        val subidos = mutableSetOf<String>()
+        val fallados = mutableSetOf<String>()
 
         for (evento in pendientes) {
             val ok = runCatching {
@@ -224,11 +240,23 @@ class Sincronizador(private val local: AlmacenLocal) {
                     )
                 )
             }.isSuccess
-            if (ok) hechos += evento
+            if (ok) subidos += evento.idLocal else fallados += evento.idLocal
         }
 
-        if (hechos.isNotEmpty()) {
-            local.modificar { d -> d.copy(eventosFunnel = d.eventosFunnel - hechos.toSet()) }
+        // Si no entró ninguno, se asume fallo general: no se toca la cola.
+        if (subidos.isEmpty()) return
+
+        local.modificar { d ->
+            d.copy(
+                eventosFunnel = d.eventosFunnel.mapNotNull { e ->
+                    when (e.idLocal) {
+                        in subidos -> null
+                        in fallados -> e.copy(intentos = e.intentos + 1)
+                            .takeIf { it.intentos < MAX_INTENTOS_EVENTO }
+                        else -> e
+                    }
+                }
+            )
         }
     }
 
@@ -336,5 +364,13 @@ class Sincronizador(private val local: AlmacenLocal) {
             }
         }
         return resultado.values.toList()
+    }
+
+    private companion object {
+        /**
+         * Veces que se reintenta un evento del funnel que falla él solo
+         * (mientras otros del mismo lote sí suben) antes de descartarlo.
+         */
+        const val MAX_INTENTOS_EVENTO = 5
     }
 }
