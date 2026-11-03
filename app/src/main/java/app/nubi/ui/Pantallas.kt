@@ -1314,7 +1314,7 @@ private fun BotonCircular(tipo: TipoRegistro, bloqueado: Boolean = false, onClic
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icono(iconoDeTipo(tipo), tint = colores.tinta, tamano = 18.dp)
+        Icono(iconoDeTipo(tipo), tint = tinteIconoDeTipo(tipo, porDefecto = colores.tinta), tamano = 18.dp)
         if (bloqueado) {
             Box(
                 modifier = Modifier
@@ -1359,7 +1359,7 @@ private fun FilaTimeline(
             BadgeIcono(
                 iconoDeTipo(registro.tipo),
                 colorFondo = colorDeTipo(registro.tipo, colores),
-                colorIcono = colores.tinta,
+                colorIcono = tinteIconoDeTipo(registro.tipo, porDefecto = colores.tinta),
                 tamano = 40.dp,
                 tamanoIcono = 18.dp
             )

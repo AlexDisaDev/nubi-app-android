@@ -399,11 +399,10 @@ fun RelojDelDia(
             distanciaMinima = dp(20f), radioFloor = dp(50f), radioPaso = dp(12f)
         )
         posiciones.forEach { (registro, pos) ->
-            val claro = registro.tipo != TipoRegistro.MEDICINA
             BadgeIcono(
                 tipo = iconoDeTipo(registro.tipo),
                 colorFondo = colorDeTipo(registro.tipo, colores),
-                colorIcono = if (claro) Color.White else Color.Black,
+                colorIcono = tinteIconoDeTipo(registro.tipo, porDefecto = Color.White),
                 tamano = 26.dp,
                 tamanoIcono = 13.dp,
                 modifier = Modifier
@@ -719,7 +718,10 @@ fun iconoDeTipo(tipo: TipoRegistro): IconoNubi = when (tipo) {
     TipoRegistro.PECHO -> IconoNubi.CORAZON
     TipoRegistro.PANAL -> IconoNubi.GOTA
     TipoRegistro.DESPERTAR -> IconoNubi.OJO_ABIERTO
-    TipoRegistro.MEDICINA -> IconoNubi.MEDICINA
+    // La jeringa, no el bote de medicina: es el mismo dibujo que ya usa
+    // la propia hoja de Medicina (HojaMedicinaDia en PantallaSalud.kt), y
+    // así la insignia del día coincide con lo que se ve al tocarla.
+    TipoRegistro.MEDICINA -> IconoNubi.JERINGA
     TipoRegistro.BANO -> IconoNubi.BANO
 }
 
@@ -731,9 +733,23 @@ fun colorDeTipo(tipo: TipoRegistro, c: NubiColores): Color = when (tipo) {
     TipoRegistro.PECHO -> c.melocoton
     TipoRegistro.PANAL -> c.cielo
     TipoRegistro.DESPERTAR -> c.coral
-    TipoRegistro.MEDICINA -> c.indigo
+    // Blanco fijo (no c.indigo): la propia HojaMedicinaDia ya dibuja su
+    // insignia en blanco con el icono en negro, da igual el tema — se
+    // iguala aquí para que la botonera, la lista y el reloj coincidan
+    // con lo que se ve al tocar.
+    TipoRegistro.MEDICINA -> Color.White
     TipoRegistro.BANO -> c.rosa
 }
+
+/** El tinte del icono de la insignia de un tipo de registro. Para todos
+ *  menos medicina es el que le pase quien dibuje (colores.tinta de normal,
+ *  blanco en el reloj) porque su fondo es un color saturado del tema. La
+ *  insignia de medicina es blanca siempre (ver [colorDeTipo]), así que su
+ *  icono tiene que ser negro siempre, sin más, o desaparecería en tema
+ *  oscuro — igual que ya hace la propia HojaMedicinaDia.
+ */
+fun tinteIconoDeTipo(tipo: TipoRegistro, porDefecto: Color): Color =
+    if (tipo == TipoRegistro.MEDICINA) Color.Black else porDefecto
 
 /** Atajo para "offset en píxeles ya calculados", sin tener que convertir
  *  a Dp y volver — todo el reloj trabaja en píxeles porque Canvas y las
