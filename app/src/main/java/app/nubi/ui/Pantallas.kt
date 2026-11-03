@@ -42,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -74,6 +75,7 @@ import app.nubi.data.LadoPecho
 import app.nubi.data.MotorEtapas
 import app.nubi.data.MotorSueno
 import app.nubi.data.Perfil
+import app.nubi.data.Premium
 import app.nubi.data.PrediccionDia
 import app.nubi.data.Registro
 import app.nubi.data.Repositorio
@@ -305,6 +307,7 @@ private val formatoHora: DateTimeFormatter =
 fun PantallaHoy(
     bebe: Bebe,
     registros: List<Registro>,
+    premium: Boolean,
     oscuro: Boolean = false,
     alCambiarTema: () -> Unit = {},
     alAbrirAjustes: () -> Unit = {}
@@ -338,6 +341,11 @@ fun PantallaHoy(
     var mostrarHojaBiberon by remember { mutableStateOf(false) }
     var mostrarHojaPanal by remember { mutableStateOf(false) }
     var mostrarHojaEtapa by remember { mutableStateOf(false) }
+    // Se abre al tocar algo bloqueado de esta pantalla (predicción, toma,
+    // pañal). El registro de sueño/siesta de arriba NUNCA pasa por aquí:
+    // es justo lo que se deja gratis para que el motor (MotorSueno.kt)
+    // tenga datos que aprender durante los 7 días de prueba.
+    var mostrarBloqueo by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -498,15 +506,20 @@ fun PantallaHoy(
         Spacer(Modifier.height(14.dp))
 
         prediccion?.let { p ->
-            TarjetaPrediccion(prediccion = p, ahora = ahora)
+            if (premium) {
+                TarjetaPrediccion(prediccion = p, ahora = ahora)
+            } else {
+                TarjetaPrediccionBloqueada { mostrarBloqueo = true }
+            }
             Spacer(Modifier.height(10.dp))
         }
 
         FilaUltimaToma(
             ultimoBiberon = ultimoBiberon,
             ultimoPecho = ultimoPecho,
-            onBiberon = { mostrarHojaBiberon = true },
-            onPecho = { mostrarHojaPecho = true }
+            bloqueado = !premium,
+            onBiberon = { if (premium) mostrarHojaBiberon = true else mostrarBloqueo = true },
+            onPecho = { if (premium) mostrarHojaPecho = true else mostrarBloqueo = true }
         )
         Spacer(Modifier.height(10.dp))
 
@@ -520,7 +533,8 @@ fun PantallaHoy(
                 ?: L10n.t("Sin registrar todavía"),
             icono = IconoNubi.GOTA,
             colorBadge = colores.cielo,
-            onClick = { mostrarHojaPanal = true }
+            bloqueado = !premium,
+            onClick = { if (premium) mostrarHojaPanal = true else mostrarBloqueo = true }
         )
         Spacer(Modifier.height(10.dp))
 
@@ -581,6 +595,9 @@ fun PantallaHoy(
             HojaEtapa(etapa = etapa) { mostrarHojaEtapa = false }
         }
     }
+    if (mostrarBloqueo) {
+        HojaPremiumBloqueado { mostrarBloqueo = false }
+    }
 }
 
 @Composable
@@ -589,13 +606,17 @@ private fun FilaResumenHoy(
     subtitulo: String,
     icono: IconoNubi,
     colorBadge: Color,
+    bloqueado: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     val colores = NubiTheme.colores
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(alpha = if (bloqueado) 0.5f else 1f)
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -607,7 +628,11 @@ private fun FilaResumenHoy(
                 Text(titulo, style = MaterialTheme.typography.bodyLarge)
                 Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
             }
-            BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
+            if (bloqueado) {
+                BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave)
+            } else {
+                BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
+            }
         }
     }
 }
@@ -654,6 +679,39 @@ private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
     }
 }
 
+/**
+ * Misma forma que [TarjetaPrediccion] pero sin revelar la hora: solo dice
+ * que existe y que hace falta Premium, para no regalar la predicción en
+ * texto plano con un candado encima (eso seguiría siendo "ver la app
+ * entera", solo que con un dibujo tapando el número).
+ */
+@Composable
+private fun TarjetaPrediccionBloqueada(onClick: () -> Unit) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(L10n.t("Próxima ventana de sueño"), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    L10n.t("Nubi ya sabe cuándo toca — desbloquéalo con Premium"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaTenue
+                )
+            }
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+        }
+    }
+}
+
 private fun textoPrediccion(p: PrediccionDia, yaEnVentana: Boolean, pasada: Boolean): String = when (p.tipo) {
     TipoPrediccion.SIESTA -> when {
         yaEnVentana -> "${L10n.t("Buena ventana ahora")} · ${L10n.t("hasta")} ${formatoHora.format(p.hasta)}"
@@ -689,6 +747,7 @@ private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: B
 private fun FilaUltimaToma(
     ultimoBiberon: Registro?,
     ultimoPecho: Registro?,
+    bloqueado: Boolean = false,
     onBiberon: () -> Unit,
     onPecho: () -> Unit
 ) {
@@ -698,7 +757,9 @@ private fun FilaUltimaToma(
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(alpha = if (bloqueado) 0.5f else 1f)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -706,29 +767,38 @@ private fun FilaUltimaToma(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    ultimo?.let { "${L10n.t("Última toma")} · ${hace(it.inicio)}" } ?: L10n.t("Alimentación"),
+                    if (bloqueado) L10n.t("Alimentación") else (ultimo?.let { "${L10n.t("Última toma")} · ${hace(it.inicio)}" } ?: L10n.t("Alimentación")),
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    ultimo?.let { subtituloRegistro(it) } ?: L10n.t("Sin registrar todavía"),
+                    if (bloqueado) L10n.t("Parte de Nubi Premium") else (ultimo?.let { subtituloRegistro(it) } ?: L10n.t("Sin registrar todavía")),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaTenue
                 )
             }
             Spacer(Modifier.width(12.dp))
-            BadgeIcono(
-                IconoNubi.BIBERON,
-                colorFondo = colores.mantequilla,
-                colorIcono = colores.tinta,
-                modifier = Modifier.clickable(onClick = onBiberon)
-            )
-            Spacer(Modifier.width(8.dp))
-            BadgeIcono(
-                IconoNubi.CORAZON,
-                colorFondo = colores.melocoton,
-                colorIcono = colores.tinta,
-                modifier = Modifier.clickable(onClick = onPecho)
-            )
+            if (bloqueado) {
+                BadgeIcono(
+                    IconoNubi.CANDADO,
+                    colorFondo = colores.lienzoAlto,
+                    colorIcono = colores.tintaSuave,
+                    modifier = Modifier.clickable(onClick = onBiberon)
+                )
+            } else {
+                BadgeIcono(
+                    IconoNubi.BIBERON,
+                    colorFondo = colores.mantequilla,
+                    colorIcono = colores.tinta,
+                    modifier = Modifier.clickable(onClick = onBiberon)
+                )
+                Spacer(Modifier.width(8.dp))
+                BadgeIcono(
+                    IconoNubi.CORAZON,
+                    colorFondo = colores.melocoton,
+                    colorIcono = colores.tinta,
+                    modifier = Modifier.clickable(onClick = onPecho)
+                )
+            }
         }
     }
 }
@@ -832,13 +902,21 @@ private fun textoFechaDia(dia: LocalDate): String {
 private fun textoEdadCorta(bebe: Bebe, hasta: Instant): String = L10n.textoEdadCorta(bebe.edadEnDias(hasta))
 
 @Composable
-fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
+fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
     val colores = NubiTheme.colores
     var diaSeleccionado by remember { mutableStateOf(LocalDate.now(zonaLocal)) }
     val hoy = LocalDate.now(zonaLocal)
     // Al tocar una fila de "Todo lo del día" se reabre su misma hoja de
     // registro, en modo edición (ver HojaEditarRegistro más abajo).
     var registroEditando by remember { mutableStateOf<Registro?>(null) }
+    // Mismo sheet que usa BotoneraDia al tocar un tipo bloqueado — se
+    // comparte aquí para la flecha de "día anterior" y para editar un
+    // registro que no sea de sueño, que sin premium tampoco se puede.
+    var mostrarBloqueo by remember { mutableStateOf(false) }
+
+    /** Son los únicos tipos que se dejan registrar/editar sin premium. */
+    fun esTipoGratis(tipo: TipoRegistro) =
+        tipo == TipoRegistro.SIESTA || tipo == TipoRegistro.NOCHE || tipo == TipoRegistro.DESPERTAR
 
     // Todo lo que pertenece a este día: los sueños se recortan por si
     // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
@@ -896,7 +974,11 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             BotonFlechaDia(mirar = true) {
-                diaSeleccionado = diaSeleccionado.minusDays(1)
+                // Sin premium, el historial de días anteriores es
+                // justo lo que se vende: se abre el paywall en vez de
+                // cambiar de fecha, en lugar de deshabilitar la flecha
+                // sin más (que no explicaría por qué no hace nada).
+                if (premium) diaSeleccionado = diaSeleccionado.minusDays(1) else mostrarBloqueo = true
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(textoFechaDia(diaSeleccionado), style = MaterialTheme.typography.titleMedium)
@@ -918,7 +1000,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
         BarraSuenoDia(guiaEdad, minutosSueno, suenoSaludable)
 
         Spacer(Modifier.height(16.dp))
-        BotoneraDia(bebe.id, diaSeleccionado)
+        BotoneraDia(bebe.id, diaSeleccionado, premium)
 
         Spacer(Modifier.height(20.dp))
         Text(
@@ -945,7 +1027,10 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
                     registro = registro,
                     diaMostrado = diaSeleccionado,
                     esUltimo = indice == listaCompleta.lastIndex,
-                    onEditar = { registroEditando = registro },
+                    onEditar = {
+                        if (premium || esTipoGratis(registro.tipo)) registroEditando = registro
+                        else mostrarBloqueo = true
+                    },
                     onBorrar = { Repositorio.borrarRegistro(registro.id) }
                 )
 
@@ -993,6 +1078,10 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>) {
                 onCerrar = cerrar
             )
         }
+    }
+
+    if (mostrarBloqueo) {
+        HojaPremiumBloqueado { mostrarBloqueo = false }
     }
 }
 
@@ -1123,20 +1212,24 @@ private fun BarraSuenoDia(
  *  Pecho, que primero pregunta el lado en un menú anclado al propio
  *  botón (ver MenuPecho en HojasRegistro.kt). */
 @Composable
-private fun BotoneraDia(bebeId: String, dia: LocalDate) {
+private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
     val colores = NubiTheme.colores
-    val datos by Repositorio.local.datos.collectAsState()
-    // Mismo cálculo que Repositorio.puedeUsarApp(): sin perfil aún
-    // (recién instalado, sin conexión) no se bloquea nada.
-    val bloqueado = datos.perfil?.let { !it.puedeUsarApp() } ?: false
+
+    // Solo sueño/siesta/despertar quedan gratis aquí (son los que
+    // alimenta MotorSueno.kt): el resto de tipos son premium. Antes esto
+    // era un único "bloqueado" para TODOS los tipos a la vez, calculado
+    // con Perfil.puedeUsarApp() (el mecanismo de prueba sin tarjeta que ya
+    // no se usa — ver el comentario de esa función en Modelos.kt).
+    fun bloqueadoPara(tipo: TipoRegistro) = !premium && tipo != TipoRegistro.SIESTA &&
+        tipo != TipoRegistro.NOCHE && tipo != TipoRegistro.DESPERTAR
 
     var hojaAbierta by remember { mutableStateOf<TipoRegistro?>(null) }
     var menuPechoAbierto by remember { mutableStateOf(false) }
     var ladoPechoElegido by remember { mutableStateOf<LadoPecho?>(null) }
     var mostrarBloqueo by remember { mutableStateOf(false) }
 
-    fun alTocar(abrir: () -> Unit) {
-        if (bloqueado) mostrarBloqueo = true else abrir()
+    fun alTocar(tipo: TipoRegistro, abrir: () -> Unit) {
+        if (bloqueadoPara(tipo)) mostrarBloqueo = true else abrir()
     }
 
     Card(
@@ -1153,8 +1246,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                     fila.forEach { tipo ->
                         if (tipo == TipoRegistro.PECHO) {
                             Box {
-                                BotonCircular(tipo, bloqueado = bloqueado) {
-                                    alTocar { menuPechoAbierto = true }
+                                BotonCircular(tipo, bloqueado = bloqueadoPara(tipo)) {
+                                    alTocar(tipo) { menuPechoAbierto = true }
                                 }
                                 MenuPecho(
                                     expandido = menuPechoAbierto,
@@ -1166,8 +1259,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                                 )
                             }
                         } else {
-                            BotonCircular(tipo, bloqueado = bloqueado) {
-                                alTocar { hojaAbierta = tipo }
+                            BotonCircular(tipo, bloqueado = bloqueadoPara(tipo)) {
+                                alTocar(tipo) { hojaAbierta = tipo }
                             }
                         }
                     }
@@ -1175,7 +1268,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate) {
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                if (bloqueado) L10n.t("Se acabó tu prueba gratuita") else L10n.t("Toca para apuntarlo"),
+                if (premium) L10n.t("Toca para apuntarlo") else L10n.t("Sueño y siestas, gratis. El resto, con Nubi Premium."),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -1661,37 +1754,41 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     val contexto = LocalContext.current
     val ahora = Instant.now()
     val premiumHasta = perfil?.premiumHasta
+    // Premium.activo(), no perfil.puedeUsarApp(): esta tarjeta mostraba
+    // antes "Período de prueba"/"Prueba finalizada" según
+    // fechaCortePrueba, el mecanismo de prueba SIN tarjeta que Android ya
+    // no usa para decidir acceso (ver el comentario de
+    // Perfil.puedeUsarApp() en Modelos.kt) — decía una cosa mientras el
+    // resto de la app, correctamente, se regía por otra.
+    val premiumActivo = Premium.activo(perfil)
+    var mostrarPaywall by remember { mutableStateOf(false) }
 
     val titulo: String
     val subtitulo: String
     val colorBadge: Color
-    val premiumActivo: Boolean
 
     when {
         perfil == null -> {
             titulo = L10n.t("Comprobando tu cuenta…")
             subtitulo = ""
             colorBadge = colores.tintaTenue
-            premiumActivo = false
         }
-        premiumHasta != null && ahora.isBefore(premiumHasta) -> {
+        premiumActivo && premiumHasta != null && ahora.isBefore(premiumHasta) -> {
             titulo = L10n.t("Nubi Premium activo")
             subtitulo = "${L10n.t("Hasta el")} ${formatoFecha.format(premiumHasta)}"
             colorBadge = colores.mantequilla
-            premiumActivo = true
         }
-        ahora.isBefore(perfil.fechaCortePrueba) -> {
-            val dias = Duration.between(ahora, perfil.fechaCortePrueba).toDays() + 1
-            titulo = L10n.t("Período de prueba")
-            subtitulo = if (dias <= 1L) L10n.t("Último día de prueba") else L10n.diasRestantesPrueba(dias)
-            colorBadge = colores.lila
-            premiumActivo = false
+        premiumActivo -> {
+            // Caso del interruptor de pruebas (ver más abajo): premium
+            // simulado sin fecha real de Play Billing detrás.
+            titulo = L10n.t("Nubi Premium activo")
+            subtitulo = L10n.t("Simulado para pruebas")
+            colorBadge = colores.mantequilla
         }
         else -> {
-            titulo = L10n.t("Prueba finalizada")
-            subtitulo = L10n.t("Canjea un código de regalo para seguir usando Nubi")
-            colorBadge = colores.coral
-            premiumActivo = false
+            titulo = L10n.t("Versión gratuita")
+            subtitulo = L10n.t("Sueño y siestas, gratis siempre. Hazte Premium para el resto.")
+            colorBadge = colores.lila
         }
     }
 
@@ -1722,6 +1819,70 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
             HorizontalDivider(color = colores.separador)
             Spacer(Modifier.height(12.dp))
 
+            // Entrada explícita a Premium desde Ajustes — no depende de
+            // tocar antes algo bloqueado en Hoy/Día.
+            if (!premiumActivo) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { mostrarPaywall = true }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BadgeIcono(
+                        IconoNubi.ESTRELLA,
+                        colorFondo = colores.lila,
+                        colorIcono = colores.tinta,
+                        tamano = 32.dp,
+                        tamanoIcono = 15.dp
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(L10n.t("Hazte Premium"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            L10n.t("7 días de prueba gratis"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaSuave
+                        )
+                    }
+                    Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
+            // Interruptor SOLO en builds de depuración (Premium.kt):
+            // desaparece del todo en release, no hace falta esconderlo
+            // con más vueltas.
+            if (Premium.disponibleEnPruebas) {
+                val forzado by Premium.forzadoEnPruebas.collectAsState()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { Premium.alternarPruebas() }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            L10n.t("[Debug] Simular Premium"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            L10n.t("Solo en esta build — no usa Play Billing"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                    Switch(checked = forzado, onCheckedChange = { Premium.alternarPruebas() })
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1750,6 +1911,10 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
         }
+    }
+
+    if (mostrarPaywall) {
+        HojaPremiumBloqueado { mostrarPaywall = false }
     }
 }
 

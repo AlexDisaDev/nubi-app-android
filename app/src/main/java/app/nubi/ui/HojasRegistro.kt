@@ -1481,8 +1481,8 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
             CabeceraHoja(
                 IconoNubi.CANDADO,
                 colores.lila,
-                L10n.t("Se acabó tu prueba gratuita"),
-                L10n.t("Han pasado tus 7 días de prueba. Canjea un código de regalo o hazte premium para seguir registrando.")
+                L10n.t("Esto es Nubi Premium"),
+                L10n.t("Sueño y siestas son gratis siempre. Para lo demás, empieza tu prueba gratuita de 7 días o canjea un código de regalo.")
             )
             Spacer(Modifier.height(20.dp))
             SelectorPlanesPremium()

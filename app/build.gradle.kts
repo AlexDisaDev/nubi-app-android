@@ -32,6 +32,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Necesario para BuildConfig.DEBUG, que usa Premium.kt para el
+        // interruptor de "simular premium" solo en builds de depuración.
+        buildConfig = true
     }
 
     compileOptions {

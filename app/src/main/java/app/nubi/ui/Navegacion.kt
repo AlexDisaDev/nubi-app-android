@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.nubi.data.Perfil
+import app.nubi.data.Premium
 import app.nubi.data.Repositorio
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
@@ -40,18 +42,19 @@ import app.nubi.ui.theme.NubiTheme
  * Las cinco pestañas de abajo, en el mismo orden y con los mismos nombres
  * que en iOS (enum Pestana en NubiApp.swift).
  */
-private enum class Pestana(val titulo: String) {
-    HOY(L10n.t("Hoy")),
-    DIA(L10n.t("Día")),
-    CRECE(L10n.t("Crece")),
-    SALUD(L10n.t("Salud")),
-    DIARIO(L10n.t("Diario"))
+private enum class Pestana(val titulo: String, val premium: Boolean) {
+    HOY(L10n.t("Hoy"), premium = false),
+    DIA(L10n.t("Día"), premium = false),
+    CRECE(L10n.t("Crece"), premium = true),
+    SALUD(L10n.t("Salud"), premium = false),
+    DIARIO(L10n.t("Diario"), premium = true)
 }
 
 /**
  * La barra de arriba (enum VistaSuperior en iOS): las tres secciones de
  * premium. Funcionan igual que las de abajo — se selecciona una y se ve
- * su pantalla — solo que están arriba.
+ * su pantalla — solo que están arriba. Las tres son premium: tocarlas sin
+ * acceso abre el paywall en vez de cambiar de pantalla (ver [Navegacion]).
  */
 private enum class VistaSuperior(val titulo: String) {
     BANCO(L10n.t("Banco")),
@@ -87,11 +90,26 @@ private fun iconoDe(v: VistaSuperior): IconoNubi = when (v) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Navegacion(alCerrarSesion: () -> Unit) {
+fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val datos by Repositorio.local.datos.collectAsState()
     var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
+    // Se abre al tocar algo premium sin tener acceso — una sola variable
+    // para toda la pantalla, igual que [destino], en vez de un estado por
+    // cada sitio que pueda bloquear.
+    var mostrarBloqueo by remember { mutableStateOf(false) }
+    val premium = Premium.activo(perfil)
     val colores = NubiTheme.colores
+
+    /** Cambia de pestaña de abajo si es gratis, o si ya hay premium; si no, abre el paywall. */
+    fun irA(p: Pestana) {
+        if (!p.premium || premium) destino = Destino.Abajo(p) else mostrarBloqueo = true
+    }
+
+    /** Lo mismo para las tres secciones de arriba, que son premium siempre. */
+    fun irA(v: VistaSuperior) {
+        if (premium) destino = Destino.Arriba(v) else mostrarBloqueo = true
+    }
 
     // Idioma: se guarda igual que el tema (preferencia de este móvil, no se
     // sincroniza). Esto es lo que recupera lo elegido la última vez al
@@ -149,7 +167,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { destino = Destino.Arriba(v) },
+                                    .clickable { irA(v) },
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -173,7 +191,7 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                         val activa = (destino as? Destino.Abajo)?.pestana == p
                         NavigationBarItem(
                             selected = activa,
-                            onClick = { destino = Destino.Abajo(p) },
+                            onClick = { irA(p) },
                             icon = {
                                 Icono(
                                     iconoDe(p),
@@ -219,12 +237,13 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                             PantallaHoy(
                                 bebe = it,
                                 registros = datos.registros,
+                                premium = premium,
                                 oscuro = oscuroActual,
                                 alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
                                 alAbrirAjustes = { enAjustes = true }
                             )
                         }
-                        Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros) }
+                        Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros, premium = premium) }
                         Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
                         Pestana.SALUD -> datos.bebe?.let {
                             PantallaSalud(
@@ -242,5 +261,9 @@ fun Navegacion(alCerrarSesion: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (mostrarBloqueo) {
+        HojaPremiumBloqueado { mostrarBloqueo = false }
     }
 }
