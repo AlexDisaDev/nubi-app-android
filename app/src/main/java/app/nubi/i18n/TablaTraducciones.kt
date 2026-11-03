@@ -692,6 +692,18 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
         "it" to "Prova Nubi Premium gratis per 7 giorni",
         "fr" to "Essayez Nubi Premium gratuitement pendant 7 jours"
     ),
+    // Paywall simplificado: subtítulo corto (sustituye al párrafo largo)
+    // y el código de regalo plegado detrás de un enlace.
+    "Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás." to mapOf(
+        "en" to "Today, Growth and Health stay free. Premium unlocks everything else.",
+        "it" to "Oggi, Crescita e Salute restano gratis. Premium sblocca tutto il resto.",
+        "fr" to "Aujourd'hui, Croissance et Santé restent gratuits. Premium débloque tout le reste."
+    ),
+    "Tengo un código de regalo" to mapOf(
+        "en" to "I have a gift code",
+        "it" to "Ho un codice regalo",
+        "fr" to "J'ai un code cadeau"
+    ),
     "Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play." to mapOf(
         "en" to "After the seventh day, you'll be charged for the plan you choose. Cancel anytime from Google Play.",
         "it" to "Dopo il settimo giorno verrà addebitato il piano scelto. Annulla quando vuoi da Google Play.",

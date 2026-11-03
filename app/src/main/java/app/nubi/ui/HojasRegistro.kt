@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -1476,28 +1477,26 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
+    // A pantalla completa a propósito (fillMaxSize), no media hoja: antes
+    // la info quedaba cortada abajo y había que arrastrar para ver el
+    // botón de pagar y el código de regalo. Un paywall que obliga a
+    // buscar el botón convierte peor, y además así el muro no compite con
+    // la pantalla que se ve a medias por detrás.
+    //
+    // El contenido es ContenidoPaywall() (PantallaPaywall.kt), el mismo
+    // que la pantalla de paywall: una sola versión del muro, no dos.
+    ModalBottomSheet(
+        onDismissRequest = onCerrar,
+        sheetState = sheetState,
+        containerColor = colores.lienzo,
+        modifier = Modifier.fillMaxSize()
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = NubiGeometria.margen)
-                .padding(bottom = 28.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            CabeceraHoja(
-                IconoNubi.CANDADO,
-                colores.lila,
-                L10n.t("Esto es Nubi Premium"),
-                L10n.t("Apuntar sueño y siestas desde Hoy, Crece y Salud son gratis siempre. Para todo lo demás, empieza tu prueba gratuita de 7 días o canjea un código de regalo.")
-            )
-            Spacer(Modifier.height(20.dp))
-            SelectorPlanesPremium()
-            Spacer(Modifier.height(16.dp))
-            BloqueCanjearCodigo(
-                alCanjear = {
-                    Repositorio.sincronizarEnSegundoPlano()
-                    onCerrar()
-                }
-            )
+            ContenidoPaywall()
         }
     }
 }

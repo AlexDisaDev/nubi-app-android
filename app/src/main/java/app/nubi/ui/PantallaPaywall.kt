@@ -50,12 +50,11 @@ import com.android.billingclient.api.ProductDetails
 import kotlin.math.roundToInt
 
 /**
- * Muro de pago "duro", tal cual como iOS: bloquea toda la app hasta que
- * haya una suscripción vigente (Perfil.tieneAccesoPagado()). Se muestra
- * desde MainActivity.ContenidoApp() en cuanto hay un bebé creado y no hay
- * acceso de pago — ver esa función para el porqué no se usa
- * Perfil.puedeUsarApp() aquí (esa sí deja pasar durante fechaCortePrueba,
- * que ya no es el mecanismo de prueba de Android).
+ * El paywall como PANTALLA entera. Desde que Nubi es freemium, la app ya
+ * no se bloquea de entrada (eso era el muro duro anterior), así que hoy
+ * el paywall se ve casi siempre como hoja a pantalla completa al tocar
+ * algo bloqueado — ver HojaPremiumBloqueado() en HojasRegistro.kt. Las
+ * dos pintan exactamente lo mismo: [ContenidoPaywall].
  *
  * El trial de 7 días vive en Play Billing (con tarjeta), no aquí: cada
  * plan ya trae su oferta de prueba configurada en Play Console, así que
@@ -65,6 +64,35 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun PantallaPaywall() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        ContenidoPaywall()
+    }
+}
+
+/**
+ * El paywall, en una sola pieza, para que sea EL MISMO se abra donde se
+ * abra (hoja a pantalla completa al tocar algo bloqueado, o pantalla
+ * propia). Antes había dos versiones distintas del mismo muro y se
+ * desincronizaban solas.
+ *
+ * Orden deliberado, de arriba abajo, pensado para que la decisión se pueda
+ * tomar sin hacer scroll:
+ *
+ *   1. Qué te llevas y qué te cuesta HOY (nada) — el titular.
+ *   2. Qué sigue siendo gratis — quita el miedo a quedarse fuera.
+ *   3. Cuatro ventajas de una línea — valor, sin párrafos que nadie lee.
+ *   4. Planes + UN solo botón de compra.
+ *   5. Lo demás (restaurar compra, código de regalo) en letra pequeña y,
+ *      el código, plegado: antes era un campo de texto a tamaño completo
+ *      compitiendo con el botón de pagar, que es justo lo que no interesa
+ *      en un paywall — cada elemento que compite con el CTA le resta.
+ */
+@Composable
+fun ContenidoPaywall() {
     val colores = NubiTheme.colores
 
     // Una vez por composición (no en cada recomposición al escribir/tocar
@@ -75,84 +103,96 @@ fun PantallaPaywall() {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(NubiGeometria.margen),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .fillMaxWidth()
+            .padding(horizontal = NubiGeometria.margen)
+            .padding(bottom = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        BadgeIcono(IconoNubi.ESTRELLA, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 60.dp, tamanoIcono = 28.dp)
-        Spacer(Modifier.height(16.dp))
+        BadgeIcono(IconoNubi.ESTRELLA, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 56.dp, tamanoIcono = 26.dp)
+        Spacer(Modifier.height(14.dp))
         Text(
             L10n.t("Prueba Nubi Premium gratis 7 días"),
             style = MaterialTheme.typography.headlineSmall,
             color = colores.tinta,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
-            L10n.t("Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play."),
+            L10n.t("Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás."),
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(24.dp))
 
-        Ventajas()
+        Spacer(Modifier.height(22.dp))
+        VentajasCompactas()
 
-        Spacer(Modifier.height(24.dp))
-
+        Spacer(Modifier.height(22.dp))
         SelectorPlanesPremium()
 
-        Spacer(Modifier.height(20.dp))
-        BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
+        Spacer(Modifier.height(10.dp))
+        Text(
+            L10n.t("Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play."),
+            style = MaterialTheme.typography.bodySmall,
+            color = colores.tintaTenue,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(8.dp))
+        BloqueCodigoPlegado()
     }
 }
 
 /**
- * Las 3 ventajas más fuertes, recortadas a una línea cada una.
- *
- * Son las mismas 3 (texto y colores) que ya tiene iOS de sus 5 en
- * Paywall.swift (ventanas que aprenden, curvas de peso y estatura, datos
- * protegidos) — no son nuevo copy inventado aquí, solo la selección más
- * corta para que se lea antes de decidir, no después.
+ * Las cuatro ventajas, a UNA línea cada una (antes eran tres con un
+ * párrafo debajo). El texto de cada una es el que ya existía como título
+ * en la versión larga, así que no hay copy nuevo que traducir ni promesas
+ * nuevas que Google pueda considerar que no se cumplen.
  */
 @Composable
-private fun Ventajas() {
+private fun VentajasCompactas() {
     val colores = NubiTheme.colores
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        FilaVentaja(
-            IconoNubi.NUBE, colores.menta,
-            L10n.t("Ventanas que aprenden de tu bebé"),
-            L10n.t("El ritmo real del tuyo, afinado cada día, no una tabla por edad.")
-        )
-        FilaVentaja(
-            IconoNubi.REGLA, colores.melocoton,
-            L10n.t("Curvas de peso y estatura"),
-            L10n.t("La evolución entre revisión y revisión, no solo el último número.")
-        )
-        FilaVentaja(
-            IconoNubi.CANDADO, colores.lila,
-            L10n.t("Tus datos, protegidos"),
-            L10n.t("Nunca se comparten ni se usan para entrenar nada.")
-        )
+        FilaVentaja(IconoNubi.NUBE, colores.menta, L10n.t("Ventanas que aprenden de tu bebé"))
+        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Historial completo"))
+        FilaVentaja(IconoNubi.REGLA, colores.melocoton, L10n.t("Curvas de peso y estatura"))
+        FilaVentaja(IconoNubi.CANDADO, colores.lila, L10n.t("Tus datos, protegidos"))
     }
 }
 
 @Composable
-private fun FilaVentaja(icono: IconoNubi, color: androidx.compose.ui.graphics.Color, titulo: String, texto: String) {
+private fun FilaVentaja(icono: IconoNubi, color: androidx.compose.ui.graphics.Color, titulo: String) {
     val colores = NubiTheme.colores
-    Row(verticalAlignment = Alignment.Top) {
-        BadgeIcono(icono, colorFondo = color, colorIcono = colores.tinta, tamano = 34.dp, tamanoIcono = 16.dp)
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = colores.tinta)
-            Spacer(Modifier.height(2.dp))
-            Text(texto, style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        BadgeIcono(icono, colorFondo = color, colorIcono = colores.tinta, tamano = 30.dp, tamanoIcono = 15.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(
+            titulo,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = colores.tinta
+        )
+    }
+}
+
+/**
+ * El código de regalo, plegado detrás de un enlace. Lo usa poca gente (es
+ * para quien recibe un regalo), pero desplegado ocupaba un campo de texto
+ * entero justo debajo del botón de pagar y le robaba la atención.
+ */
+@Composable
+private fun BloqueCodigoPlegado() {
+    var abierto by remember { mutableStateOf(false) }
+
+    if (!abierto) {
+        TextButton(onClick = { abierto = true }, modifier = Modifier.fillMaxWidth()) {
+            Text(L10n.t("Tengo un código de regalo"))
         }
+    } else {
+        BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
     }
 }
 
