@@ -33,7 +33,19 @@ jobs:
           java-version: '17'
 
       - name: Preparar el SDK de Android
+        # OJO: la propia acción @v3 trae por defecto `packages: 'tools
+        # platform-tools'`, y ese paquete "tools" es el antiguo "Android SDK
+        # Tools" independiente, que Google retiró del repositorio de SDKs
+        # hace años — sdkmanager ya no lo encuentra y el paso falla siempre
+        # aquí, antes de llegar a compilar nada. Es un valor por defecto
+        # obsoleto de la propia acción (su rama principal ya lo quitó y deja
+        # solo 'platform-tools'); no es algo que hubiera cambiado yo. Al
+        # pedir aquí solo 'platform-tools', Gradle/AGP descargan ellos mismos
+        # la plataforma y las build-tools que compileSdk necesite durante el
+        # propio "Compilar", que es como se hace normalmente en CI.
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Preparar Gradle 9.6.0
         uses: gradle/actions/setup-gradle@v4
