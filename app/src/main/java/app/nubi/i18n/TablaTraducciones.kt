@@ -710,4 +710,95 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     "1 mes" to mapOf("en" to "1 month", "it" to "1 mese", "fr" to "1 mois"),
     "1 año" to mapOf("en" to "1 year", "it" to "1 anno", "fr" to "1 an"),
     "año" to mapOf("en" to "year", "it" to "anno", "fr" to "an"),
+
+    // -----------------------------------------------------------------
+    // Freemium: paywall nuevo, vista previa de las pantallas premium y
+    // textos de lo que queda bloqueado. Sin estas entradas, L10n.t()
+    // devuelve el español tal cual (ver L10n.kt), así que un usuario en
+    // inglés vería media app traducida y estos carteles en español.
+    //
+    // Los textos del interruptor de depuración ("[Debug] Simular
+    // Premium", "Simulado para pruebas", "Solo en esta build — no usa
+    // Play Billing") se dejan a propósito sin traducir: solo salen en
+    // builds de depuración, nunca en la versión publicada.
+    // -----------------------------------------------------------------
+    "Esto es Nubi Premium" to mapOf(
+        "en" to "This is Nubi Premium",
+        "it" to "Questo è Nubi Premium",
+        "fr" to "Ceci est Nubi Premium"
+    ),
+    "Apuntar sueño y siestas desde Hoy, Crece y Salud son gratis siempre. Para todo lo demás, empieza tu prueba gratuita de 7 días o canjea un código de regalo." to mapOf(
+        "en" to "Logging sleep and naps from Today, plus Growth and Health, are always free. For everything else, start your 7-day free trial or redeem a gift code.",
+        "it" to "Registrare sonno e pisolini da Oggi, più Crescita e Salute, è sempre gratis. Per tutto il resto, inizia la prova gratuita di 7 giorni o riscatta un codice regalo.",
+        "fr" to "Enregistrer le sommeil et les siestes depuis Aujourd'hui, ainsi que Croissance et Santé, sont toujours gratuits. Pour tout le reste, commencez votre essai gratuit de 7 jours ou utilisez un code cadeau."
+    ),
+    "Hazte Premium" to mapOf(
+        "en" to "Go Premium",
+        "it" to "Passa a Premium",
+        "fr" to "Passer à Premium"
+    ),
+    "Versión gratuita" to mapOf(
+        "en" to "Free version",
+        "it" to "Versione gratuita",
+        "fr" to "Version gratuite"
+    ),
+    "Apuntar sueño y siestas desde Hoy es gratis. Hazte Premium para el resto." to mapOf(
+        "en" to "Logging sleep and naps from Today is free. Go Premium for everything else.",
+        "it" to "Registrare sonno e pisolini da Oggi è gratis. Passa a Premium per il resto.",
+        "fr" to "Enregistrer le sommeil et les siestes depuis Aujourd'hui est gratuit. Passez à Premium pour le reste."
+    ),
+    "Apuntar a otra hora es parte de Nubi Premium." to mapOf(
+        "en" to "Logging at another time is part of Nubi Premium.",
+        "it" to "Registrare a un altro orario fa parte di Nubi Premium.",
+        "fr" to "Enregistrer à une autre heure fait partie de Nubi Premium."
+    ),
+    "X para borrarlo · editar es parte de Nubi Premium" to mapOf(
+        "en" to "X to delete · editing is part of Nubi Premium",
+        "it" to "X per eliminarlo · modificare fa parte di Nubi Premium",
+        "fr" to "X pour le supprimer · modifier fait partie de Nubi Premium"
+    ),
+    "Próxima ventana de sueño" to mapOf(
+        "en" to "Next sleep window",
+        "it" to "Prossima finestra di sonno",
+        "fr" to "Prochaine fenêtre de sommeil"
+    ),
+    "Nubi ya sabe cuándo toca — desbloquéalo con Premium" to mapOf(
+        "en" to "Nubi already knows when it's due — unlock it with Premium",
+        "it" to "Nubi sa già quando tocca — sbloccalo con Premium",
+        "fr" to "Nubi sait déjà quand c'est l'heure — débloquez-le avec Premium"
+    ),
+    "Parte de Nubi Premium" to mapOf(
+        "en" to "Part of Nubi Premium",
+        "it" to "Fa parte di Nubi Premium",
+        "fr" to "Fait partie de Nubi Premium"
+    ),
+    "Sin sueño en curso." to mapOf(
+        "en" to "No sleep in progress.",
+        "it" to "Nessun sonno in corso.",
+        "fr" to "Aucun sommeil en cours."
+    ),
+
+    // Paywall: ventajas, planes y ahorro (PantallaPaywall.kt).
+    "7 días de prueba gratis" to mapOf(
+        "en" to "7-day free trial",
+        "it" to "7 giorni di prova gratis",
+        "fr" to "7 jours d'essai gratuit"
+    ),
+    "Empezar prueba gratis de 7 días" to mapOf(
+        "en" to "Start 7-day free trial",
+        "it" to "Inizia la prova gratuita di 7 giorni",
+        "fr" to "Démarrer l'essai gratuit de 7 jours"
+    ),
+    "El ritmo real del tuyo, afinado cada día, no una tabla por edad." to mapOf(
+        "en" to "Your baby's real rhythm, fine-tuned every day — not a chart by age.",
+        "it" to "Il ritmo reale del tuo bambino, affinato ogni giorno, non una tabella per età.",
+        "fr" to "Le rythme réel de votre bébé, affiné chaque jour, pas un tableau par âge."
+    ),
+    "Nunca se comparten ni se usan para entrenar nada." to mapOf(
+        "en" to "Never shared, never used to train anything.",
+        "it" to "Mai condivisi, mai usati per addestrare nulla.",
+        "fr" to "Jamais partagées, jamais utilisées pour entraîner quoi que ce soit."
+    ),
+    "Ahorras" to mapOf("en" to "You save", "it" to "Risparmi", "fr" to "Vous économisez"),
+    "sale a" to mapOf("en" to "works out to", "it" to "viene", "fr" to "revient à"),
 )

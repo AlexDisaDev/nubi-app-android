@@ -1,15 +1,21 @@
 package app.nubi.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -45,7 +51,7 @@ import app.nubi.ui.theme.NubiTheme
 private enum class Pestana(val titulo: String, val premium: Boolean) {
     HOY(L10n.t("Hoy"), premium = false),
     DIA(L10n.t("Día"), premium = false),
-    CRECE(L10n.t("Crece"), premium = true),
+    CRECE(L10n.t("Crece"), premium = false),
     SALUD(L10n.t("Salud"), premium = false),
     DIARIO(L10n.t("Diario"), premium = true)
 }
@@ -53,8 +59,7 @@ private enum class Pestana(val titulo: String, val premium: Boolean) {
 /**
  * La barra de arriba (enum VistaSuperior en iOS): las tres secciones de
  * premium. Funcionan igual que las de abajo — se selecciona una y se ve
- * su pantalla — solo que están arriba. Las tres son premium: tocarlas sin
- * acceso abre el paywall en vez de cambiar de pantalla (ver [Navegacion]).
+ * su pantalla — solo que están arriba. Las tres son premium.
  */
 private enum class VistaSuperior(val titulo: String) {
     BANCO(L10n.t("Banco")),
@@ -94,22 +99,16 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val datos by Repositorio.local.datos.collectAsState()
     var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
-    // Se abre al tocar algo premium sin tener acceso — una sola variable
-    // para toda la pantalla, igual que [destino], en vez de un estado por
-    // cada sitio que pueda bloquear.
-    var mostrarBloqueo by remember { mutableStateOf(false) }
     val premium = Premium.activo(perfil)
     val colores = NubiTheme.colores
 
-    /** Cambia de pestaña de abajo si es gratis, o si ya hay premium; si no, abre el paywall. */
-    fun irA(p: Pestana) {
-        if (!p.premium || premium) destino = Destino.Abajo(p) else mostrarBloqueo = true
-    }
-
-    /** Lo mismo para las tres secciones de arriba, que son premium siempre. */
-    fun irA(v: VistaSuperior) {
-        if (premium) destino = Destino.Arriba(v) else mostrarBloqueo = true
-    }
+    // Navegar nunca se bloquea: a TODAS las pestañas y secciones se entra
+    // igual, con o sin premium. Lo que cambia es lo que se encuentra
+    // dentro — las premium se envuelven en [ConVistaPrevia], que deja ver
+    // la pantalla pero no usarla. Se enseña antes de cobrar: una pestaña
+    // que no abre no vende nada, una que abre y se ve bonita sí.
+    fun irA(p: Pestana) { destino = Destino.Abajo(p) }
+    fun irA(v: VistaSuperior) { destino = Destino.Arriba(v) }
 
     // Idioma: se guarda igual que el tema (preferencia de este móvil, no se
     // sincroniza). Esto es lo que recupera lo elegido la última vez al
@@ -222,48 +221,117 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 )
 
                 else -> when (val d = destino) {
-                    is Destino.Arriba -> when (d.vista) {
-                        VistaSuperior.BANCO -> datos.bebe?.let {
-                            PantallaBanco(it, datos.extracciones, datos.usosLeche)
+                    // Las tres de arriba son premium siempre; de las cinco
+                    // de abajo, solo las que lo digan en el propio enum.
+                    is Destino.Arriba -> ConVistaPrevia(bloqueado = !premium) {
+                        when (d.vista) {
+                            VistaSuperior.BANCO -> datos.bebe?.let {
+                                PantallaBanco(it, datos.extracciones, datos.usosLeche)
+                            }
+                            VistaSuperior.ALIMENTACION -> datos.bebe?.let {
+                                PantallaAlimentacion(it, datos.comidas)
+                            }
+                            VistaSuperior.SONIDOS -> PantallaSonidos()
                         }
-                        VistaSuperior.ALIMENTACION -> datos.bebe?.let {
-                            PantallaAlimentacion(it, datos.comidas)
-                        }
-                        VistaSuperior.SONIDOS -> PantallaSonidos()
                     }
 
-                    is Destino.Abajo -> when (d.pestana) {
-                        Pestana.HOY -> datos.bebe?.let {
-                            PantallaHoy(
-                                bebe = it,
-                                registros = datos.registros,
-                                premium = premium,
-                                oscuro = oscuroActual,
-                                alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
-                                alAbrirAjustes = { enAjustes = true }
-                            )
+                    is Destino.Abajo -> ConVistaPrevia(
+                        bloqueado = d.pestana.premium && !premium
+                    ) {
+                        when (d.pestana) {
+                            Pestana.HOY -> datos.bebe?.let {
+                                PantallaHoy(
+                                    bebe = it,
+                                    registros = datos.registros,
+                                    premium = premium,
+                                    oscuro = oscuroActual,
+                                    alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
+                                    alAbrirAjustes = { enAjustes = true }
+                                )
+                            }
+                            Pestana.DIA -> datos.bebe?.let {
+                                PantallaDia(it, datos.registros, premium = premium)
+                            }
+                            Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
+                            Pestana.SALUD -> datos.bebe?.let {
+                                PantallaSalud(
+                                    bebe = it,
+                                    citas = datos.citas,
+                                    vacunas = datos.vacunas,
+                                    gruposVacunas = datos.gruposVacunas,
+                                    vacunasPropias = datos.vacunasPropias,
+                                    enfermedades = datos.enfermedades,
+                                    comunidadGuardada = datos.comunidad
+                                )
+                            }
+                            Pestana.DIARIO -> datos.bebe?.let { PantallaDiario(it, datos.diario) }
                         }
-                        Pestana.DIA -> datos.bebe?.let { PantallaDia(it, datos.registros, premium = premium) }
-                        Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
-                        Pestana.SALUD -> datos.bebe?.let {
-                            PantallaSalud(
-                                bebe = it,
-                                citas = datos.citas,
-                                vacunas = datos.vacunas,
-                                gruposVacunas = datos.gruposVacunas,
-                                vacunasPropias = datos.vacunasPropias,
-                                enfermedades = datos.enfermedades,
-                                comunidadGuardada = datos.comunidad
-                            )
-                        }
-                        Pestana.DIARIO -> datos.bebe?.let { PantallaDiario(it, datos.diario) }
                     }
                 }
             }
         }
     }
+}
 
-    if (mostrarBloqueo) {
-        HojaPremiumBloqueado { mostrarBloqueo = false }
+/**
+ * Envuelve una pantalla premium para que se pueda ENTRAR y ver cómo es,
+ * pero sin poder usarla: encima va un velo que se traga todos los toques
+ * y, abajo del todo, el botón que abre la hoja de planes.
+ *
+ * Va aquí, en la navegación, y no dentro de cada pantalla, a propósito:
+ * así PantallaBanco, PantallaAlimentacion, PantallaDiario y PantallaSonidos
+ * siguen sin saber nada de premium, y añadir o quitar una de la lista es
+ * cambiar una línea de [Navegacion], no entrar a tocar la pantalla.
+ *
+ * Con `bloqueado = false` (pantalla gratis, o cuenta con premium) se
+ * dibuja el contenido tal cual, sin capas intermedias de por medio.
+ */
+@Composable
+private fun ConVistaPrevia(bloqueado: Boolean, contenido: @Composable () -> Unit) {
+    if (!bloqueado) {
+        contenido()
+        return
+    }
+
+    val colores = NubiTheme.colores
+    var mostrarPaywall by remember { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxSize()) {
+        contenido()
+
+        // El velo: deja ver de sobra lo que hay debajo (esa es la gracia)
+        // y a la vez intercepta cualquier toque, así que nada de dentro
+        // llega a ejecutarse. Tocar en cualquier sitio abre los planes.
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(colores.lienzo.copy(alpha = 0.55f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { mostrarPaywall = true }
+        )
+
+        Button(
+            onClick = { mostrarPaywall = true },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colores.lila,
+                contentColor = colores.tinta
+            ),
+            shape = RoundedCornerShape(50),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(NubiGeometria.margen)
+                .height(52.dp)
+        ) {
+            Icono(IconoNubi.CANDADO, tint = colores.tinta, tamano = 16.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(L10n.t("Hazte Premium"), style = MaterialTheme.typography.labelLarge)
+        }
+    }
+
+    if (mostrarPaywall) {
+        HojaPremiumBloqueado { mostrarPaywall = false }
     }
 }

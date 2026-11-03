@@ -682,15 +682,20 @@ private fun TarjetaEtapaTexto(titulo: String, texto: String, colores: NubiColore
 }
 
 /** Qué dibujo e color le toca a cada etapa — ver MotorEtapas.kt. */
-fun iconoDeEtapa(id: String): IconoNubi = when (id) {
-    "brote_7dias" -> IconoNubi.NUBE
-    "crisis_lactancia_3sem" -> IconoNubi.CORAZON
-    "brote_6semanas" -> IconoNubi.NUBE
-    "regresion_4meses" -> IconoNubi.LUNA
-    "denticion_6meses" -> IconoNubi.GOTA
-    "separacion_8meses" -> IconoNubi.CORAZON
-    else -> IconoNubi.BOMBILLA
-}
+/**
+ * Todas las etapas (brotes, crisis, regresiones) llevan la misma bombilla.
+ *
+ * Antes cada una tenía su propio dibujo y se leía mal: el "Pico de llanto"
+ * salía con una nube, y la nube en el resto de la app significa siesta. La
+ * tarjeta dice "Toca para ver consejos", así que el icono tiene que
+ * anunciar justo eso — una idea, un consejo — y no el tema de la etapa.
+ *
+ * Se mantiene el parámetro `id` para no tocar los dos sitios que llaman a
+ * esta función (la tarjeta de Hoy y la cabecera de HojaEtapa) y para poder
+ * volver a diferenciar por etapa si algún día hace falta.
+ */
+@Suppress("UNUSED_PARAMETER")
+fun iconoDeEtapa(id: String): IconoNubi = IconoNubi.BOMBILLA
 
 fun colorDeEtapa(color: ColorEtapa, c: NubiColores): Color = when (color) {
     ColorEtapa.MENTA -> c.menta
@@ -1482,7 +1487,7 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
                 IconoNubi.CANDADO,
                 colores.lila,
                 L10n.t("Esto es Nubi Premium"),
-                L10n.t("Sueño y siestas son gratis siempre. Para lo demás, empieza tu prueba gratuita de 7 días o canjea un código de regalo.")
+                L10n.t("Apuntar sueño y siestas desde Hoy, Crece y Salud son gratis siempre. Para todo lo demás, empieza tu prueba gratuita de 7 días o canjea un código de regalo.")
             )
             Spacer(Modifier.height(20.dp))
             SelectorPlanesPremium()

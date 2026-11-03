@@ -106,6 +106,12 @@ fun RelojDelDia(
     dia: LocalDate = LocalDate.now(),
     ahora: Instant = Instant.now(),
     nombreBebe: String? = null,
+    // Las insignias de FUERA del anillo (nube de siesta prevista, luna de
+    // noche prevista) son la predicción de MotorSueno — es decir, lo que se
+    // vende. Sin premium se pasa `false` y no se dibujan ni se calculan: el
+    // reloj sigue mostrando lo que de verdad ha pasado (sueños reales,
+    // eventos, despertar), pero no lo que está por venir.
+    mostrarPrediccion: Boolean = true,
     alTocarEvento: (Registro) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -138,7 +144,11 @@ fun RelojDelDia(
     }
 
     val ventanasIdeales: List<VentanaIdeal> =
-        MotorSueno.ventanasIdealesDelDia(bebe = bebe, registros = registros, dia = diaInstante, ahora = ahora)
+        if (mostrarPrediccion) {
+            MotorSueno.ventanasIdealesDelDia(bebe = bebe, registros = registros, dia = diaInstante, ahora = ahora)
+        } else {
+            emptyList()
+        }
     val despertar: Instant? = MotorSueno.despertarDelDia(registros = registros, dia = diaInstante)
 
     BoxWithConstraints(modifier.fillMaxWidth().aspectRatio(1f)) {

@@ -909,14 +909,10 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
     // Al tocar una fila de "Todo lo del día" se reabre su misma hoja de
     // registro, en modo edición (ver HojaEditarRegistro más abajo).
     var registroEditando by remember { mutableStateOf<Registro?>(null) }
-    // Mismo sheet que usa BotoneraDia al tocar un tipo bloqueado — se
+    // Mismo sheet que usa BotoneraDia al tocar un botón bloqueado — se
     // comparte aquí para la flecha de "día anterior" y para editar un
-    // registro que no sea de sueño, que sin premium tampoco se puede.
+    // registro desde la lista, que sin premium tampoco se puede.
     var mostrarBloqueo by remember { mutableStateOf(false) }
-
-    /** Son los únicos tipos que se dejan registrar/editar sin premium. */
-    fun esTipoGratis(tipo: TipoRegistro) =
-        tipo == TipoRegistro.SIESTA || tipo == TipoRegistro.NOCHE || tipo == TipoRegistro.DESPERTAR
 
     // Todo lo que pertenece a este día: los sueños se recortan por si
     // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
@@ -994,7 +990,12 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
         }
 
         Spacer(Modifier.height(16.dp))
-        RelojDelDia(bebe = bebe, registros = registros, dia = diaSeleccionado)
+        RelojDelDia(
+            bebe = bebe,
+            registros = registros,
+            dia = diaSeleccionado,
+            mostrarPrediccion = premium
+        )
 
         Spacer(Modifier.height(20.dp))
         BarraSuenoDia(guiaEdad, minutosSueno, suenoSaludable)
@@ -1009,7 +1010,12 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
             color = colores.tintaTenue
         )
         Text(
-            L10n.t("Toca un registro para editarlo · X para borrarlo"),
+            // Sin premium editar está bloqueado, así que la ayuda no puede
+            // seguir diciendo "toca para editarlo". Borrar sí se deja: son
+            // sus datos, y es la única forma de arreglar un toque mal dado
+            // en Hoy sin tener que pagar para ello.
+            if (premium) L10n.t("Toca un registro para editarlo · X para borrarlo")
+            else L10n.t("X para borrarlo · editar es parte de Nubi Premium"),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )
@@ -1028,8 +1034,9 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
                     diaMostrado = diaSeleccionado,
                     esUltimo = indice == listaCompleta.lastIndex,
                     onEditar = {
-                        if (premium || esTipoGratis(registro.tipo)) registroEditando = registro
-                        else mostrarBloqueo = true
+                        // Sin premium la lista se ve entera, pero es de solo
+                        // lectura: editar cualquier registro abre el paywall.
+                        if (premium) registroEditando = registro else mostrarBloqueo = true
                     },
                     onBorrar = { Repositorio.borrarRegistro(registro.id) }
                 )
@@ -1215,21 +1222,20 @@ private fun BarraSuenoDia(
 private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
     val colores = NubiTheme.colores
 
-    // Solo sueño/siesta/despertar quedan gratis aquí (son los que
-    // alimenta MotorSueno.kt): el resto de tipos son premium. Antes esto
-    // era un único "bloqueado" para TODOS los tipos a la vez, calculado
-    // con Perfil.puedeUsarApp() (el mecanismo de prueba sin tarjeta que ya
-    // no se usa — ver el comentario de esa función en Modelos.kt).
-    fun bloqueadoPara(tipo: TipoRegistro) = !premium && tipo != TipoRegistro.SIESTA &&
-        tipo != TipoRegistro.NOCHE && tipo != TipoRegistro.DESPERTAR
+    // Sin premium se bloquean los ocho tipos, sin excepción. La diferencia
+    // con la pestaña Hoy es a propósito: en Hoy se puede apuntar una siesta
+    // o un sueño EN EL MOMENTO (es lo que crea el hábito y lo que alimenta
+    // a MotorSueno.kt durante la prueba), pero apuntar o corregir algo "de
+    // hace un rato", que es para lo que sirve esta botonera, ya es premium.
+    val bloqueado = !premium
 
     var hojaAbierta by remember { mutableStateOf<TipoRegistro?>(null) }
     var menuPechoAbierto by remember { mutableStateOf(false) }
     var ladoPechoElegido by remember { mutableStateOf<LadoPecho?>(null) }
     var mostrarBloqueo by remember { mutableStateOf(false) }
 
-    fun alTocar(tipo: TipoRegistro, abrir: () -> Unit) {
-        if (bloqueadoPara(tipo)) mostrarBloqueo = true else abrir()
+    fun alTocar(abrir: () -> Unit) {
+        if (bloqueado) mostrarBloqueo = true else abrir()
     }
 
     Card(
@@ -1246,8 +1252,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                     fila.forEach { tipo ->
                         if (tipo == TipoRegistro.PECHO) {
                             Box {
-                                BotonCircular(tipo, bloqueado = bloqueadoPara(tipo)) {
-                                    alTocar(tipo) { menuPechoAbierto = true }
+                                BotonCircular(tipo, bloqueado = bloqueado) {
+                                    alTocar { menuPechoAbierto = true }
                                 }
                                 MenuPecho(
                                     expandido = menuPechoAbierto,
@@ -1259,8 +1265,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                                 )
                             }
                         } else {
-                            BotonCircular(tipo, bloqueado = bloqueadoPara(tipo)) {
-                                alTocar(tipo) { hojaAbierta = tipo }
+                            BotonCircular(tipo, bloqueado = bloqueado) {
+                                alTocar { hojaAbierta = tipo }
                             }
                         }
                     }
@@ -1268,7 +1274,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                if (premium) L10n.t("Toca para apuntarlo") else L10n.t("Sueño y siestas, gratis. El resto, con Nubi Premium."),
+                if (premium) L10n.t("Toca para apuntarlo")
+                else L10n.t("Apuntar a otra hora es parte de Nubi Premium."),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
             )
@@ -1787,7 +1794,7 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
         }
         else -> {
             titulo = L10n.t("Versión gratuita")
-            subtitulo = L10n.t("Sueño y siestas, gratis siempre. Hazte Premium para el resto.")
+            subtitulo = L10n.t("Apuntar sueño y siestas desde Hoy es gratis. Hazte Premium para el resto.")
             colorBadge = colores.lila
         }
     }
