@@ -89,10 +89,10 @@ fun PantallaPaywall() {
  *
  *   logo 44 · "Nubi Premium" serif 32 · subtítulo 15
  *   4 ventajas de una línea (insignia 30 + texto 15)
- *   planes (tarjeta con radio, precio y ahorro)
- *   botón de compra en cápsula lila + "Restaurar compras"
- *   letra pequeña con condiciones y enlaces legales
- *   enlaces de regalo, en pequeño, al final
+ *   planes (tarjeta con radio, precio y ahorro) + botón de compra en cápsula lila
+ *   "Tengo un código de regalo", justo debajo del botón
+ *   letra pequeña con condiciones y enlaces legales (Términos / Privacidad)
+ *   "Restaurar compras", al final del todo
  *
  * Todo alineado a la izquierda y con 20 dp entre bloques, como la
  * VStack(alignment: .leading, spacing: 20) de iOS.
@@ -126,8 +126,9 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
             CabeceraPaywall()
             VentajasPaywall()
             SelectorPlanesPremium()
+            EnlaceCodigoRegalo()
             LetraPequenaPaywall()
-            EnlacesRegalo()
+            EnlaceRestaurarCompras()
         }
 
         if (onCerrar != null) {
@@ -163,7 +164,7 @@ private fun CabeceraPaywall() {
             // si no, dice qué sigue siendo gratis. Nada de inventarse una
             // prueba que esta cuenta ya no tiene.
             if (prueba != null) L10n.subtituloConPrueba(prueba)
-            else L10n.t("Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás."),
+            else L10n.t("Hoy, Crece y salud siguen siendo gratis. Premium desbloquea todas funciones."),
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
             color = colores.tintaSuave
         )
@@ -178,9 +179,9 @@ private fun VentajasPaywall() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        FilaVentaja(IconoNubi.NUBE, colores.menta, L10n.t("Ventanas que aprenden de tu bebé"))
-        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Historial completo"))
-        FilaVentaja(IconoNubi.REGLA, colores.melocoton, L10n.t("Curvas de peso y estatura"))
+        FilaVentaja(IconoNubi.NUBE, colores.menta, L10n.t("Anticipa las siestas del bebé"))
+        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Rutina completa del bebé"))
+        FilaVentaja(IconoNubi.REGLA, colores.melocoton, L10n.t("Registro de peso y estatura"))
         FilaVentaja(IconoNubi.CANDADO, colores.lila, L10n.t("Tus datos, protegidos"))
     }
 }
@@ -236,39 +237,48 @@ private fun LetraPequenaPaywall() {
 }
 
 /**
- * Los dos enlaces de regalo, en pequeño y al final, como `seccionRegalo`
- * en iOS: no es lo que se vende aquí, así que no debe competir con el
- * botón de pagar.
- *
- * El primero no existe en iOS: allí los códigos no se canjean dentro de
- * la app. Aquí sí, y quitarlo sería perder una función de verdad.
+ * El enlace para canjear un código de regalo, justo debajo del botón de
+ * compra. No existe en iOS: allí los códigos no se canjean dentro de la
+ * app. Antes vivía al final de la pantalla junto con "Regalar Nubi a
+ * alguien" (ya quitado); ahora va pegado al CTA porque es la otra forma
+ * de tener acceso, y conviene que se vea antes de llegar a la letra
+ * pequeña.
  */
 @Composable
-private fun EnlacesRegalo() {
+private fun EnlaceCodigoRegalo() {
     val colores = NubiTheme.colores
-    val enlaces = LocalUriHandler.current
     var canjeando by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (canjeando) {
-            BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
-        } else {
-            Text(
-                L10n.t("Tengo un código de regalo"),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                fontWeight = FontWeight.Medium,
-                color = colores.tintaSuave,
-                modifier = Modifier.clickable { canjeando = true }
-            )
-        }
+    if (canjeando) {
+        BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
+    } else {
         Text(
-            L10n.t("Regalar Nubi a alguien"),
+            L10n.t("Tengo un código de regalo"),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
             fontWeight = FontWeight.Medium,
             color = colores.tintaSuave,
-            modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/regalar") }
+            modifier = Modifier.clickable { canjeando = true }
         )
     }
+}
+
+/**
+ * "Restaurar compras", al final del todo, debajo de Términos y
+ * Privacidad: antes vivía junto al botón de compra, pero es una acción de
+ * mantenimiento, no parte de decidir qué plan comprar.
+ */
+@Composable
+private fun EnlaceRestaurarCompras() {
+    val colores = NubiTheme.colores
+    Text(
+        L10n.t("Restaurar compras"),
+        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+        color = colores.tintaSuave,
+        modifier = Modifier.clickable {
+            EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
+            Compras.refrescar()
+        }
+    )
 }
 
 /** La X de cerrar de arriba a la derecha, igual que `botonCerrar`. */
@@ -343,7 +353,7 @@ fun SelectorPlanesPremium() {
             }
         }
 
-        // Bloque "accion": botón de compra + restaurar, 12 dp entre ellos.
+        // Bloque "accion": botón de compra (+ error si lo hay), 12 dp entre ellos.
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -366,16 +376,6 @@ fun SelectorPlanesPremium() {
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
-            Text(
-                L10n.t("Restaurar compras"),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                color = colores.tintaSuave,
-                modifier = Modifier.clickable {
-                    EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
-                    Compras.refrescar()
-                }
-            )
         }
     }
 }

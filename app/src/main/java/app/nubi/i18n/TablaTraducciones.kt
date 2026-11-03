@@ -409,11 +409,11 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "¿A qué hora se despertó?" to mapOf("en" to "What time did they wake up?", "it" to "A che ora si è svegliato?", "fr" to "À quelle heure s'est-il réveillé ?"),
     "Sección" to mapOf("en" to "Section", "it" to "Sezione", "fr" to "Section"),
     "Deja de adivinar cuándo toca la siesta." to mapOf("en" to "Stop guessing when the next nap is due.", "it" to "Smetti di indovinare quando tocca il pisolino.", "fr" to "Arrêtez de deviner l'heure de la sieste."),
-    "Ventanas que aprenden de tu bebé" to mapOf("en" to "Windows that learn from your baby", "it" to "Finestre che imparano dal tuo bimbo", "fr" to "Des fenêtres qui apprennent de votre bébé"),
+    "Anticipa las siestas del bebé" to mapOf("en" to "Anticipates your baby's naps", "it" to "Anticipa i pisolini del tuo bimbo", "fr" to "Anticipe les siestes de votre bébé"),
     "No una tabla por edad: el ritmo real del tuyo, afinado cada día." to mapOf("en" to "Not an age chart: your baby's real rhythm, refined every day.", "it" to "Non una tabella per età: il ritmo reale del tuo bimbo, affinato ogni giorno.", "fr" to "Pas un tableau par âge : le rythme réel de votre bébé, affiné chaque jour."),
-    "Historial completo" to mapOf("en" to "Full history", "it" to "Cronologia completa", "fr" to "Historique complet"),
+    "Rutina completa del bebé" to mapOf("en" to "Your baby's full routine", "it" to "La routine completa del tuo bimbo", "fr" to "La routine complète de votre bébé"),
     "Todos los días atrás, donde se ven las regresiones y los cambios de siesta." to mapOf("en" to "Every day in the past, where you can see regressions and nap changes.", "it" to "Tutti i giorni passati, dove si vedono le regressioni e i cambi di pisolino.", "fr" to "Tous les jours passés, où l'on voit les régressions et les changements de sieste."),
-    "Curvas de peso y estatura" to mapOf("en" to "Weight and height charts", "it" to "Curve di peso e altezza", "fr" to "Courbes de poids et de taille"),
+    "Registro de peso y estatura" to mapOf("en" to "Weight and height log", "it" to "Registro di peso e altezza", "fr" to "Suivi du poids et de la taille"),
     "La evolución entre revisión y revisión, no solo el último número." to mapOf("en" to "The trend between check-ups, not just the last number.", "it" to "L'andamento tra una visita e l'altra, non solo l'ultimo numero.", "fr" to "L'évolution entre chaque visite, pas seulement le dernier chiffre."),
     "Todas las anécdotas y los hitos que quieras guardar." to mapOf("en" to "Every story and milestone you want to keep.", "it" to "Tutti gli aneddoti e i traguardi che vuoi conservare.", "fr" to "Toutes les anecdotes et étapes que vous voulez garder."),
     "Tus datos, protegidos" to mapOf("en" to "Your data, protected", "it" to "I tuoi dati, protetti", "fr" to "Vos données, protégées"),
@@ -425,7 +425,6 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Trimestral" to mapOf("en" to "Quarterly", "it" to "Trimestrale", "fr" to "Trimestriel"),
     "Mensual" to mapOf("en" to "Monthly", "it" to "Mensile", "fr" to "Mensuel"),
     "Semanal" to mapOf("en" to "Weekly", "it" to "Settimanale", "fr" to "Hebdomadaire"),
-    "Regalar Nubi a alguien" to mapOf("en" to "Gift Nubi to someone", "it" to "Regala Nubi a qualcuno", "fr" to "Offrir Nubi à quelqu'un"),
     "Regala Nubi" to mapOf("en" to "Gift Nubi", "it" to "Regala Nubi", "fr" to "Offrir Nubi"),
     "Esta cuenta ya tiene un bebé en la nube" to mapOf("en" to "This account already has a baby in the cloud", "it" to "Questo account ha già un bimbo nel cloud", "fr" to "Ce compte a déjà un bébé dans le cloud"),
     "Usar los de mi cuenta" to mapOf("en" to "Use my account's data", "it" to "Usa quelli del mio account", "fr" to "Utiliser ceux de mon compte"),
@@ -708,10 +707,10 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     ),
     // Paywall simplificado: subtítulo corto (sustituye al párrafo largo)
     // y el código de regalo plegado detrás de un enlace.
-    "Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás." to mapOf(
-        "en" to "Today, Growth and Health stay free. Premium unlocks everything else.",
-        "it" to "Oggi, Crescita e Salute restano gratis. Premium sblocca tutto il resto.",
-        "fr" to "Aujourd'hui, Croissance et Santé restent gratuits. Premium débloque tout le reste."
+    "Hoy, Crece y salud siguen siendo gratis. Premium desbloquea todas funciones." to mapOf(
+        "en" to "Today, Growth and Health stay free. Premium unlocks every feature.",
+        "it" to "Oggi, Crescita e Salute restano gratis. Premium sblocca tutte le funzioni.",
+        "fr" to "Aujourd'hui, Croissance et Santé restent gratuits. Premium débloque toutes les fonctionnalités."
     ),
     "Tengo un código de regalo" to mapOf(
         "en" to "I have a gift code",
