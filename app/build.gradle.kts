@@ -20,14 +20,13 @@ android {
         targetSdk = 37
         // versionCode: Play Console exige que sea MAYOR que el de cualquier
         // AAB ya subido (a cualquier canal, incluido prueba cerrada); si se
-        // repite, rechaza la subida. En el repo solo ha existido el 1, pero
-        // se subieron builds con el número cambiado a mano sin commitear,
-        // así que se deja en 4 por seguridad.
+        // repite, rechaza la subida. El 5 es el que se subió el 3-11-2026
+        // (la build con el freemium) a pruebas cerradas.
         // COMPROBAR en Play Console → Versiones → el número más alto
         // existente, y subir este por encima si hiciera falta.
-        versionCode = 4
+        versionCode = 5
         // versionName es solo lo que ve el usuario: no tiene que ser único.
-        versionName = "1.3"
+        versionName = "1.4"
     }
 
     buildFeatures {
