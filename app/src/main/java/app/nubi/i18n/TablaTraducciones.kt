@@ -686,6 +686,20 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     "Tienes una cita" to mapOf("en" to "You have an appointment", "it" to "Hai una visita", "fr" to "Vous avez un rendez-vous"),
     "Cita mañana" to mapOf("en" to "Appointment tomorrow", "it" to "Visita domani", "fr" to "Rendez-vous demain"),
 
+    // Canal de notificaciones de Android (Avisos.kt). Es el nombre que el
+    // usuario ve en los ajustes del sistema, fuera de la app, así que
+    // también tiene que estar en los cuatro idiomas.
+    "Avisos de Nubi" to mapOf(
+        "en" to "Nubi alerts",
+        "it" to "Avvisi di Nubi",
+        "fr" to "Alertes de Nubi"
+    ),
+    "Recordatorios de medicina, citas y sueño" to mapOf(
+        "en" to "Reminders for medicine, appointments and sleep",
+        "it" to "Promemoria di medicine, visite e sonno",
+        "fr" to "Rappels de médicaments, rendez-vous et sommeil"
+    ),
+
     // Pantalla del paywall (muro de pago duro, Play Billing) — ver PantallaPaywall.kt.
     "Prueba Nubi Premium gratis 7 días" to mapOf(
         "en" to "Try Nubi Premium free for 7 days",
