@@ -718,6 +718,13 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
         "it" to "Ho un codice regalo",
         "fr" to "J'ai un code cadeau"
     ),
+    // Letra pequeña del paywall cuando el plan ya no trae prueba gratis.
+    // En iOS la misma frase acaba en "los Ajustes de tu iPhone".
+    "Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play." to mapOf(
+        "en" to "Renews automatically. You can cancel anytime from Google Play.",
+        "it" to "Si rinnova automaticamente. Puoi annullare quando vuoi da Google Play.",
+        "fr" to "Se renouvelle automatiquement. Vous pouvez annuler à tout moment depuis Google Play."
+    ),
     "Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play." to mapOf(
         "en" to "After the seventh day, you'll be charged for the plan you choose. Cancel anytime from Google Play.",
         "it" to "Dopo il settimo giorno verrà addebitato il piano scelto. Annulla quando vuoi da Google Play.",

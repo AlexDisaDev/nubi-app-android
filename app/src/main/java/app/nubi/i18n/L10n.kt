@@ -117,6 +117,54 @@ object L10n {
         else -> "hace $m min"
     }
 
+    // -----------------------------------------------------------------
+    // Paywall. Las cuatro son copia literal de las de iOS
+    // (Traducciones.swift) para que las dos apps digan exactamente lo
+    // mismo, con una única diferencia obligada: donde iOS habla de los
+    // Ajustes del iPhone, aquí se habla de Google Play, porque es donde
+    // se cancela de verdad en Android.
+    // -----------------------------------------------------------------
+
+    /** "Sale a 3,33 €/mes" — el precio del plan normalizado a un mes. */
+    fun saleA(precio: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "That's $precio"
+        IdiomaNubi.ITALIANO -> "Corrisponde a $precio"
+        IdiomaNubi.FRANCES -> "Soit $precio"
+        else -> "Sale a $precio"
+    }
+
+    /** Insignia de ahorro del plan frente al mensual. */
+    fun ahorras(porcentaje: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "SAVE $porcentaje%"
+        IdiomaNubi.ITALIANO -> "RISPARMI IL $porcentaje%"
+        IdiomaNubi.FRANCES -> "ÉCONOMISEZ $porcentaje %"
+        else -> "AHORRAS $porcentaje %"
+    }
+
+    /** Subtítulo de la cabecera cuando el plan elegido trae prueba gratis. */
+    fun subtituloConPrueba(prueba: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES ->
+            "$prueba. After that, the subscription you choose is billed automatically — cancel anytime."
+        IdiomaNubi.ITALIANO ->
+            "$prueba. Dopo, si addebita automaticamente l'abbonamento che scegli — annullabile quando vuoi."
+        IdiomaNubi.FRANCES ->
+            "$prueba. Ensuite, l'abonnement choisi est facturé automatiquement — annulable à tout moment."
+        else ->
+            "$prueba y después se cobra automáticamente la suscripción que elijas — cancela cuando quieras."
+    }
+
+    /** Letra pequeña de abajo cuando hay prueba gratis. */
+    fun condicionesConPrueba(prueba: String, precio: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES ->
+            "$prueba, then $precio. Renews automatically. You can cancel anytime from Google Play; if you cancel before the trial ends, you won't be charged."
+        IdiomaNubi.ITALIANO ->
+            "$prueba, poi $precio. Si rinnova automaticamente. Puoi annullare quando vuoi da Google Play; se annulli prima della fine della prova, non ti verrà addebitato nulla."
+        IdiomaNubi.FRANCES ->
+            "$prueba, puis $precio. Se renouvelle automatiquement. Vous pouvez annuler à tout moment depuis Google Play ; si vous annulez avant la fin de l'essai, vous ne serez pas facturé."
+        else ->
+            "$prueba, después $precio. Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play; si cancelas antes de que acabe la prueba, no se te cobra nada."
+    }
+
     fun haceHoras(h: Int, m: Int): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES -> if (m == 0) "$h h ago" else "$h h $m min ago"
         IdiomaNubi.ITALIANO -> if (m == 0) "$h h fa" else "$h h $m min fa"

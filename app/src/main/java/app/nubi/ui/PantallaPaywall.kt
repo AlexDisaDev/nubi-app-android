@@ -1,17 +1,21 @@
 package app.nubi.ui
 
 import android.app.Activity
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -35,10 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.nubi.R
 import app.nubi.data.Compras
 import app.nubi.data.EventoNombre
 import app.nubi.data.EventosFunnel
@@ -51,16 +61,15 @@ import kotlin.math.roundToInt
 
 /**
  * El paywall como PANTALLA entera. Desde que Nubi es freemium, la app ya
- * no se bloquea de entrada (eso era el muro duro anterior), así que hoy
- * el paywall se ve casi siempre como hoja a pantalla completa al tocar
- * algo bloqueado — ver HojaPremiumBloqueado() en HojasRegistro.kt. Las
- * dos pintan exactamente lo mismo: [ContenidoPaywall].
+ * no se bloquea de entrada, así que hoy el paywall se ve casi siempre
+ * como hoja a pantalla completa al tocar algo bloqueado — ver
+ * HojaPremiumBloqueado() en HojasRegistro.kt. Las dos pintan lo mismo:
+ * [ContenidoPaywall].
  *
  * El trial de 7 días vive en Play Billing (con tarjeta), no aquí: cada
  * plan ya trae su oferta de prueba configurada en Play Console, así que
  * elegir un plan solo selecciona la tarjeta — el único botón que dispara
- * la compra es el de abajo de todo (ver [BotonAccion]), igual que en iOS
- * (Paywall.swift: tarjetaPlan selecciona, accion compra).
+ * la compra es el de abajo (ver [BotonAccion]), igual que en iOS.
  */
 @Composable
 fun PantallaPaywall() {
@@ -74,87 +83,100 @@ fun PantallaPaywall() {
 }
 
 /**
- * El paywall, en una sola pieza, para que sea EL MISMO se abra donde se
- * abra (hoja a pantalla completa al tocar algo bloqueado, o pantalla
- * propia). Antes había dos versiones distintas del mismo muro y se
- * desincronizaban solas.
+ * COPIA EXACTA del paywall de iOS (Paywall.swift). Mismo orden, mismos
+ * tamaños, mismos colores y mismos textos, para que las dos apps se vean
+ * iguales:
  *
- * Orden deliberado, de arriba abajo, pensado para que la decisión se pueda
- * tomar sin hacer scroll:
+ *   logo 44 · "Nubi Premium" serif 32 · subtítulo 15
+ *   4 ventajas de una línea (insignia 30 + texto 15)
+ *   planes (tarjeta con radio, precio y ahorro)
+ *   botón de compra en cápsula lila + "Restaurar compras"
+ *   letra pequeña con condiciones y enlaces legales
+ *   enlaces de regalo, en pequeño, al final
  *
- *   1. Qué te llevas y qué te cuesta HOY (nada) — el titular.
- *   2. Qué sigue siendo gratis — quita el miedo a quedarse fuera.
- *   3. Cuatro ventajas de una línea — valor, sin párrafos que nadie lee.
- *   4. Planes + UN solo botón de compra.
- *   5. Lo demás (restaurar compra, código de regalo) en letra pequeña y,
- *      el código, plegado: antes era un campo de texto a tamaño completo
- *      compitiendo con el botón de pagar, que es justo lo que no interesa
- *      en un paywall — cada elemento que compite con el CTA le resta.
+ * Todo alineado a la izquierda y con 20 dp entre bloques, como la
+ * VStack(alignment: .leading, spacing: 20) de iOS.
+ *
+ * Lo único que NO puede ser idéntico, y es a propósito:
+ *   - Las fuentes. iOS usa New York (serif) y SF Rounded, que no existen
+ *     en Android; aquí son la serif del sistema y la de por defecto (ver
+ *     Type.kt). Se parecerá, pero las letras no son las mismas.
+ *   - La letra pequeña dice "Google Play" donde iOS dice "los Ajustes de
+ *     tu iPhone": es donde se cancela de verdad en cada sitio.
+ *   - El código de regalo se canjea dentro de la app (en iOS no existe
+ *     esa parte), así que ese enlace extra se queda.
  */
 @Composable
-fun ContenidoPaywall() {
+fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
     val colores = NubiTheme.colores
 
-    // Una vez por composición (no en cada recomposición al escribir/tocar
-    // algo): marca el paso más arriba del embudo, "vio el paywall".
+    // Una vez por composición: marca el paso más arriba del embudo.
     LaunchedEffect(Unit) {
         EventosFunnel.registrar(EventoNombre.PAYWALL_MOSTRADO)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = NubiGeometria.margen)
-            .padding(bottom = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        BadgeIcono(IconoNubi.ESTRELLA, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 56.dp, tamanoIcono = 26.dp)
-        Spacer(Modifier.height(14.dp))
-        Text(
-            L10n.t("Prueba Nubi Premium gratis 7 días"),
-            style = MaterialTheme.typography.headlineSmall,
-            color = colores.tinta,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            L10n.t("Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás."),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colores.tintaSuave,
-            textAlign = TextAlign.Center
-        )
+    Box(Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(NubiGeometria.margen)
+                .padding(bottom = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            CabeceraPaywall()
+            VentajasPaywall()
+            SelectorPlanesPremium()
+            LetraPequenaPaywall()
+            EnlacesRegalo()
+        }
 
-        Spacer(Modifier.height(22.dp))
-        VentajasCompactas()
-
-        Spacer(Modifier.height(22.dp))
-        SelectorPlanesPremium()
-
-        Spacer(Modifier.height(10.dp))
-        Text(
-            L10n.t("Después del séptimo día se cobra el plan que elijas. Cancela cuando quieras desde Google Play."),
-            style = MaterialTheme.typography.bodySmall,
-            color = colores.tintaTenue,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(8.dp))
-        BloqueCodigoPlegado()
+        if (onCerrar != null) {
+            BotonCerrarPaywall(onCerrar, Modifier.align(Alignment.TopEnd))
+        }
     }
 }
 
-/**
- * Las cuatro ventajas, a UNA línea cada una (antes eran tres con un
- * párrafo debajo). El texto de cada una es el que ya existía como título
- * en la versión larga, así que no hay copy nuevo que traducir ni promesas
- * nuevas que Google pueda considerar que no se cumplen.
- */
+/** Logo + "Nubi Premium" + una línea de subtítulo. Igual que `cabecera`. */
 @Composable
-private fun VentajasCompactas() {
+private fun CabeceraPaywall() {
+    val colores = NubiTheme.colores
+    val detalles = Compras.detalles
+    val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
+
+    Column(
+        modifier = Modifier.padding(top = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Image(
+            painter = painterResource(R.drawable.nubi_logo_splash),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.height(44.dp)
+        )
+        Text(
+            L10n.t("Nubi Premium"),
+            style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp),
+            color = colores.tinta
+        )
+        Text(
+            // Igual que iOS: si el plan trae prueba, el subtítulo lo dice;
+            // si no, dice qué sigue siendo gratis. Nada de inventarse una
+            // prueba que esta cuenta ya no tiene.
+            if (prueba != null) L10n.subtituloConPrueba(prueba)
+            else L10n.t("Hoy, Crece y Salud siguen siendo gratis. Premium desbloquea todo lo demás."),
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            color = colores.tintaSuave
+        )
+    }
+}
+
+/** Las cuatro ventajas, una línea cada una. Igual que `ventajas`. */
+@Composable
+private fun VentajasPaywall() {
     val colores = NubiTheme.colores
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         FilaVentaja(IconoNubi.NUBE, colores.menta, L10n.t("Ventanas que aprenden de tu bebé"))
         FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Historial completo"))
@@ -164,50 +186,112 @@ private fun VentajasCompactas() {
 }
 
 @Composable
-private fun FilaVentaja(icono: IconoNubi, color: androidx.compose.ui.graphics.Color, titulo: String) {
+private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String) {
     val colores = NubiTheme.colores
     Row(verticalAlignment = Alignment.CenterVertically) {
         BadgeIcono(icono, colorFondo = color, colorIcono = colores.tinta, tamano = 30.dp, tamanoIcono = 15.dp)
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(14.dp))
         Text(
             titulo,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
             fontWeight = FontWeight.Medium,
             color = colores.tinta
         )
     }
 }
 
-/**
- * El código de regalo, plegado detrás de un enlace. Lo usa poca gente (es
- * para quien recibe un regalo), pero desplegado ocupaba un campo de texto
- * entero justo debajo del botón de pagar y le robaba la atención.
- */
+/** Condiciones + enlaces legales. Igual que `letraPequeña`. */
 @Composable
-private fun BloqueCodigoPlegado() {
-    var abierto by remember { mutableStateOf(false) }
+private fun LetraPequenaPaywall() {
+    val colores = NubiTheme.colores
+    val enlaces = LocalUriHandler.current
+    val detalles = Compras.detalles
+    val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
+    val precio = detalles?.let { precioFinalDe(it, Compras.PLAN_ANUAL) }
 
-    if (!abierto) {
-        TextButton(onClick = { abierto = true }, modifier = Modifier.fillMaxWidth()) {
-            Text(L10n.t("Tengo un código de regalo"))
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            if (prueba != null && precio != null) L10n.condicionesConPrueba(prueba, precio)
+            else L10n.t("Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play."),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            color = colores.tintaTenue
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                L10n.t("Términos"),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                fontWeight = FontWeight.Medium,
+                color = colores.tintaSuave,
+                modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/terminos") }
+            )
+            Text(
+                L10n.t("Privacidad"),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                fontWeight = FontWeight.Medium,
+                color = colores.tintaSuave,
+                modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
+            )
         }
-    } else {
-        BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
     }
 }
 
 /**
- * Las tarjetas de plan, reutilizadas aquí y en HojaPremiumBloqueado
- * (HojasRegistro.kt). Solo SELECCIONAN (radio + marcan plan_seleccionado);
- * la compra la dispara el único CTA de abajo ([BotonAccion]) — igual que
- * tarjetaPlan()/accion en Paywall.swift.
+ * Los dos enlaces de regalo, en pequeño y al final, como `seccionRegalo`
+ * en iOS: no es lo que se vende aquí, así que no debe competir con el
+ * botón de pagar.
  *
- * Antes había un botón de compra POR tarjeta, y "elegir plan" y "empezar
- * prueba" eran el mismo tap: plan_seleccionado y trial_iniciado se
- * registraban en el mismo instante, así que esos dos pasos del embudo
- * salían siempre con el mismo número y no servían para comparar con iOS
- * (donde sí son dos momentos distintos). Con la selección separada del
- * CTA, vuelven a ser dos eventos de verdad.
+ * El primero no existe en iOS: allí los códigos no se canjean dentro de
+ * la app. Aquí sí, y quitarlo sería perder una función de verdad.
+ */
+@Composable
+private fun EnlacesRegalo() {
+    val colores = NubiTheme.colores
+    val enlaces = LocalUriHandler.current
+    var canjeando by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (canjeando) {
+            BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
+        } else {
+            Text(
+                L10n.t("Tengo un código de regalo"),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                fontWeight = FontWeight.Medium,
+                color = colores.tintaSuave,
+                modifier = Modifier.clickable { canjeando = true }
+            )
+        }
+        Text(
+            L10n.t("Regalar Nubi a alguien"),
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+            fontWeight = FontWeight.Medium,
+            color = colores.tintaSuave,
+            modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/regalar") }
+        )
+    }
+}
+
+/** La X de cerrar de arriba a la derecha, igual que `botonCerrar`. */
+@Composable
+private fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifier) {
+    val colores = NubiTheme.colores
+    Box(
+        modifier = modifier
+            .padding(NubiGeometria.margen)
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(colores.superficie)
+            .clickable { onCerrar() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icono(IconoNubi.EQUIS, tint = colores.tintaSuave, tamano = 12.dp)
+    }
+}
+
+/**
+ * Las tarjetas de plan y el botón de compra. Solo SELECCIONAN (radio +
+ * marcan plan_seleccionado); la compra la dispara el único CTA de abajo
+ * ([BotonAccion]) — igual que tarjetaPlan()/accion en Paywall.swift.
  */
 @Composable
 fun SelectorPlanesPremium() {
@@ -230,62 +314,73 @@ fun SelectorPlanesPremium() {
         return
     }
 
-    // El anual preseleccionado por defecto: es el plan de más valor y el
-    // que normalmente trae insignia de ahorro — igual que en iOS, donde
-    // `seleccionado` arranca ya con un producto en vez de vacío.
+    // El anual preseleccionado: es el de más valor y el que trae insignia
+    // de ahorro — igual que en iOS, donde `seleccionado` arranca con un
+    // producto en vez de vacío.
     var seleccionado by remember { mutableStateOf(Compras.PLAN_ANUAL) }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        listOf(
-            Compras.PLAN_ANUAL to L10n.t("Anual"),
-            Compras.PLAN_TRIMESTRAL to L10n.t("Trimestral"),
-            Compras.PLAN_MENSUAL to L10n.t("Mensual"),
-        ).forEach { (planId, etiqueta) ->
-            TarjetaPlan(
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // Bloque "planes": 10 dp entre tarjetas, como iOS.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(
+                Compras.PLAN_ANUAL to L10n.t("Anual"),
+                Compras.PLAN_TRIMESTRAL to L10n.t("Trimestral"),
+                Compras.PLAN_MENSUAL to L10n.t("Mensual"),
+            ).forEach { (planId, etiqueta) ->
+                TarjetaPlan(
+                    detalles = detalles,
+                    planId = planId,
+                    etiqueta = etiqueta,
+                    activo = seleccionado == planId,
+                    onSeleccionar = {
+                        seleccionado = planId
+                        EventosFunnel.registrar(EventoNombre.PLAN_SELECCIONADO, mapOf("plan_id" to planId))
+                    }
+                )
+            }
+        }
+
+        // Bloque "accion": botón de compra + restaurar, 12 dp entre ellos.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            BotonAccion(
                 detalles = detalles,
-                planId = planId,
-                etiqueta = etiqueta,
-                activo = seleccionado == planId,
-                onSeleccionar = {
-                    seleccionado = planId
-                    EventosFunnel.registrar(EventoNombre.PLAN_SELECCIONADO, mapOf("plan_id" to planId))
+                planId = seleccionado,
+                habilitado = activity != null && !verificando,
+                verificando = verificando,
+                onComprar = { activity?.let { Compras.comprar(it, seleccionado) } }
+            )
+
+            error?.let {
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Text(
+                L10n.t("Restaurar compras"),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                color = colores.tintaSuave,
+                modifier = Modifier.clickable {
+                    EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
+                    Compras.refrescar()
                 }
             )
-            Spacer(Modifier.height(10.dp))
-        }
-
-        BotonAccion(
-            detalles = detalles,
-            planId = seleccionado,
-            habilitado = activity != null && !verificando,
-            verificando = verificando,
-            onComprar = { activity?.let { Compras.comprar(it, seleccionado) } }
-        )
-
-        error?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        Spacer(Modifier.height(4.dp))
-        TextButton(
-            onClick = {
-                EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
-                Compras.refrescar()
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(L10n.t("¿Ya pagaste? Restaurar compra"))
         }
     }
 }
 
+/** Una tarjeta de plan. Clon de `tarjetaPlan` en Paywall.swift. */
 @Composable
 private fun TarjetaPlan(
     detalles: ProductDetails,
@@ -300,58 +395,66 @@ private fun TarjetaPlan(
     if (oferta == null || fases.isEmpty()) return
 
     val faseFinal = fases.last()
-    val hayPrueba = fases.size > 1 && fases.first().priceAmountMicros == 0L
     val textoPrecio = "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
-    val textoPrueba = if (hayPrueba) {
-        "${L10n.t("gratis")} ${duracionTexto(fases.first().billingPeriod)}, ${L10n.t("luego")} $textoPrecio"
-    } else {
-        textoPrecio
-    }
     val precioMensualizado = precioMensualizadoTexto(detalles, planId, faseFinal.billingPeriod)
     val ahorro = ahorroPorcentaje(detalles, planId)
 
     Card(
         onClick = onSeleccionar,
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (activo) 10.dp else 3.dp),
         shape = RoundedCornerShape(NubiGeometria.radio),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = if (activo) colores.indigo else Color.Transparent,
+                shape = RoundedCornerShape(NubiGeometria.radio)
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(NubiGeometria.margen),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CirculoSeleccion(activo)
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(etiqueta, style = MaterialTheme.typography.titleMedium, color = colores.tinta, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(2.dp))
-                    // Si hay prueba gratis, eso es lo que más importa ver
-                    // aquí ("gratis 7 días, luego X"); si no, el "sale a
-                    // X/mes" normalizado, para comparar planes de un vistazo.
+                Spacer(Modifier.width(14.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        if (hayPrueba) textoPrueba else (precioMensualizado ?: textoPrecio),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colores.tintaSuave
+                        etiqueta,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colores.tinta,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    // iOS enseña aquí "Sale a X/mes" (solo en planes de más
+                    // de un mes). Lo de la prueba no se repite por tarjeta:
+                    // va en el subtítulo de arriba y en el botón.
+                    if (precioMensualizado != null) {
+                        Text(
+                            precioMensualizado,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaSuave
+                        )
+                    }
                 }
             }
-            Column(horizontalAlignment = Alignment.End) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     textoPrecio,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colores.tinta,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.displaySmall.copy(fontSize = 19.sp),
+                    color = colores.tinta
                 )
                 if (ahorro != null) {
-                    Spacer(Modifier.height(4.dp))
                     Text(
-                        L10n.t("Ahorras") + " $ahorro%",
+                        L10n.ahorras("$ahorro"),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
                         color = colores.tinta,
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
@@ -370,8 +473,7 @@ private fun CirculoSeleccion(activo: Boolean) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
-            .width(22.dp)
-            .height(22.dp)
+            .size(22.dp)
             .clip(CircleShape)
             .border(2.dp, if (activo) colores.indigo else colores.tintaTenue, CircleShape),
         contentAlignment = Alignment.Center
@@ -379,13 +481,29 @@ private fun CirculoSeleccion(activo: Boolean) {
         if (activo) {
             Box(
                 modifier = Modifier
-                    .width(12.dp)
-                    .height(12.dp)
+                    .size(12.dp)
                     .clip(CircleShape)
                     .background(colores.indigo)
             )
         }
     }
+}
+
+/** "7 días gratis" del plan, o null si ese plan no trae prueba. */
+private fun textoPruebaDe(detalles: ProductDetails, planId: String): String? {
+    val fases = detalles.subscriptionOfferDetails
+        ?.firstOrNull { it.basePlanId == planId }
+        ?.pricingPhases?.pricingPhaseList.orEmpty()
+    if (fases.size <= 1 || fases.first().priceAmountMicros != 0L) return null
+    return "${duracionTexto(fases.first().billingPeriod)} ${L10n.t("gratis")}"
+}
+
+/** El precio que se cobra cuando acaba la prueba, ya formateado. */
+private fun precioFinalDe(detalles: ProductDetails, planId: String): String? {
+    val faseFinal = detalles.subscriptionOfferDetails
+        ?.firstOrNull { it.basePlanId == planId }
+        ?.pricingPhases?.pricingPhaseList?.lastOrNull() ?: return null
+    return "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
 }
 
 /**
@@ -406,7 +524,12 @@ private fun BotonAccion(
     val hayPrueba = (oferta?.pricingPhases?.pricingPhaseList?.size ?: 0) > 1 &&
         oferta?.pricingPhases?.pricingPhaseList?.firstOrNull()?.priceAmountMicros == 0L
 
-    Spacer(Modifier.height(6.dp))
+    val colores = NubiTheme.colores
+
+    // Cápsula lila con el texto en tinta, como en iOS: allí es
+    // `.background(Theme.lila, in: Capsule())` con 17 pt de aire arriba y
+    // abajo. Antes aquí era un botón índigo de esquinas redondeadas y 52
+    // de alto, que es lo que hacía que los dos paywalls no se parecieran.
     Button(
         onClick = {
             // plan_seleccionado ya se registró al tocar la tarjeta
@@ -418,17 +541,23 @@ private fun BotonAccion(
             onComprar()
         },
         enabled = habilitado,
-        colors = ButtonDefaults.buttonColors(containerColor = NubiTheme.colores.indigo),
-        shape = RoundedCornerShape(NubiGeometria.radio),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colores.lila,
+            contentColor = colores.tinta
+        ),
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(vertical = 17.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         if (verificando) {
-            CircularProgressIndicator(modifier = Modifier.height(18.dp))
+            CircularProgressIndicator(modifier = Modifier.height(18.dp), color = colores.tinta)
         } else {
             Text(
-                if (hayPrueba) L10n.t("Empezar prueba gratis de 7 días") else L10n.t("Suscribirme"),
+                // Mismo texto que iOS: "Empezar prueba gratis", sin el
+                // "de 7 días" (la duración ya sale arriba y en la letra
+                // pequeña, y así no miente si algún día cambia la oferta).
+                if (hayPrueba) L10n.t("Empezar prueba gratis") else L10n.t("Suscribirme"),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
         }

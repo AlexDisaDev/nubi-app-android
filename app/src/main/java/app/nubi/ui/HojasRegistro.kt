@@ -1489,6 +1489,11 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
         onDismissRequest = onCerrar,
         sheetState = sheetState,
         containerColor = colores.lienzo,
+        // Sin asa: en iOS el paywall se cierra con la X de arriba a la
+        // derecha, y es la X la que pinta ContenidoPaywall. El botón
+        // atrás del móvil sigue cerrando, así que no hay forma de
+        // quedarse encerrado.
+        dragHandle = null,
         modifier = Modifier.fillMaxSize()
     ) {
         Column(
@@ -1496,7 +1501,7 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            ContenidoPaywall()
+            ContenidoPaywall(onCerrar = onCerrar)
         }
     }
 }
