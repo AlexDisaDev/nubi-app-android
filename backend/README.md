@@ -10,7 +10,8 @@ Se guardan aquí para tener constancia de qué se ha ejecutado y en qué orden. 
 | `002_datos_bebe.sql` | ⬜ Pendiente | Los datos del bebé (registros, medicinas, crecimiento, citas, vacunas, diario, banco de leche, alimentación, enfermedades) con RLS. |
 | `004_eliminar_cuenta.sql` | ⬜ Pendiente | Función `eliminar_mi_cuenta()`: el usuario borra su cuenta y todos sus datos desde iOS (Ajustes → Eliminar cuenta). |
 | `005_premium_suscripcion_android.sql` | ⬜ Pendiente | Tabla `compras_google_play` y las funciones `activar_premium_por_compra_google()` / `marcar_compra_reconocida()` que usa el Edge Function de abajo para activar premium tras una suscripción real de Android. |
-| `013_genero_bebe.sql` | ✅ Ejecutado 04-11-2026 | Añade `genero` (opcional, nullable) a `public.bebes`. Nace en iOS (alta por voz); Android no lo manda todavía, así que no le afecta. |
+| `013_genero_bebe.sql` | ✅ Ejecutado 04-11-2026 (revertido por 014) | Añadía `genero` (opcional, nullable) a `public.bebes`. Se decidió no pedir este dato; ninguna app llegó a escribirlo. |
+| `014_quitar_genero_bebe.sql` | ✅ Ejecutado 04-11-2026 | Quita la columna `genero` de `public.bebes` (revierte 013). |
 
 ## Edge Functions
 
