@@ -52,6 +52,7 @@ import app.nubi.R
 import app.nubi.data.Compras
 import app.nubi.data.EventoNombre
 import app.nubi.data.EventosFunnel
+import app.nubi.data.Premium
 import app.nubi.data.Repositorio
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
@@ -90,7 +91,7 @@ fun PantallaPaywall() {
  *   logo 44 · "Nubi Premium" serif 32 · subtítulo 15
  *   4 ventajas de una línea (insignia 30 + texto 15)
  *   planes (tarjeta con radio, precio y ahorro) + botón de compra en cápsula lila
- *   "Tengo un código de regalo", justo debajo del botón
+ *   "Canjear código de regalo", justo debajo del botón
  *   letra pequeña con condiciones y enlaces legales (Términos / Privacidad)
  *   "Restaurar compras", al final del todo
  *
@@ -103,8 +104,6 @@ fun PantallaPaywall() {
  *     Type.kt). Se parecerá, pero las letras no son las mismas.
  *   - La letra pequeña dice "Google Play" donde iOS dice "los Ajustes de
  *     tu iPhone": es donde se cancela de verdad en cada sitio.
- *   - El código de regalo se canjea dentro de la app (en iOS no existe
- *     esa parte), así que ese enlace extra se queda.
  */
 @Composable
 fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
@@ -113,6 +112,23 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
     // Una vez por composición: marca el paso más arriba del embudo.
     LaunchedEffect(Unit) {
         EventosFunnel.registrar(EventoNombre.PAYWALL_MOSTRADO)
+    }
+
+    // Se cierra solo en cuanto el premium se activa de verdad — tanto si
+    // viene de comprar (Compras verifica contra el servidor y actualiza
+    // premium_hasta en el perfil) como de canjear un código de regalo (la
+    // función de Supabase hace lo mismo). No hace falta enganchar un
+    // callback a cada camino: basta con mirar el mismo perfil del que ya
+    // depende el resto de la app, y cerrar cuando pasa de no-premium a
+    // premium mientras este paywall está abierto — igual que iOS cierra
+    // el suyo (cerrar()) tanto tras comprar como tras canjear.
+    val datos by Repositorio.local.datos.collectAsState()
+    val premiumActivo = Premium.activo(datos.perfil)
+    val eraPremiumAlAbrir = remember { premiumActivo }
+    LaunchedEffect(premiumActivo) {
+        if (!eraPremiumAlAbrir && premiumActivo) {
+            onCerrar?.invoke()
+        }
     }
 
     Box(Modifier.fillMaxWidth()) {
@@ -238,11 +254,12 @@ private fun LetraPequenaPaywall() {
 
 /**
  * El enlace para canjear un código de regalo, justo debajo del botón de
- * compra. No existe en iOS: allí los códigos no se canjean dentro de la
- * app. Antes vivía al final de la pantalla junto con "Regalar Nubi a
- * alguien" (ya quitado); ahora va pegado al CTA porque es la otra forma
- * de tener acceso, y conviene que se vea antes de llegar a la letra
- * pequeña.
+ * compra — ahora también en iOS (Paywall.swift: bloqueCodigoRegalo), con
+ * el mismo texto ("Canjear código de regalo", el mismo que ya se usaba en
+ * Ajustes) y el mismo sitio. Antes vivía al final de la pantalla junto
+ * con "Regalar Nubi a alguien" (ya quitado); ahora va pegado al CTA
+ * porque es la otra forma de tener acceso, y conviene que se vea antes
+ * de llegar a la letra pequeña.
  */
 @Composable
 private fun EnlaceCodigoRegalo() {
@@ -253,7 +270,7 @@ private fun EnlaceCodigoRegalo() {
         BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
     } else {
         Text(
-            L10n.t("Tengo un código de regalo"),
+            L10n.t("Canjear código de regalo"),
             style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
             fontWeight = FontWeight.Medium,
             color = colores.tintaSuave,
