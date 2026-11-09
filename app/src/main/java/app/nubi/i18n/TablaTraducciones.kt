@@ -411,6 +411,13 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Deja de adivinar cuándo toca la siesta." to mapOf("en" to "Stop guessing when the next nap is due.", "it" to "Smetti di indovinare quando tocca il pisolino.", "fr" to "Arrêtez de deviner l'heure de la sieste."),
     "Anticipa las siestas del bebé" to mapOf("en" to "Anticipates your baby's naps", "it" to "Anticipa i pisolini del tuo bimbo", "fr" to "Anticipe les siestes de votre bébé"),
     "NUBI PREMIUM" to mapOf("en" to "NUBI PREMIUM", "it" to "NUBI PREMIUM", "fr" to "NUBI PREMIUM"),
+    // Línea de tiempo de la prueba gratuita ("Hoy" ya está arriba)
+    "Acceso completo" to mapOf("en" to "Full access", "it" to "Accesso completo", "fr" to "Accès complet"),
+    "Día 5" to mapOf("en" to "Day 5", "it" to "Giorno 5", "fr" to "Jour 5"),
+    "Te avisamos" to mapOf("en" to "We remind you", "it" to "Ti avvisiamo", "fr" to "On vous prévient"),
+    "Día 7" to mapOf("en" to "Day 7", "it" to "Giorno 7", "fr" to "Jour 7"),
+    "Empieza tu plan" to mapOf("en" to "Your plan starts", "it" to "Inizia il tuo piano", "fr" to "Votre plan démarre"),
+    "MEJOR PRECIO" to mapOf("en" to "BEST VALUE", "it" to "MIGLIOR PREZZO", "fr" to "MEILLEUR PRIX"),
     "Anticípate siempre a su próxima siesta" to mapOf("en" to "Always stay ahead of their next nap", "it" to "Anticipa sempre il suo prossimo pisolino", "fr" to "Anticipez toujours sa prochaine sieste"),
     "Registra la rutina completa del bebé" to mapOf("en" to "Log your baby's full routine", "it" to "Registra la routine completa del bimbo", "fr" to "Enregistrez toute la routine de bébé"),
     "Comparte el cuidado con pareja y familia" to mapOf("en" to "Share the care with your partner and family", "it" to "Condividi la cura con partner e famiglia", "fr" to "Partagez les soins avec votre partenaire et votre famille"),

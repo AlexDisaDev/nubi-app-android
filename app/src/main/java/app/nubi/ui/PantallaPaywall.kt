@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -142,6 +143,7 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
         ) {
             CabeceraPaywall()
             VentajasPaywall()
+            LineaTiempoPrueba()
             SelectorPlanesPremium()
             EnlaceCodigoRegalo()
             LetraPequenaPaywall()
@@ -194,16 +196,18 @@ private fun CabeceraPaywall() {
             fontSize = 30.sp,
             color = colores.tinta
         )
-        Text(
-            // Igual que iOS: si el plan trae prueba, el subtítulo lo dice;
-            // si no, dice qué sigue siendo gratis. Nada de inventarse una
-            // prueba que esta cuenta ya no tiene.
-            if (prueba != null) L10n.subtituloConPrueba(prueba)
-            else L10n.t("Hoy, Crece y salud siguen siendo gratis. Premium desbloquea todas funciones."),
-            fontFamily = RobotoCondensedFamily,
-            fontSize = 15.sp,
-            color = colores.tintaSuave
-        )
+        // Igual que iOS: si el plan trae prueba, el subtítulo explica que
+        // se cobra sola al terminar. Si esta cuenta ya no tiene prueba, no
+        // se inventa una ni se rellena el hueco con otra frase: no sale
+        // nada y el titular queda solo.
+        if (prueba != null) {
+            Text(
+                L10n.subtituloConPrueba(prueba),
+                fontFamily = RobotoCondensedFamily,
+                fontSize = 15.sp,
+                color = colores.tintaSuave
+            )
+        }
     }
 }
 
@@ -223,6 +227,86 @@ private fun VentajasPaywall() {
         FilaVentaja(IconoNubi.REGLA, colores.rosa, L10n.t("Registro de peso y estatura"))
         FilaVentaja(IconoNubi.CORAZON, colores.lila, L10n.t("Comparte el cuidado con pareja y familia"))
     }
+}
+
+/**
+ * Los tres momentos de la prueba gratuita, en una tarjeta encima de los
+ * planes: hoy entras entero, el día 5 te avisamos y el día 7 empieza el
+ * cobro. Quita la duda de "¿y cuándo me cobran?", que es lo que más frena
+ * en un paywall con tarjeta por delante. Igual que `lineaTiempo` en
+ * Paywall.swift.
+ *
+ * Solo sale si el plan anual TRAE prueba: a quien ya la gastó no se le
+ * enseña un calendario que no va a tener.
+ */
+@Composable
+private fun LineaTiempoPrueba() {
+    val colores = NubiTheme.colores
+    val detalles = Compras.detalles ?: return
+    if (textoPruebaDe(detalles, Compras.PLAN_ANUAL) == null) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(NubiGeometria.radio))
+            .background(colores.superficie)
+            .padding(vertical = 16.dp, horizontal = 12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        HitoPrueba(L10n.t("Hoy"), L10n.t("Acceso completo"), activo = true, modifier = Modifier.weight(1f))
+        ConectorPrueba()
+        HitoPrueba(L10n.t("Día 5"), L10n.t("Te avisamos"), activo = false, modifier = Modifier.weight(1f))
+        ConectorPrueba()
+        HitoPrueba(L10n.t("Día 7"), L10n.t("Empieza tu plan"), activo = false, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun HitoPrueba(titulo: String, pie: String, activo: Boolean, modifier: Modifier = Modifier) {
+    val colores = NubiTheme.colores
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(if (activo) colores.indigo else colores.lila)
+        )
+        Text(
+            titulo,
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 13.sp,
+            color = colores.tinta
+        )
+        Text(
+            pie,
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 11.sp,
+            color = colores.tintaSuave,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * La rayita entre dos hitos. Los 4,5 dp de arriba la centran con el punto
+ * de 12 dp que tiene al lado (12/2 − 3/2).
+ */
+@Composable
+private fun ConectorPrueba() {
+    val colores = NubiTheme.colores
+    Box(
+        modifier = Modifier
+            .padding(top = 4.5.dp)
+            .width(26.dp)
+            .height(3.dp)
+            .clip(RoundedCornerShape(50))
+            .background(colores.lila.copy(alpha = 0.55f))
+    )
 }
 
 @Composable
@@ -379,8 +463,13 @@ fun SelectorPlanesPremium() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Bloque "planes": 10 dp entre tarjetas, como iOS.
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Bloque "planes": 10 dp entre tarjetas, como iOS. Los 6 dp de
+        // arriba son el aire para la cinta de "MEJOR PRECIO", que
+        // sobresale por encima de la primera tarjeta.
+        Column(
+            modifier = Modifier.padding(top = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             listOf(
                 Compras.PLAN_ANUAL to L10n.t("Anual"),
                 Compras.PLAN_TRIMESTRAL to L10n.t("Trimestral"),
@@ -445,77 +534,101 @@ private fun TarjetaPlan(
     val textoPrecio = "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
     val textoOferta = textoOfertaDe(detalles, planId, faseFinal.billingPeriod)
     val ahorro = ahorroPorcentaje(detalles, planId)
+    // El anual lleva la cinta de "MEJOR PRECIO": es el que sale más barato
+    // por mes de los tres, así que no es una etiqueta de adorno.
+    val mejorPrecio = planId == Compras.PLAN_ANUAL
 
-    Card(
-        onClick = onSeleccionar,
-        colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (activo) 10.dp else 3.dp),
-        shape = RoundedCornerShape(NubiGeometria.radio),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = 2.dp,
-                color = if (activo) colores.indigo else Color.Transparent,
-                shape = RoundedCornerShape(NubiGeometria.radio)
-            )
-    ) {
-        Row(
+    Box(Modifier.fillMaxWidth()) {
+        Card(
+            onClick = onSeleccionar,
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            elevation = CardDefaults.cardElevation(defaultElevation = if (activo) 10.dp else 3.dp),
+            shape = RoundedCornerShape(NubiGeometria.radio),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(NubiGeometria.margen),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .border(
+                    width = 2.dp,
+                    color = if (activo) colores.indigo else Color.Transparent,
+                    shape = RoundedCornerShape(NubiGeometria.radio)
+                )
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CirculoSeleccion(activo)
-                Spacer(Modifier.width(14.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        etiqueta,
-                        fontFamily = RobotoCondensedFamily,
-                        fontSize = 16.sp,
-                        color = colores.tinta,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    // "7 días gratis, luego X€/mes" si ese plan aún tiene
-                    // prueba; si no, el antiguo "Sale a X/mes" (y nada en
-                    // el mensual sin prueba, que ya se paga mes a mes).
-                    if (textoOferta != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(NubiGeometria.margen),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CirculoSeleccion(activo)
+                    Spacer(Modifier.width(14.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            textoOferta,
+                            etiqueta,
                             fontFamily = RobotoCondensedFamily,
-                            fontSize = 12.sp,
-                            color = colores.tintaSuave
+                            fontSize = 16.sp,
+                            color = colores.tinta,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        // "7 días gratis, luego X€/mes" si ese plan aún tiene
+                        // prueba; si no, el antiguo "Sale a X/mes" (y nada en
+                        // el mensual sin prueba, que ya se paga mes a mes).
+                        if (textoOferta != null) {
+                            Text(
+                                textoOferta,
+                                fontFamily = RobotoCondensedFamily,
+                                fontSize = 12.sp,
+                                color = colores.tintaSuave
+                            )
+                        }
+                    }
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        textoPrecio,
+                        fontFamily = RobotoCondensedFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 19.sp,
+                        color = colores.tinta
+                    )
+                    if (ahorro != null) {
+                        Text(
+                            L10n.ahorras("$ahorro"),
+                            fontFamily = RobotoCondensedFamily,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.2.sp,
+                            color = colores.tinta,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(colores.mantequilla)
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
                         )
                     }
                 }
             }
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    textoPrecio,
-                    fontFamily = RobotoCondensedFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 19.sp,
-                    color = colores.tinta
-                )
-                if (ahorro != null) {
-                    Text(
-                        L10n.ahorras("$ahorro"),
-                        fontFamily = RobotoCondensedFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        letterSpacing = 1.2.sp,
-                        color = colores.tinta,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(colores.mantequilla)
-                            .padding(horizontal = 7.dp, vertical = 3.dp)
-                    )
-                }
-            }
+        }
+
+        // La cinta va montada sobre el borde de arriba, como en el diseño.
+        // Al ir dentro del Box no cambia la altura de la tarjeta; el aire
+        // de más lo pone la Column de planes con su padding superior.
+        if (mejorPrecio) {
+            Text(
+                L10n.t("MEJOR PRECIO"),
+                fontFamily = RobotoCondensedFamily,
+                fontSize = 10.sp,
+                letterSpacing = 1.1.sp,
+                color = colores.superficie,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = 32.dp, y = (-11).dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(colores.indigo)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            )
         }
     }
 }
