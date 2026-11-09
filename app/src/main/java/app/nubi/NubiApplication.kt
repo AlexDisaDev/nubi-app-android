@@ -3,6 +3,7 @@ package app.nubi
 import android.app.Application
 import app.nubi.data.Compras
 import app.nubi.data.Repositorio
+import app.nubi.data.ResenasAppStore
 
 /**
  * Punto de entrada de la app. El cliente de Supabase (cuenta + estado de
@@ -19,5 +20,8 @@ class NubiApplication : Application() {
         super.onCreate()
         Repositorio.iniciar(this)
         Compras.iniciar(this)
+        // Solo deja listo el contexto y lee la caché; la descarga del feed
+        // de reseñas se dispara al abrir el paywall, no al arrancar.
+        ResenasAppStore.iniciar(this)
     }
 }

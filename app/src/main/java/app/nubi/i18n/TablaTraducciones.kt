@@ -418,6 +418,14 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Día 7" to mapOf("en" to "Day 7", "it" to "Giorno 7", "fr" to "Jour 7"),
     "Empieza tu plan" to mapOf("en" to "Your plan starts", "it" to "Inizia il tuo piano", "fr" to "Votre plan démarre"),
     "MEJOR PRECIO" to mapOf("en" to "BEST VALUE", "it" to "MIGLIOR PREZZO", "fr" to "MEILLEUR PRIX"),
+    // Fila de enlaces del pie del paywall
+    "Restaurar" to mapOf("en" to "Restore", "it" to "Ripristina", "fr" to "Restaurer"),
+    "Canjear código" to mapOf("en" to "Redeem code", "it" to "Riscatta codice", "fr" to "Utiliser un code"),
+    "Se renueva automáticamente. Cancela cuando quieras desde Google Play." to mapOf(
+        "en" to "Renews automatically. Cancel anytime from Google Play.",
+        "it" to "Si rinnova automaticamente. Annulla quando vuoi da Google Play.",
+        "fr" to "Se renouvelle automatiquement. Annulez quand vous voulez depuis Google Play."
+    ),
     "Anticípate siempre a su próxima siesta" to mapOf("en" to "Always stay ahead of their next nap", "it" to "Anticipa sempre il suo prossimo pisolino", "fr" to "Anticipez toujours sa prochaine sieste"),
     "Registra la rutina completa del bebé" to mapOf("en" to "Log your baby's full routine", "it" to "Registra la routine completa del bimbo", "fr" to "Enregistrez toute la routine de bébé"),
     "Comparte el cuidado con pareja y familia" to mapOf("en" to "Share the care with your partner and family", "it" to "Condividi la cura con partner e famiglia", "fr" to "Partagez les soins avec votre partenaire et votre famille"),

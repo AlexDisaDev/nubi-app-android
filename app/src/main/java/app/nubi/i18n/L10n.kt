@@ -167,13 +167,13 @@ object L10n {
     /** Letra pequeña de abajo cuando hay prueba gratis. */
     fun condicionesConPrueba(prueba: String, precio: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES ->
-            "Try your $prueba. Renews automatically. You can cancel anytime from Google Play."
+            "$prueba, then $precio. Renews automatically. Cancel anytime from Google Play."
         IdiomaNubi.ITALIANO ->
-            "Prova i tuoi $prueba. Si rinnova automaticamente. Puoi annullare quando vuoi da Google Play."
+            "$prueba, poi $precio. Si rinnova automaticamente. Annulla quando vuoi da Google Play."
         IdiomaNubi.FRANCES ->
-            "Essayez vos $prueba. Se renouvelle automatiquement. Vous pouvez annuler à tout moment depuis Google Play."
+            "$prueba, puis $precio. Se renouvelle automatiquement. Annulez quand vous voulez depuis Google Play."
         else ->
-            "Prueba $prueba. Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play."
+            "$prueba, después $precio. Se renueva automáticamente. Cancela cuando quieras desde Google Play."
     }
 
     fun haceHoras(h: Int, m: Int): String = when (idiomaEfectivo) {

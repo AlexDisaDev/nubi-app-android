@@ -42,11 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.nubi.R
@@ -55,6 +57,7 @@ import app.nubi.data.EventoNombre
 import app.nubi.data.EventosFunnel
 import app.nubi.data.Premium
 import app.nubi.data.Repositorio
+import app.nubi.data.ResenasAppStore
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
@@ -83,6 +86,21 @@ fun PantallaPaywall() {
     ) {
         ContenidoPaywall()
     }
+}
+
+/**
+ * Cuánto encoger el paywall para que entre de una pantalla. Es el equivalente
+ * del `ViewThatFits` de iOS (Paywall.swift): allí SwiftUI prueba 1 → 0,92 →
+ * 0,84 y se queda con la que cabe; aquí no existe nada parecido, así que la
+ * escala se decide por la altura disponible. El `verticalScroll` de arriba
+ * sigue puesto como red de seguridad (letra del sistema enorme, pantallas
+ * raras), pero en un móvil normal no debería llegar a hacer falta.
+ */
+private fun escalaPara(alturaDisponible: Dp): Float = when {
+    alturaDisponible < 640.dp -> 0.82f
+    alturaDisponible < 720.dp -> 0.88f
+    alturaDisponible < 800.dp -> 0.94f
+    else -> 1f
 }
 
 /**
@@ -133,21 +151,38 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
         }
     }
 
+    // El feed de reseñas se pide aquí, no al arrancar la app: solo hace
+    // falta cuando alguien está mirando el paywall.
+    LaunchedEffect(Unit) { ResenasAppStore.cargar() }
+
+    // El canje de código vive abajo, en la fila de enlaces del pie; al
+    // tocarlo despliega el campo justo encima de la letra pequeña.
+    var canjeando by remember { mutableStateOf(false) }
+
+    // La escala se saca de la altura de la PANTALLA, no de las restricciones
+    // del contenedor: este mismo contenido se pinta dentro de una hoja con
+    // verticalScroll (HojasRegistro.kt: HojaPremiumBloqueado), y ahí las
+    // restricciones de altura llegan infinitas, así que un BoxWithConstraints
+    // devolvería siempre escala 1 y volvería el scroll que queremos evitar.
+    val e = escalaPara(LocalConfiguration.current.screenHeightDp.dp)
+
     Box(Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(NubiGeometria.margen)
-                .padding(bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = NubiGeometria.margen * e)
+                .padding(top = 8.dp * e, bottom = 12.dp * e),
+            verticalArrangement = Arrangement.spacedBy(16.dp * e)
         ) {
-            CabeceraPaywall()
-            VentajasPaywall()
-            LineaTiempoPrueba()
-            SelectorPlanesPremium()
-            EnlaceCodigoRegalo()
-            LetraPequenaPaywall()
-            EnlaceRestaurarCompras()
+            CabeceraPaywall(e)
+            VentajasPaywall(e)
+            LineaTiempoPrueba(e)
+            SelectorPlanesPremium(e)
+            LetraPequenaPaywall(
+                escala = e,
+                canjeando = canjeando,
+                onCanjear = { canjeando = true }
+            )
         }
 
         if (onCerrar != null) {
@@ -163,28 +198,24 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
  * "Nubi Premium" era el titular grande).
  */
 @Composable
-private fun CabeceraPaywall() {
+private fun CabeceraPaywall(e: Float) {
     val colores = NubiTheme.colores
     val detalles = Compras.detalles
     val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
 
-    Column(
-        modifier = Modifier.padding(top = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp * e)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(R.drawable.nubi_logo_splash),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.height(28.dp)
+                modifier = Modifier.height(26.dp * e)
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(8.dp * e))
             Text(
                 L10n.t("NUBI PREMIUM"),
                 fontFamily = RobotoCondensedFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
+                fontSize = 13.sp * e,
                 letterSpacing = 1.4.sp,
                 color = colores.indigo
             )
@@ -192,8 +223,8 @@ private fun CabeceraPaywall() {
         Text(
             L10n.t("Anticípate siempre a su próxima siesta"),
             fontFamily = RobotoCondensedFamily,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 30.sp,
+            fontSize = 29.sp * e,
+            lineHeight = 33.sp * e,
             color = colores.tinta
         )
         // Igual que iOS: si el plan trae prueba, el subtítulo explica que
@@ -204,10 +235,47 @@ private fun CabeceraPaywall() {
             Text(
                 L10n.subtituloConPrueba(prueba),
                 fontFamily = RobotoCondensedFamily,
-                fontSize = 15.sp,
+                fontSize = 14.sp * e,
                 color = colores.tintaSuave
             )
         }
+        FilaResena(e)
+    }
+}
+
+/**
+ * Estrellas + una reseña REAL (ver data/ResenasAppStore.kt). Si no se ha
+ * podido traer ninguna, esta fila no existe: nada de testimonios inventados
+ * ni de estrellas de adorno. Igual que `filaReseña` en Paywall.swift.
+ */
+@Composable
+private fun FilaResena(e: Float) {
+    val colores = NubiTheme.colores
+    val resena = ResenasAppStore.destacada ?: return
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp * e)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            repeat(resena.estrellas) {
+                Icono(IconoNubi.ESTRELLA, tint = colores.mantequilla, tamano = 11.dp * e)
+            }
+        }
+        Text(
+            "«${resena.titulo}»",
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 13.sp * e,
+            color = colores.tintaSuave,
+            maxLines = 1
+        )
+        Text(
+            resena.autor,
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 11.sp * e,
+            color = colores.tintaTenue,
+            maxLines = 1
+        )
     }
 }
 
@@ -217,15 +285,15 @@ private fun CabeceraPaywall() {
  * terreno de forma más concreta). Igual que `ventajas` en Paywall.swift.
  */
 @Composable
-private fun VentajasPaywall() {
+private fun VentajasPaywall(e: Float) {
     val colores = NubiTheme.colores
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp * e)
     ) {
-        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Registra la rutina completa del bebé"))
-        FilaVentaja(IconoNubi.REGLA, colores.rosa, L10n.t("Registro de peso y estatura"))
-        FilaVentaja(IconoNubi.CORAZON, colores.lila, L10n.t("Comparte el cuidado con pareja y familia"))
+        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Registra la rutina completa del bebé"), e)
+        FilaVentaja(IconoNubi.REGLA, colores.rosa, L10n.t("Registro de peso y estatura"), e)
+        FilaVentaja(IconoNubi.CORAZON, colores.lila, L10n.t("Comparte el cuidado con pareja y familia"), e)
     }
 }
 
@@ -240,7 +308,7 @@ private fun VentajasPaywall() {
  * enseña un calendario que no va a tener.
  */
 @Composable
-private fun LineaTiempoPrueba() {
+private fun LineaTiempoPrueba(e: Float) {
     val colores = NubiTheme.colores
     val detalles = Compras.detalles ?: return
     if (textoPruebaDe(detalles, Compras.PLAN_ANUAL) == null) return
@@ -248,61 +316,64 @@ private fun LineaTiempoPrueba() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(NubiGeometria.radio))
+            .clip(RoundedCornerShape(NubiGeometria.radio * e))
             .background(colores.superficie)
-            .padding(vertical = 16.dp, horizontal = 12.dp),
+            .padding(vertical = 13.dp * e, horizontal = 10.dp * e),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp * e)
     ) {
-        HitoPrueba(L10n.t("Hoy"), L10n.t("Acceso completo"), activo = true, modifier = Modifier.weight(1f))
-        ConectorPrueba()
-        HitoPrueba(L10n.t("Día 5"), L10n.t("Te avisamos"), activo = false, modifier = Modifier.weight(1f))
-        ConectorPrueba()
-        HitoPrueba(L10n.t("Día 7"), L10n.t("Empieza tu plan"), activo = false, modifier = Modifier.weight(1f))
+        HitoPrueba(L10n.t("Hoy"), L10n.t("Acceso completo"), true, e, Modifier.weight(1f))
+        ConectorPrueba(e)
+        HitoPrueba(L10n.t("Día 5"), L10n.t("Te avisamos"), false, e, Modifier.weight(1f))
+        ConectorPrueba(e)
+        HitoPrueba(L10n.t("Día 7"), L10n.t("Empieza tu plan"), false, e, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun HitoPrueba(titulo: String, pie: String, activo: Boolean, modifier: Modifier = Modifier) {
+private fun HitoPrueba(
+    titulo: String,
+    pie: String,
+    activo: Boolean,
+    e: Float,
+    modifier: Modifier = Modifier
+) {
     val colores = NubiTheme.colores
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp * e)
     ) {
         Box(
             modifier = Modifier
-                .size(12.dp)
+                .size(11.dp * e)
                 .clip(CircleShape)
                 .background(if (activo) colores.indigo else colores.lila)
         )
         Text(
             titulo,
             fontFamily = RobotoCondensedFamily,
-            fontSize = 13.sp,
+            fontSize = 13.sp * e,
             color = colores.tinta
         )
         Text(
             pie,
             fontFamily = RobotoCondensedFamily,
-            fontSize = 11.sp,
+            fontSize = 11.sp * e,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
         )
     }
 }
 
-/**
- * La rayita entre dos hitos. Los 4,5 dp de arriba la centran con el punto
- * de 12 dp que tiene al lado (12/2 − 3/2).
- */
+/** La rayita entre dos hitos, centrada con el punto que tiene al lado. */
 @Composable
-private fun ConectorPrueba() {
+private fun ConectorPrueba(e: Float) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
-            .padding(top = 4.5.dp)
-            .width(26.dp)
+            .padding(top = (11.dp * e - 3.dp) / 2)
+            .width(24.dp * e)
             .height(3.dp)
             .clip(RoundedCornerShape(50))
             .background(colores.lila.copy(alpha = 0.55f))
@@ -310,105 +381,86 @@ private fun ConectorPrueba() {
 }
 
 @Composable
-private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String) {
+private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float) {
     val colores = NubiTheme.colores
     Row(verticalAlignment = Alignment.CenterVertically) {
-        BadgeIcono(icono, colorFondo = color, colorIcono = colores.tinta, tamano = 30.dp, tamanoIcono = 15.dp)
-        Spacer(Modifier.width(14.dp))
+        BadgeIcono(icono, colorFondo = color, colorIcono = colores.tinta, tamano = 28.dp * e, tamanoIcono = 14.dp * e)
+        Spacer(Modifier.width(12.dp * e))
         Text(
             titulo,
             fontFamily = RobotoCondensedFamily,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
+            fontSize = 15.sp * e,
             color = colores.tinta
         )
     }
 }
 
-/** Condiciones + enlaces legales. Igual que `letraPequeña`. */
+/**
+ * El pie del paywall: las condiciones centradas y, en UNA sola fila,
+ * Términos · Privacidad · Restaurar · Canjear código. Las cuatro son
+ * enlaces de texto del mismo tamaño, así que ninguna compite con el botón
+ * de compra. Igual que `letraPequeña` en Paywall.swift.
+ */
 @Composable
-private fun LetraPequenaPaywall() {
+private fun LetraPequenaPaywall(
+    escala: Float,
+    canjeando: Boolean,
+    onCanjear: () -> Unit
+) {
+    val e = escala
     val colores = NubiTheme.colores
     val enlaces = LocalUriHandler.current
     val detalles = Compras.detalles
     val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
     val precio = detalles?.let { precioFinalDe(it, Compras.PLAN_ANUAL) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp * e)
+    ) {
+        if (canjeando) {
+            BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
+        }
+
         Text(
             if (prueba != null && precio != null) L10n.condicionesConPrueba(prueba, precio)
-            else L10n.t("Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play."),
+            else L10n.t("Se renueva automáticamente. Cancela cuando quieras desde Google Play."),
             fontFamily = RobotoCondensedFamily,
-            fontSize = 11.sp,
-            color = colores.tintaTenue
+            fontSize = 11.sp * e,
+            color = colores.tintaTenue,
+            textAlign = TextAlign.Center
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                L10n.t("Términos"),
-                fontFamily = RobotoCondensedFamily,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = colores.tintaSuave,
-                modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/terminos") }
-            )
-            Text(
-                L10n.t("Privacidad"),
-                fontFamily = RobotoCondensedFamily,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = colores.tintaSuave,
-                modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
-            )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp * e)) {
+            EnlacePie(L10n.t("Términos"), e) { enlaces.openUri("https://appnubi.netlify.app/terminos") }
+            SeparadorPie(colores.tintaTenue, e)
+            EnlacePie(L10n.t("Privacidad"), e) { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
+            SeparadorPie(colores.tintaTenue, e)
+            EnlacePie(L10n.t("Restaurar"), e) {
+                EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
+                Compras.refrescar()
+            }
+            SeparadorPie(colores.tintaTenue, e)
+            EnlacePie(L10n.t("Canjear código"), e, onPulsar = onCanjear)
         }
     }
 }
 
-/**
- * El enlace para canjear un código de regalo, justo debajo del botón de
- * compra — ahora también en iOS (Paywall.swift: bloqueCodigoRegalo), con
- * el mismo texto ("Canjear código de regalo", el mismo que ya se usaba en
- * Ajustes) y el mismo sitio. Antes vivía al final de la pantalla junto
- * con "Regalar Nubi a alguien" (ya quitado); ahora va pegado al CTA
- * porque es la otra forma de tener acceso, y conviene que se vea antes
- * de llegar a la letra pequeña.
- */
 @Composable
-private fun EnlaceCodigoRegalo() {
-    val colores = NubiTheme.colores
-    var canjeando by remember { mutableStateOf(false) }
-
-    if (canjeando) {
-        BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
-    } else {
-        Text(
-            L10n.t("Canjear código de regalo"),
-            fontFamily = RobotoCondensedFamily,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            color = colores.tintaSuave,
-            modifier = Modifier.clickable { canjeando = true }
-        )
-    }
-}
-
-/**
- * "Restaurar compras", al final del todo, debajo de Términos y
- * Privacidad: antes vivía junto al botón de compra, pero es una acción de
- * mantenimiento, no parte de decidir qué plan comprar.
- */
-@Composable
-private fun EnlaceRestaurarCompras() {
-    val colores = NubiTheme.colores
+private fun EnlacePie(texto: String, e: Float, onPulsar: () -> Unit) {
     Text(
-        L10n.t("Restaurar compras"),
+        texto,
         fontFamily = RobotoCondensedFamily,
-        fontSize = 13.sp,
-        color = colores.tintaSuave,
-        modifier = Modifier.clickable {
-            EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
-            Compras.refrescar()
-        }
+        fontSize = 12.sp * e,
+        color = NubiTheme.colores.tintaSuave,
+        modifier = Modifier.clickable { onPulsar() }
     )
+}
+
+@Composable
+private fun SeparadorPie(color: Color, e: Float) {
+    Text("·", fontFamily = RobotoCondensedFamily, fontSize = 12.sp * e, color = color)
 }
 
 /** La X de cerrar de arriba a la derecha, igual que `botonCerrar`. */
@@ -434,7 +486,7 @@ private fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifi
  * ([BotonAccion]) — igual que tarjetaPlan()/accion en Paywall.swift.
  */
 @Composable
-fun SelectorPlanesPremium() {
+fun SelectorPlanesPremium(e: Float = 1f) {
     val colores = NubiTheme.colores
     val detalles = Compras.detalles
     val verificando by Compras.verificando.collectAsState()
@@ -461,14 +513,14 @@ fun SelectorPlanesPremium() {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp * e)
     ) {
-        // Bloque "planes": 10 dp entre tarjetas, como iOS. Los 6 dp de
+        // Bloque "planes": 8 dp entre tarjetas, como iOS. Los 6 dp de
         // arriba son el aire para la cinta de "MEJOR PRECIO", que
         // sobresale por encima de la primera tarjeta.
         Column(
-            modifier = Modifier.padding(top = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(top = 6.dp * e),
+            verticalArrangement = Arrangement.spacedBy(8.dp * e)
         ) {
             listOf(
                 Compras.PLAN_ANUAL to L10n.t("Anual"),
@@ -480,6 +532,7 @@ fun SelectorPlanesPremium() {
                     planId = planId,
                     etiqueta = etiqueta,
                     activo = seleccionado == planId,
+                    e = e,
                     onSeleccionar = {
                         seleccionado = planId
                         EventosFunnel.registrar(EventoNombre.PLAN_SELECCIONADO, mapOf("plan_id" to planId))
@@ -499,6 +552,7 @@ fun SelectorPlanesPremium() {
                 planId = seleccionado,
                 habilitado = activity != null && !verificando,
                 verificando = verificando,
+                e = e,
                 onComprar = { activity?.let { Compras.comprar(it, seleccionado) } }
             )
 
@@ -507,7 +561,7 @@ fun SelectorPlanesPremium() {
                     it,
                     color = MaterialTheme.colorScheme.error,
                     fontFamily = RobotoCondensedFamily,
-                    fontSize = 12.sp,
+                    fontSize = 12.sp * e,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -523,6 +577,7 @@ private fun TarjetaPlan(
     planId: String,
     etiqueta: String,
     activo: Boolean,
+    e: Float,
     onSeleccionar: () -> Unit
 ) {
     val colores = NubiTheme.colores
@@ -543,30 +598,30 @@ private fun TarjetaPlan(
             onClick = onSeleccionar,
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
             elevation = CardDefaults.cardElevation(defaultElevation = if (activo) 10.dp else 3.dp),
-            shape = RoundedCornerShape(NubiGeometria.radio),
+            shape = RoundedCornerShape(NubiGeometria.radio * e),
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
                     width = 2.dp,
                     color = if (activo) colores.indigo else Color.Transparent,
-                    shape = RoundedCornerShape(NubiGeometria.radio)
+                    shape = RoundedCornerShape(NubiGeometria.radio * e)
                 )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(NubiGeometria.margen),
+                    .padding(horizontal = 16.dp * e, vertical = 13.dp * e),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    CirculoSeleccion(activo)
-                    Spacer(Modifier.width(14.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    CirculoSeleccion(activo, e)
+                    Spacer(Modifier.width(12.dp * e))
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
                             etiqueta,
                             fontFamily = RobotoCondensedFamily,
-                            fontSize = 16.sp,
+                            fontSize = 16.sp * e,
                             color = colores.tinta,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -577,7 +632,7 @@ private fun TarjetaPlan(
                             Text(
                                 textoOferta,
                                 fontFamily = RobotoCondensedFamily,
-                                fontSize = 12.sp,
+                                fontSize = 12.sp * e,
                                 color = colores.tintaSuave
                             )
                         }
@@ -585,13 +640,13 @@ private fun TarjetaPlan(
                 }
                 Column(
                     horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Text(
                         textoPrecio,
                         fontFamily = RobotoCondensedFamily,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 19.sp,
+                        fontSize = 19.sp * e,
                         color = colores.tinta
                     )
                     if (ahorro != null) {
@@ -599,13 +654,13 @@ private fun TarjetaPlan(
                             L10n.ahorras("$ahorro"),
                             fontFamily = RobotoCondensedFamily,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
+                            fontSize = 11.sp * e,
                             letterSpacing = 1.2.sp,
                             color = colores.tinta,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .background(colores.mantequilla)
-                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -619,12 +674,12 @@ private fun TarjetaPlan(
             Text(
                 L10n.t("MEJOR PRECIO"),
                 fontFamily = RobotoCondensedFamily,
-                fontSize = 10.sp,
+                fontSize = 10.sp * e,
                 letterSpacing = 1.1.sp,
                 color = colores.superficie,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .offset(x = 32.dp, y = (-11).dp)
+                    .offset(x = 30.dp * e, y = -10.dp * e)
                     .clip(RoundedCornerShape(50))
                     .background(colores.indigo)
                     .padding(horizontal = 12.dp, vertical = 4.dp)
@@ -635,11 +690,11 @@ private fun TarjetaPlan(
 
 /** Círculo de selección tipo radio: borde siempre, relleno solo si está activo. */
 @Composable
-private fun CirculoSeleccion(activo: Boolean) {
+private fun CirculoSeleccion(activo: Boolean, e: Float) {
     val colores = NubiTheme.colores
     Box(
         modifier = Modifier
-            .size(22.dp)
+            .size(21.dp * e)
             .clip(CircleShape)
             .border(2.dp, if (activo) colores.indigo else colores.tintaTenue, CircleShape),
         contentAlignment = Alignment.Center
@@ -647,7 +702,7 @@ private fun CirculoSeleccion(activo: Boolean) {
         if (activo) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
+                    .size(11.dp * e)
                     .clip(CircleShape)
                     .background(colores.indigo)
             )
@@ -684,6 +739,7 @@ private fun BotonAccion(
     planId: String,
     habilitado: Boolean,
     verificando: Boolean,
+    e: Float,
     onComprar: () -> Unit
 ) {
     val oferta = detalles.subscriptionOfferDetails?.firstOrNull { it.basePlanId == planId }
@@ -712,11 +768,11 @@ private fun BotonAccion(
             contentColor = colores.tinta
         ),
         shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(vertical = 17.dp),
+        contentPadding = PaddingValues(vertical = 15.dp * e),
         modifier = Modifier.fillMaxWidth()
     ) {
         if (verificando) {
-            CircularProgressIndicator(modifier = Modifier.height(18.dp), color = colores.tinta)
+            CircularProgressIndicator(modifier = Modifier.height(18.dp * e), color = colores.tinta)
         } else {
             Text(
                 // Mismo texto que iOS: "Empezar prueba gratis", sin el
@@ -724,8 +780,7 @@ private fun BotonAccion(
                 // pequeña, y así no miente si algún día cambia la oferta).
                 if (hayPrueba) L10n.t("Empezar prueba gratis") else L10n.t("Suscribirme"),
                 fontFamily = RobotoCondensedFamily,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = 17.sp * e
             )
         }
     }
