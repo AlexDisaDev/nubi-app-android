@@ -57,6 +57,7 @@ import app.nubi.data.Repositorio
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
+import app.nubi.ui.theme.RobotoCondensedFamily
 import com.android.billingclient.api.ProductDetails
 import kotlin.math.roundToInt
 
@@ -153,7 +154,12 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
     }
 }
 
-/** Logo + "Nubi Premium" + una línea de subtítulo. Igual que `cabecera`. */
+/**
+ * Logo pequeño + "NUBI PREMIUM" en una línea, arriba del todo; debajo, el
+ * titular grande que vende la función, y luego el subtítulo. Igual que
+ * `cabecera` en Paywall.swift (antes el logo solo ocupaba 44 dp él solo y
+ * "Nubi Premium" era el titular grande).
+ */
 @Composable
 private fun CabeceraPaywall() {
     val colores = NubiTheme.colores
@@ -161,18 +167,31 @@ private fun CabeceraPaywall() {
     val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
 
     Column(
-        modifier = Modifier.padding(top = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Image(
-            painter = painterResource(R.drawable.nubi_logo_splash),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.height(44.dp)
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(R.drawable.nubi_logo_splash),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.height(28.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                L10n.t("NUBI PREMIUM"),
+                fontFamily = RobotoCondensedFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                letterSpacing = 1.4.sp,
+                color = colores.indigo
+            )
+        }
         Text(
-            L10n.t("Nubi Premium"),
-            style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp),
+            L10n.t("Anticípate siempre a su próxima siesta"),
+            fontFamily = RobotoCondensedFamily,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 30.sp,
             color = colores.tinta
         )
         Text(
@@ -181,13 +200,18 @@ private fun CabeceraPaywall() {
             // prueba que esta cuenta ya no tiene.
             if (prueba != null) L10n.subtituloConPrueba(prueba)
             else L10n.t("Hoy, Crece y salud siguen siendo gratis. Premium desbloquea todas funciones."),
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 15.sp,
             color = colores.tintaSuave
         )
     }
 }
 
-/** Las cuatro ventajas, una línea cada una. Igual que `ventajas`. */
+/**
+ * Tres ventajas, una línea cada una (antes cuatro: "Tus datos, protegidos"
+ * se retira porque "Comparte el cuidado con pareja y familia" cubre ese
+ * terreno de forma más concreta). Igual que `ventajas` en Paywall.swift.
+ */
 @Composable
 private fun VentajasPaywall() {
     val colores = NubiTheme.colores
@@ -195,10 +219,9 @@ private fun VentajasPaywall() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        FilaVentaja(IconoNubi.NUBE, colores.menta, L10n.t("Anticipa las siestas del bebé"))
-        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Rutina completa del bebé"))
-        FilaVentaja(IconoNubi.REGLA, colores.melocoton, L10n.t("Registro de peso y estatura"))
-        FilaVentaja(IconoNubi.CANDADO, colores.lila, L10n.t("Tus datos, protegidos"))
+        FilaVentaja(IconoNubi.RELOJ, colores.cielo, L10n.t("Registra la rutina completa del bebé"))
+        FilaVentaja(IconoNubi.REGLA, colores.rosa, L10n.t("Registro de peso y estatura"))
+        FilaVentaja(IconoNubi.CORAZON, colores.lila, L10n.t("Comparte el cuidado con pareja y familia"))
     }
 }
 
@@ -210,7 +233,8 @@ private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String) {
         Spacer(Modifier.width(14.dp))
         Text(
             titulo,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             color = colores.tinta
         )
@@ -230,20 +254,23 @@ private fun LetraPequenaPaywall() {
         Text(
             if (prueba != null && precio != null) L10n.condicionesConPrueba(prueba, precio)
             else L10n.t("Se renueva automáticamente. Puedes cancelar cuando quieras desde Google Play."),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 11.sp,
             color = colores.tintaTenue
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
                 L10n.t("Términos"),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                fontFamily = RobotoCondensedFamily,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = colores.tintaSuave,
                 modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/terminos") }
             )
             Text(
                 L10n.t("Privacidad"),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                fontFamily = RobotoCondensedFamily,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = colores.tintaSuave,
                 modifier = Modifier.clickable { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
@@ -271,7 +298,8 @@ private fun EnlaceCodigoRegalo() {
     } else {
         Text(
             L10n.t("Canjear código de regalo"),
-            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+            fontFamily = RobotoCondensedFamily,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             color = colores.tintaSuave,
             modifier = Modifier.clickable { canjeando = true }
@@ -289,7 +317,8 @@ private fun EnlaceRestaurarCompras() {
     val colores = NubiTheme.colores
     Text(
         L10n.t("Restaurar compras"),
-        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+        fontFamily = RobotoCondensedFamily,
+        fontSize = 13.sp,
         color = colores.tintaSuave,
         modifier = Modifier.clickable {
             EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
@@ -334,7 +363,7 @@ fun SelectorPlanesPremium() {
             Spacer(Modifier.height(8.dp))
             Text(
                 L10n.t("Cargando los planes…"),
-                style = MaterialTheme.typography.bodySmall,
+                fontFamily = RobotoCondensedFamily,
                 color = colores.tintaTenue
             )
         }
@@ -388,7 +417,8 @@ fun SelectorPlanesPremium() {
                 Text(
                     it,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = RobotoCondensedFamily,
+                    fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -413,7 +443,7 @@ private fun TarjetaPlan(
 
     val faseFinal = fases.last()
     val textoPrecio = "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
-    val precioMensualizado = precioMensualizadoTexto(detalles, planId, faseFinal.billingPeriod)
+    val textoOferta = textoOfertaDe(detalles, planId, faseFinal.billingPeriod)
     val ahorro = ahorroPorcentaje(detalles, planId)
 
     Card(
@@ -442,17 +472,19 @@ private fun TarjetaPlan(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         etiqueta,
-                        style = MaterialTheme.typography.titleMedium,
+                        fontFamily = RobotoCondensedFamily,
+                        fontSize = 16.sp,
                         color = colores.tinta,
                         fontWeight = FontWeight.SemiBold
                     )
-                    // iOS enseña aquí "Sale a X/mes" (solo en planes de más
-                    // de un mes). Lo de la prueba no se repite por tarjeta:
-                    // va en el subtítulo de arriba y en el botón.
-                    if (precioMensualizado != null) {
+                    // "7 días gratis, luego X€/mes" si ese plan aún tiene
+                    // prueba; si no, el antiguo "Sale a X/mes" (y nada en
+                    // el mensual sin prueba, que ya se paga mes a mes).
+                    if (textoOferta != null) {
                         Text(
-                            precioMensualizado,
-                            style = MaterialTheme.typography.bodySmall,
+                            textoOferta,
+                            fontFamily = RobotoCondensedFamily,
+                            fontSize = 12.sp,
                             color = colores.tintaSuave
                         )
                     }
@@ -464,13 +496,17 @@ private fun TarjetaPlan(
             ) {
                 Text(
                     textoPrecio,
-                    style = MaterialTheme.typography.displaySmall.copy(fontSize = 19.sp),
+                    fontFamily = RobotoCondensedFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 19.sp,
                     color = colores.tinta
                 )
                 if (ahorro != null) {
                     Text(
                         L10n.ahorras("$ahorro"),
-                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = RobotoCondensedFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
                         letterSpacing = 1.2.sp,
                         color = colores.tinta,
                         modifier = Modifier
@@ -574,7 +610,8 @@ private fun BotonAccion(
                 // "de 7 días" (la duración ya sale arriba y en la letra
                 // pequeña, y así no miente si algún día cambia la oferta).
                 if (hayPrueba) L10n.t("Empezar prueba gratis") else L10n.t("Suscribirme"),
-                style = MaterialTheme.typography.titleMedium,
+                fontFamily = RobotoCondensedFamily,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -595,6 +632,38 @@ private fun precioMensualizadoTexto(detalles: ProductDetails, planId: String, pe
     val porMesMicros = faseFinal.priceAmountMicros / meses
     val formateado = formatearMicros(porMesMicros, faseFinal.formattedPrice, faseFinal.priceAmountMicros)
     return "${L10n.t("sale a")} $formateado/${L10n.t("mes")}"
+}
+
+/**
+ * Precio por mes de CUALQUIER plan, prueba incluida: el mensual es él
+ * mismo, el trimestral y el anual se dividen entre sus meses. A diferencia
+ * de `precioMensualizadoTexto`, no añade "sale a"/"mes" ni se oculta para
+ * el plan mensual — lo usa `textoOfertaDe` para componer "7 días gratis,
+ * luego 3,33 €/mes". Igual que `precioPorMes` en Suscripcion.swift (iOS).
+ */
+private fun precioPorMesFormateado(detalles: ProductDetails, planId: String, periodo: String): String? {
+    val meses = mesesDe(periodo) ?: return null
+    val oferta = detalles.subscriptionOfferDetails?.firstOrNull { it.basePlanId == planId } ?: return null
+    val faseFinal = oferta.pricingPhases.pricingPhaseList.lastOrNull() ?: return null
+    if (faseFinal.priceAmountMicros <= 0) return null
+    if (meses <= 1) return faseFinal.formattedPrice
+    val porMesMicros = faseFinal.priceAmountMicros / meses
+    return formatearMicros(porMesMicros, faseFinal.formattedPrice, faseFinal.priceAmountMicros)
+}
+
+/**
+ * Texto bajo el nombre del plan: "7 días gratis, luego 3,33 €/mes" si ese
+ * plan todavía tiene prueba disponible; si no, el antiguo "Sale a X/mes"
+ * (y nada en el mensual sin prueba, que ya se paga mes a mes). Igual que
+ * `textoOferta` en Paywall.swift.
+ */
+private fun textoOfertaDe(detalles: ProductDetails, planId: String, periodo: String): String? {
+    val prueba = textoPruebaDe(detalles, planId)
+    if (prueba != null) {
+        val porMes = precioPorMesFormateado(detalles, planId, periodo) ?: return null
+        return L10n.pruebaLuegoPorMes(prueba, porMes)
+    }
+    return precioMensualizadoTexto(detalles, planId, periodo)
 }
 
 /**

@@ -144,13 +144,24 @@ object L10n {
     /** Subtítulo de la cabecera cuando el plan elegido trae prueba gratis. */
     fun subtituloConPrueba(prueba: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES ->
-            "$prueba. After that, the subscription you choose is billed automatically — cancel anytime."
+            "$prueba and then the subscription is billed automatically. Cancel anytime."
         IdiomaNubi.ITALIANO ->
-            "$prueba. Dopo, si addebita automaticamente l'abbonamento che scegli — annullabile quando vuoi."
+            "$prueba e poi l'abbonamento si addebita automaticamente. Annullabile quando vuoi."
         IdiomaNubi.FRANCES ->
-            "$prueba. Ensuite, l'abonnement choisi est facturé automatiquement — annulable à tout moment."
+            "$prueba puis l'abonnement est facturé automatiquement. Annulable à tout moment."
         else ->
-            "$prueba y después se cobra automáticamente la suscripción que elijas — cancela cuando quieras."
+            "$prueba y después se cobra automáticamente la suscripción. Cancela cuando quieras."
+    }
+
+    /**
+     * "7 días gratis, luego 3,33 €/mes" — en cada tarjeta de plan del
+     * paywall, cuando ese plan todavía tiene prueba disponible.
+     */
+    fun pruebaLuegoPorMes(prueba: String, precioPorMes: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$prueba, then $precioPorMes/mo"
+        IdiomaNubi.ITALIANO -> "$prueba, poi $precioPorMes/mese"
+        IdiomaNubi.FRANCES -> "$prueba, puis $precioPorMes/mois"
+        else -> "$prueba, luego $precioPorMes/mes"
     }
 
     /** Letra pequeña de abajo cuando hay prueba gratis. */

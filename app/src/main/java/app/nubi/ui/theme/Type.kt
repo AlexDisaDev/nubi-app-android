@@ -2,9 +2,25 @@ package app.nubi.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import app.nubi.R
+
+/**
+ * Roboto Condensed, empaquetada en res/font (archivos .ttf reales, no la
+ * tipografía "Roboto Condensed" del sistema, que no todos los fabricantes
+ * incluyen). De momento solo la usa el paywall (PantallaPaywall.kt) — ver
+ * ese archivo — y no la Typography general de abajo, para no cambiar el
+ * aspecto del resto de la app.
+ */
+val RobotoCondensedFamily = FontFamily(
+    Font(R.font.roboto_condensed_regular, FontWeight.Normal),
+    Font(R.font.roboto_condensed_medium, FontWeight.Medium),
+    Font(R.font.roboto_condensed_semibold, FontWeight.SemiBold),
+    Font(R.font.roboto_condensed_bold, FontWeight.Bold)
+)
 
 /**
  * Tipografía.
