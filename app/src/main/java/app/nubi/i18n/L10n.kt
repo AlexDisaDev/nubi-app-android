@@ -153,6 +153,14 @@ object L10n {
             "$prueba y después se cobra automáticamente la suscripción. Cancela cuando quieras."
     }
 
+    /** Texto del botón de compra: "Empezar 7 días gratis". */
+    fun empezarPrueba(prueba: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Start $prueba"
+        IdiomaNubi.ITALIANO -> "Inizia $prueba"
+        IdiomaNubi.FRANCES -> "Commencer $prueba"
+        else -> "Empezar $prueba"
+    }
+
     /**
      * "7 días gratis, luego 3,33 €/mes" — en cada tarjeta de plan del
      * paywall, cuando ese plan todavía tiene prueba disponible.

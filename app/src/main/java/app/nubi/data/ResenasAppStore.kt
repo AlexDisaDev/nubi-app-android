@@ -44,6 +44,9 @@ object ResenasAppStore {
     /** La misma que en App Store Connect. */
     private const val APP_ID = "6799178197"
 
+    /** El propio usuario de Alejandro: su reseña se descarta (ver abajo). */
+    private const val AUTOR_DESARROLLADOR = "aledisalva"
+
     private const val PREFS = "resenas_appstore"
     private const val CLAVE_LISTA = "lista"
     private const val CLAVE_FECHA = "fecha"
@@ -138,9 +141,21 @@ object ResenasAppStore {
             // Solo 4 y 5 estrellas: es la fila de "esto le gusta a la gente",
             // no un resumen de todas las opiniones.
             if (nota < 4) continue
-            // Títulos kilométricos no caben en una línea; mejor descartarlos
-            // que cortarlos y poner en boca de alguien algo a medias.
-            if (titulo.isEmpty() || titulo.length > 42 || autor.isEmpty()) continue
+            if (autor.isEmpty()) continue
+
+            // Un título vale como frase destacada solo si DICE algo. Muchas
+            // reseñas se titulan con una palabra suelta ("Sueño", "Genial"),
+            // que fuera de contexto no significa nada y queda rarísima al
+            // lado de cinco estrellas. Se piden dos palabras y un mínimo de
+            // letras. Y por arriba se cortan los kilométricos: no caben en
+            // una línea, y recortarlos sería poner en boca de alguien algo
+            // a medias.
+            if (titulo.length < 12 || titulo.length > 42) continue
+            if (titulo.split(" ").filter { it.isNotBlank() }.size < 2) continue
+
+            // La reseña del propio desarrollador no es una recomendación de
+            // un cliente: enseñarla como tal engaña a quien la lee.
+            if (autor.equals(AUTOR_DESARROLLADOR, ignoreCase = true)) continue
 
             lista += Resena(titulo, autor, nota)
         }

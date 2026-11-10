@@ -423,12 +423,15 @@ private fun LetraPequenaPaywall(
             BloqueCanjearCodigo(alCanjear = { Repositorio.sincronizarEnSegundoPlano() })
         }
 
+        // Las condiciones NO son letra pequeña de trámite: es donde pone
+        // cuándo empieza a cobrarse. Van a 12,5 sp y en tintaSuave, no en el
+        // gris casi invisible de antes, para que se lean de verdad.
         Text(
             if (prueba != null && precio != null) L10n.condicionesConPrueba(prueba, precio)
             else L10n.t("Se renueva automáticamente. Cancela cuando quieras desde Google Play."),
             fontFamily = RobotoCondensedFamily,
-            fontSize = 11.sp * e,
-            color = colores.tintaTenue,
+            fontSize = 12.5.sp * e,
+            color = colores.tintaSuave,
             textAlign = TextAlign.Center
         )
 
@@ -775,10 +778,13 @@ private fun BotonAccion(
             CircularProgressIndicator(modifier = Modifier.height(18.dp * e), color = colores.tinta)
         } else {
             Text(
-                // Mismo texto que iOS: "Empezar prueba gratis", sin el
-                // "de 7 días" (la duración ya sale arriba y en la letra
-                // pequeña, y así no miente si algún día cambia la oferta).
-                if (hayPrueba) L10n.t("Empezar prueba gratis") else L10n.t("Suscribirme"),
+                // "Empezar 7 días gratis". La duración sale de las fases de
+                // precio reales de Play Billing, nunca de un número escrito
+                // a mano: si cambias la oferta en Play Console, el botón
+                // cambia solo. Igual que `textoBoton` en Paywall.swift.
+                textoPruebaDe(detalles, planId)
+                    ?.let { L10n.empezarPrueba(it) }
+                    ?: L10n.t("Suscribirme"),
                 fontFamily = RobotoCondensedFamily,
                 fontSize = 17.sp * e
             )
