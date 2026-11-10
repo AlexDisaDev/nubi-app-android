@@ -2,29 +2,9 @@ package app.nubi.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import app.nubi.R
-
-/**
- * Roboto Condensed, empaquetada en res/font (archivos .ttf reales, no la
- * tipografía "Roboto Condensed" del sistema, que no todos los fabricantes
- * incluyen). De momento solo la usa el paywall (PantallaPaywall.kt) — ver
- * ese archivo — y no la Typography general de abajo, para no cambiar el
- * aspecto del resto de la app.
- *
- * Todos los pesos apuntan al Bold a propósito: el paywall va entero en
- * Roboto Condensed Bold, igual que en iOS, y así ningún Text se escapa en
- * un grosor distinto aunque pida Medium o Normal.
- */
-val RobotoCondensedFamily = FontFamily(
-    Font(R.font.roboto_condensed_bold, FontWeight.Normal),
-    Font(R.font.roboto_condensed_bold, FontWeight.Medium),
-    Font(R.font.roboto_condensed_bold, FontWeight.SemiBold),
-    Font(R.font.roboto_condensed_bold, FontWeight.Bold)
-)
 
 /**
  * Tipografía.
@@ -43,8 +23,12 @@ val RobotoCondensedFamily = FontFamily(
  * Source Serif. Hasta entonces, el aspecto no será idéntico al de iOS
  * aunque los colores sí lo sean.
  */
-private val Display = FontFamily.Serif
-private val Cuerpo = FontFamily.Default
+// Sin `private`: PantallaPaywall.kt ya no usa su propia fuente (antes
+// RobotoCondensedFamily) y referencia estas dos directamente, igual que
+// Paywall.swift en iOS usa Theme.display/Theme.cuerpo en vez de una fuente
+// aparte.
+val Display = FontFamily.Serif
+val Cuerpo = FontFamily.Default
 
 val NubiTipografia = Typography(
     // Titulares: la serif, como el display de iOS

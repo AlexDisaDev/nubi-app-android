@@ -1,10 +1,17 @@
 package app.nubi.ui
 
 import android.app.Activity
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,9 +66,10 @@ import app.nubi.data.Premium
 import app.nubi.data.Repositorio
 import app.nubi.data.ResenasAppStore
 import app.nubi.i18n.L10n
+import app.nubi.ui.theme.Cuerpo
+import app.nubi.ui.theme.Display
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
-import app.nubi.ui.theme.RobotoCondensedFamily
 import com.android.billingclient.api.ProductDetails
 import kotlin.math.roundToInt
 
@@ -79,10 +87,17 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun PantallaPaywall() {
+    // verticalArrangement = Center: si el contenido no llena la pantalla
+    // (p. ej. la cuenta ya gastó la prueba y no sale LineaTiempoPrueba), el
+    // aire sobrante se reparte arriba y abajo por igual en vez de quedar
+    // todo pegado arriba con un hueco muerto debajo — mismo criterio que
+    // los dos Spacer(minLength: 0) del body en Paywall.swift. Si el
+    // contenido no cabe, el verticalScroll lo compensa igual que antes.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.Center
     ) {
         ContenidoPaywall()
     }
@@ -193,15 +208,15 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
 
 /**
  * Logo pequeño + "NUBI PREMIUM" en una línea, arriba del todo; debajo, el
- * titular grande que vende la función, y luego el subtítulo. Igual que
- * `cabecera` en Paywall.swift (antes el logo solo ocupaba 44 dp él solo y
- * "Nubi Premium" era el titular grande).
+ * titular grande que vende la función, y luego la reseña. Igual que
+ * `cabecera` en Paywall.swift. Ya no repite aquí "7 días gratis y
+ * después..." — esa condición ya se lee, con las mismas palabras, en la
+ * letra pequeña bajo el botón (LetraPequenaPaywall), así que decía lo
+ * mismo dos veces en la misma pantalla.
  */
 @Composable
 private fun CabeceraPaywall(e: Float) {
     val colores = NubiTheme.colores
-    val detalles = Compras.detalles
-    val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp * e)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -214,7 +229,8 @@ private fun CabeceraPaywall(e: Float) {
             Spacer(Modifier.width(8.dp * e))
             Text(
                 L10n.t("NUBI PREMIUM"),
-                fontFamily = RobotoCondensedFamily,
+                fontFamily = Cuerpo,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp * e,
                 letterSpacing = 1.4.sp,
                 color = colores.indigo
@@ -222,23 +238,12 @@ private fun CabeceraPaywall(e: Float) {
         }
         Text(
             L10n.t("Anticípate siempre a su próxima siesta"),
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Display,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 29.sp * e,
             lineHeight = 33.sp * e,
             color = colores.tinta
         )
-        // Igual que iOS: si el plan trae prueba, el subtítulo explica que
-        // se cobra sola al terminar. Si esta cuenta ya no tiene prueba, no
-        // se inventa una ni se rellena el hueco con otra frase: no sale
-        // nada y el titular queda solo.
-        if (prueba != null) {
-            Text(
-                L10n.subtituloConPrueba(prueba),
-                fontFamily = RobotoCondensedFamily,
-                fontSize = 14.sp * e,
-                color = colores.tintaSuave
-            )
-        }
         FilaResena(e)
     }
 }
@@ -264,14 +269,16 @@ private fun FilaResena(e: Float) {
         }
         Text(
             "«${resena.titulo}»",
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp * e,
             color = colores.tintaSuave,
             maxLines = 1
         )
         Text(
             resena.autor,
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp * e,
             color = colores.tintaTenue,
             maxLines = 1
@@ -352,13 +359,15 @@ private fun HitoPrueba(
         )
         Text(
             titulo,
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp * e,
             color = colores.tinta
         )
         Text(
             pie,
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp * e,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
@@ -388,7 +397,8 @@ private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float
         Spacer(Modifier.width(12.dp * e))
         Text(
             titulo,
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp * e,
             color = colores.tinta
         )
@@ -429,7 +439,8 @@ private fun LetraPequenaPaywall(
         Text(
             if (prueba != null && precio != null) L10n.condicionesConPrueba(prueba, precio)
             else L10n.t("Se renueva automáticamente. Cancela cuando quieras desde Google Play."),
-            fontFamily = RobotoCondensedFamily,
+            fontFamily = Cuerpo,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 12.5.sp * e,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
@@ -454,7 +465,8 @@ private fun LetraPequenaPaywall(
 private fun EnlacePie(texto: String, e: Float, onPulsar: () -> Unit) {
     Text(
         texto,
-        fontFamily = RobotoCondensedFamily,
+        fontFamily = Cuerpo,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp * e,
         color = NubiTheme.colores.tintaSuave,
         modifier = Modifier.clickable { onPulsar() }
@@ -463,7 +475,13 @@ private fun EnlacePie(texto: String, e: Float, onPulsar: () -> Unit) {
 
 @Composable
 private fun SeparadorPie(color: Color, e: Float) {
-    Text("·", fontFamily = RobotoCondensedFamily, fontSize = 12.sp * e, color = color)
+    Text(
+        "·",
+        fontFamily = Cuerpo,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp * e,
+        color = color
+    )
 }
 
 /** La X de cerrar de arriba a la derecha, igual que `botonCerrar`. */
@@ -502,7 +520,8 @@ fun SelectorPlanesPremium(e: Float = 1f) {
             Spacer(Modifier.height(8.dp))
             Text(
                 L10n.t("Cargando los planes…"),
-                fontFamily = RobotoCondensedFamily,
+                fontFamily = Cuerpo,
+                fontWeight = FontWeight.SemiBold,
                 color = colores.tintaTenue
             )
         }
@@ -563,7 +582,8 @@ fun SelectorPlanesPremium(e: Float = 1f) {
                 Text(
                     it,
                     color = MaterialTheme.colorScheme.error,
-                    fontFamily = RobotoCondensedFamily,
+                    fontFamily = Cuerpo,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp * e,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -623,7 +643,7 @@ private fun TarjetaPlan(
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
                             etiqueta,
-                            fontFamily = RobotoCondensedFamily,
+                            fontFamily = Cuerpo,
                             fontSize = 16.sp * e,
                             color = colores.tinta,
                             fontWeight = FontWeight.SemiBold
@@ -634,7 +654,8 @@ private fun TarjetaPlan(
                         if (textoOferta != null) {
                             Text(
                                 textoOferta,
-                                fontFamily = RobotoCondensedFamily,
+                                fontFamily = Cuerpo,
+                                fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp * e,
                                 color = colores.tintaSuave
                             )
@@ -647,7 +668,7 @@ private fun TarjetaPlan(
                 ) {
                     Text(
                         textoPrecio,
-                        fontFamily = RobotoCondensedFamily,
+                        fontFamily = Cuerpo,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 19.sp * e,
                         color = colores.tinta
@@ -655,7 +676,7 @@ private fun TarjetaPlan(
                     if (ahorro != null) {
                         Text(
                             L10n.ahorras("$ahorro"),
-                            fontFamily = RobotoCondensedFamily,
+                            fontFamily = Cuerpo,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.sp * e,
                             letterSpacing = 1.2.sp,
@@ -676,7 +697,8 @@ private fun TarjetaPlan(
         if (mejorPrecio) {
             Text(
                 L10n.t("MEJOR PRECIO"),
-                fontFamily = RobotoCondensedFamily,
+                fontFamily = Cuerpo,
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 10.sp * e,
                 letterSpacing = 1.1.sp,
                 color = colores.superficie,
@@ -751,43 +773,75 @@ private fun BotonAccion(
 
     val colores = NubiTheme.colores
 
-    // Cápsula lila con el texto en tinta, como en iOS: allí es
-    // `.background(Theme.lila, in: Capsule())` con 17 pt de aire arriba y
-    // abajo. Antes aquí era un botón índigo de esquinas redondeadas y 52
-    // de alto, que es lo que hacía que los dos paywalls no se parecieran.
-    Button(
-        onClick = {
-            // plan_seleccionado ya se registró al tocar la tarjeta
-            // (TarjetaPlan.onSeleccionar) — aquí solo va trial_iniciado,
-            // que es el paso siguiente del embudo, no el mismo.
-            if (hayPrueba) {
-                EventosFunnel.registrar(EventoNombre.TRIAL_INICIADO, mapOf("plan_id" to planId))
-            }
-            onComprar()
-        },
-        enabled = habilitado,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colores.lila,
-            contentColor = colores.tinta
+    // Halo fino que late en bucle alrededor del botón mientras el paywall
+    // está abierto (ping-pong de grosor y opacidad, como un pulso): morado
+    // en tema claro, blanco en tema oscuro. Igual que `bordePulsoBoton` en
+    // Paywall.swift — allí es `.repeatForever(autoreverses: true)` sobre un
+    // Bool, aquí es un rememberInfiniteTransition con RepeatMode.Reverse
+    // sobre un Float 0↔1 del que se interpolan ambos valores.
+    val transicionPulso = rememberInfiniteTransition(label = "pulsoBotonPaywall")
+    val pulso by transicionPulso.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(vertical = 15.dp * e),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        if (verificando) {
-            CircularProgressIndicator(modifier = Modifier.height(18.dp * e), color = colores.tinta)
-        } else {
-            Text(
-                // "Empezar 7 días gratis". La duración sale de las fases de
-                // precio reales de Play Billing, nunca de un número escrito
-                // a mano: si cambias la oferta en Play Console, el botón
-                // cambia solo. Igual que `textoBoton` en Paywall.swift.
-                textoPruebaDe(detalles, planId)
-                    ?.let { L10n.empezarPrueba(it) }
-                    ?: L10n.t("Suscribirme"),
-                fontFamily = RobotoCondensedFamily,
-                fontSize = 17.sp * e
+        label = "pulsoBoton"
+    )
+    val colorHalo = if (isSystemInDarkTheme()) Color.White else colores.indigo
+    val anchoHalo = (0.8f + pulso * 1.4f).dp
+    val alphaHalo = 0.25f + pulso * 0.65f
+
+    // El botón pasa de Theme.lila (pastel) a Theme.indigo, el morado más
+    // saturado que ya usa la app en sus acentos (cinta "MEJOR PRECIO",
+    // radio del plan activo) — igual que en iOS. Con fondo más oscuro,
+    // Theme.superficie da el contraste del texto, no Theme.tinta.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = anchoHalo,
+                color = colorHalo.copy(alpha = alphaHalo),
+                shape = RoundedCornerShape(50)
             )
+            .padding(3.dp)
+    ) {
+        Button(
+            onClick = {
+                // plan_seleccionado ya se registró al tocar la tarjeta
+                // (TarjetaPlan.onSeleccionar) — aquí solo va trial_iniciado,
+                // que es el paso siguiente del embudo, no el mismo.
+                if (hayPrueba) {
+                    EventosFunnel.registrar(EventoNombre.TRIAL_INICIADO, mapOf("plan_id" to planId))
+                }
+                onComprar()
+            },
+            enabled = habilitado,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colores.indigo,
+                contentColor = colores.superficie
+            ),
+            shape = RoundedCornerShape(50),
+            contentPadding = PaddingValues(vertical = 15.dp * e),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (verificando) {
+                CircularProgressIndicator(modifier = Modifier.height(18.dp * e), color = colores.superficie)
+            } else {
+                Text(
+                    // "Empezar 7 días gratis". La duración sale de las fases de
+                    // precio reales de Play Billing, nunca de un número escrito
+                    // a mano: si cambias la oferta en Play Console, el botón
+                    // cambia solo. Igual que `textoBoton` en Paywall.swift.
+                    textoPruebaDe(detalles, planId)
+                        ?.let { L10n.empezarPrueba(it) }
+                        ?: L10n.t("Suscribirme"),
+                    fontFamily = Cuerpo,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 17.sp * e
+                )
+            }
         }
     }
 }
