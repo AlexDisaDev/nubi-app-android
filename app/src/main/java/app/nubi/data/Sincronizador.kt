@@ -1,5 +1,6 @@
 package app.nubi.data
 
+import app.nubi.BuildConfig
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -221,6 +222,7 @@ class Sincronizador(private val local: AlmacenLocal) {
      * sincronización. Si falla, se reintenta en la siguiente.
      */
     private suspend fun registrarPlataformaSiHaceFalta() {
+        if (BuildConfig.DEBUG) return
         if (local.datos.value.plataformaRegistrada) return
         if (Supabase.client.auth.currentUserOrNull() == null) return
 

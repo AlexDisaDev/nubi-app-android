@@ -1,6 +1,7 @@
 package app.nubi.data
 
 import android.content.Context
+import app.nubi.BuildConfig
 import app.nubi.i18n.L10n
 import app.nubi.notificaciones.AvisosNubi
 import app.nubi.notificaciones.NotificadorPrueba
@@ -160,8 +161,14 @@ object Repositorio {
      * Se encola en local primero (persistido en disco) y luego se intenta
      * subir enseguida; si falla o no hay red, sincronizador.sincronizar()
      * lo reintenta más tarde — nunca se pierde ni bloquea a quien llama.
+     *
+     * En compilaciones de debug no se encola ni se sube nada: es lo que
+     * estaba llenando el dashboard del embudo con pruebas que no son
+     * usuarios reales. Solo las builds de release (Play Store de verdad)
+     * mandan eventos — igual que iOS (ver EventosFunnel.swift).
      */
     fun registrarEventoFunnel(evento: String, metadata: Map<String, String> = emptyMap()) {
+        if (BuildConfig.DEBUG) return
         ambito.launch {
             local.encolarEventoFunnel(evento, metadata)
             sincronizador.sincronizar()
