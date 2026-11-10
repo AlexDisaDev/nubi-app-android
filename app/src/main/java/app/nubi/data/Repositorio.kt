@@ -3,6 +3,7 @@ package app.nubi.data
 import android.content.Context
 import app.nubi.i18n.L10n
 import app.nubi.notificaciones.AvisosNubi
+import app.nubi.notificaciones.NotificadorPrueba
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +85,7 @@ object Repositorio {
         datos.medicinas.forEach { avisarDeMedicina(contexto, it) }
         datos.citas.forEach { avisarDeCita(contexto, it) }
         avisarDeSueno(contexto, datos)
+        NotificadorPrueba.reprogramar(contexto)
     }
 
     /** Mismo formato de hora que usa la tarjeta de predicción en Hoy (Pantallas.kt). */

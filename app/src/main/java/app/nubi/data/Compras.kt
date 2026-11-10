@@ -31,6 +31,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.time.Instant
+import java.time.Period
+import java.time.ZoneId
 
 /**
  * Compras dentro de la app (Google Play Billing) para la suscripción
@@ -69,6 +72,7 @@ object Compras : PurchasesUpdatedListener {
 
     private var iniciado = false
     private lateinit var cliente: BillingClient
+    private var contextoApp: Context? = null
 
     /** Último plan pedido con comprar(), para mandarlo como respaldo al
      *  verificar (el Edge Function usa sobre todo lo que diga Google, no
@@ -96,6 +100,7 @@ object Compras : PurchasesUpdatedListener {
     fun iniciar(contexto: Context) {
         if (iniciado) return
         iniciado = true
+        contextoApp = contexto.applicationContext
 
         cliente = BillingClient.newBuilder(contexto.applicationContext)
             .setListener(this)
@@ -231,6 +236,19 @@ object Compras : PurchasesUpdatedListener {
             cliente.acknowledgePurchase(params) { /* la red de seguridad de verdad es el Edge Function */ }
         }
 
+        // Si esta compra es de un plan con prueba gratis, se guarda cuándo
+        // acaba (solo para poder avisar "te quedan 3 días" — ver
+        // NotificadorPrueba.kt — nunca para decidir acceso, eso lo sigue
+        // diciendo premium_hasta del servidor más abajo). Solo se puede
+        // saber con certeza aquí, cuando planSolicitado todavía es el plan
+        // recién comprado en ESTA sesión: si esta misma compra vuelve a
+        // pasar por procesar() desde recuperarComprasPendientes() en un
+        // arranque posterior (planSolicitado ya es null entonces), se deja
+        // tal cual lo que ya hubiera guardado — ver guardarFinPrueba().
+        if (planSolicitado != null) {
+            guardarFinPrueba(calcularFinPrueba(compra, planSolicitado))
+        }
+
         // La fuente de verdad del acceso es el servidor: aquí solo se le
         // avisa de la compra para que la verifique contra Google y active
         // premium_hasta. Hasta que responda, el usuario sigue viéndose
@@ -251,6 +269,9 @@ object Compras : PurchasesUpdatedListener {
                 // Supabase; la pantalla de pago observa Repositorio, así
                 // que en cuanto llegue se quita sola el muro de pago.
                 Repositorio.sincronizarEnSegundoPlano()
+                // Y se reprograma el aviso de "te quedan 3 días" con la
+                // fecha que se acaba de guardar arriba (si la hay).
+                Repositorio.reprogramarAvisos()
             } catch (e: Exception) {
                 _ultimoError.value = e.message ?: "No se pudo verificar la compra"
                 EventosFunnel.registrar(
@@ -305,5 +326,48 @@ object Compras : PurchasesUpdatedListener {
         if (!resultado.ok) {
             throw IllegalStateException(resultado.error ?: "El servidor no pudo verificar la compra")
         }
+    }
+
+    // --------------------------------------------- aviso de "3 días" (ver NotificadorPrueba.kt)
+
+    /**
+     * ¿Esta compra, para el plan "planId", tiene oferta de prueba gratis?
+     * Si la tiene, cuándo acaba — contado desde compra.purchaseTime (el
+     * instante real en que Play registró la compra), no desde "ahora": así
+     * da la misma fecha sin importar cuándo se llame esto (al comprar, o al
+     * recuperar la compra en un arranque posterior).
+     */
+    private fun calcularFinPrueba(compra: Purchase, planId: String?): Instant? {
+        val oferta = detalles?.subscriptionOfferDetails?.firstOrNull { it.basePlanId == planId } ?: return null
+        val fases = oferta.pricingPhases.pricingPhaseList
+        val hayPrueba = fases.size > 1 && fases.first().priceAmountMicros == 0L
+        if (!hayPrueba) return null
+        val duracionPrueba = try {
+            Period.parse(fases.first().billingPeriod)
+        } catch (_: Exception) {
+            return null
+        }
+        return Instant.ofEpochMilli(compra.purchaseTime)
+            .atZone(ZoneId.systemDefault())
+            .plus(duracionPrueba)
+            .toInstant()
+    }
+
+    private const val PREFS_PRUEBA = "compras_prueba"
+    private const val CLAVE_FIN_PRUEBA = "fin_prueba"
+
+    private fun guardarFinPrueba(instante: Instant?) {
+        val editor = contextoApp?.getSharedPreferences(PREFS_PRUEBA, Context.MODE_PRIVATE)?.edit() ?: return
+        if (instante == null) editor.remove(CLAVE_FIN_PRUEBA) else editor.putLong(CLAVE_FIN_PRUEBA, instante.toEpochMilli())
+        editor.apply()
+    }
+
+    /** Fecha de fin de la prueba gratis en curso, o null si no hay ninguna
+     *  guardada (nunca hubo prueba, o ya se guardó null al comprar sin
+     *  prueba). La usa NotificadorPrueba para programar el aviso. */
+    fun vencePruebaAndroid(): Instant? {
+        val millis = contextoApp?.getSharedPreferences(PREFS_PRUEBA, Context.MODE_PRIVATE)
+            ?.getLong(CLAVE_FIN_PRUEBA, -1L) ?: -1L
+        return if (millis <= 0) null else Instant.ofEpochMilli(millis)
     }
 }

@@ -84,6 +84,7 @@ import app.nubi.data.TipoPrediccion
 import app.nubi.data.TipoRegistro
 import app.nubi.i18n.IdiomaNubi
 import app.nubi.i18n.L10n
+import app.nubi.notificaciones.NotificadorPrueba
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
@@ -1886,6 +1887,34 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                         )
                     }
                     Switch(checked = forzado, onCheckedChange = { Premium.alternarPruebas() })
+                }
+                Spacer(Modifier.height(10.dp))
+
+                // Mismo sitio y mismo propósito que el botón "[Debug] Probar
+                // aviso de prueba" en VistaAjustes.swift: dispara el aviso de
+                // "te quedan 3 días" ya mismo, con el copy real, para poder
+                // verlo tal cual lo vería alguien de verdad.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { NotificadorPrueba.probarAhora(contexto) }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            L10n.t("[Debug] Probar aviso de prueba"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            L10n.t("Lanza la notificación de \"te quedan 3 días\" en 5 segundos"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
             }
