@@ -47,24 +47,38 @@ import app.nubi.ui.theme.NubiTheme
 /**
  * Las cinco pestañas de abajo, en el mismo orden y con los mismos nombres
  * que en iOS (enum Pestana en NubiApp.swift).
+ *
+ * IMPORTANTE: [titulo] se queda en español, SIN pasar por L10n.t() aquí.
+ * Un enum de Kotlin se inicializa una sola vez, la primera vez que la
+ * clase se toca — mucho antes de que Navegacion() llegue a leer el idioma
+ * guardado. Si aquí se llamaba a L10n.t("Hoy"), el texto quedaba
+ * congelado para siempre con el idioma que hubiera en ESE instante (en la
+ * práctica, el de "Automático" según el idioma del sistema), y ya daba
+ * igual lo que se eligiera después en Ajustes: por eso las pestañas se
+ * veían en inglés aunque la app estuviera en español. [titulo] es ahora
+ * solo la CLAVE para L10n.t(), que se seguirá llamando en cada sitio
+ * donde se pinta el texto (ahí sí es una función @Composable que se
+ * vuelve a evaluar cuando cambia el idioma).
  */
 private enum class Pestana(val titulo: String, val premium: Boolean) {
-    HOY(L10n.t("Hoy"), premium = false),
-    DIA(L10n.t("Día"), premium = false),
-    CRECE(L10n.t("Crece"), premium = false),
-    SALUD(L10n.t("Salud"), premium = false),
-    DIARIO(L10n.t("Diario"), premium = true)
+    HOY("Hoy", premium = false),
+    DIA("Día", premium = false),
+    CRECE("Crece", premium = false),
+    SALUD("Salud", premium = false),
+    DIARIO("Diario", premium = true)
 }
 
 /**
  * La barra de arriba (enum VistaSuperior en iOS): las tres secciones de
  * premium. Funcionan igual que las de abajo — se selecciona una y se ve
  * su pantalla — solo que están arriba. Las tres son premium.
+ *
+ * [titulo] es la clave en español, por el mismo motivo que en [Pestana].
  */
 private enum class VistaSuperior(val titulo: String) {
-    BANCO(L10n.t("Banco")),
-    ALIMENTACION(L10n.t("Alimentación")),
-    SONIDOS(L10n.t("Sonidos"))
+    BANCO("Banco"),
+    ALIMENTACION("Alimentación"),
+    SONIDOS("Sonidos")
 }
 
 /**

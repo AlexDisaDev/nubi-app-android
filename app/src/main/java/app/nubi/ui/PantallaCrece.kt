@@ -71,10 +71,16 @@ import java.util.Locale
 // medidas y la hoja para añadir o editar una.
 // =====================================================================
 
+// [titulo] se queda en español, sin pasar por L10n.t() aquí: un enum se
+// inicializa una sola vez, la primera vez que la clase se toca, así que
+// traducirlo en el propio constructor lo dejaba congelado en el idioma
+// que hubiera en ese instante para siempre (el mismo bug que las pestañas
+// de Navegacion.kt). Ahora es la clave, y L10n.t(m.titulo) se llama en
+// cada sitio donde se pinta.
 private enum class Magnitud(val titulo: String, val unidad: String, val icono: IconoNubi) {
-    PESO(L10n.t("Peso"), "kg", IconoNubi.BASCULA),
-    ALTURA(L10n.t("Estatura"), "cm", IconoNubi.REGLA),
-    PERIMETRO(L10n.t("Cabeza"), "cm", IconoNubi.ONDAS);
+    PESO("Peso", "kg", IconoNubi.BASCULA),
+    ALTURA("Estatura", "cm", IconoNubi.REGLA),
+    PERIMETRO("Cabeza", "cm", IconoNubi.ONDAS);
 
     val decimales: Int get() = if (this == PESO) 2 else 1
 
@@ -260,7 +266,7 @@ private fun CeldaResumen(m: Magnitud, dato: Pair<Double, Instant>?, modifier: Mo
                 )
             } else {
                 Text("—", style = MaterialTheme.typography.headlineSmall, color = colores.tintaTenue)
-                Text(m.titulo, style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
+                Text(L10n.t(m.titulo), style = MaterialTheme.typography.labelSmall, color = colores.tintaTenue)
             }
         }
     }
@@ -288,7 +294,7 @@ private fun SelectorMagnitud(seleccion: Magnitud, onSeleccion: (Magnitud) -> Uni
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    m.titulo,
+                    L10n.t(m.titulo),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (seleccionada) colores.tinta else colores.tintaTenue
                 )

@@ -56,10 +56,15 @@ import kotlinx.coroutines.launch
  * con mi propio criterio, así que esas dos frases son mías, no un porte
  * literal.
  */
+// "30 min" y "1 h" no se traducen (son iguales en los cuatro idiomas);
+// "Infinito" es la clave en español, sin pasar por L10n.t() aquí, por el
+// mismo motivo que los demás enums de este fichero: un enum se inicializa
+// una sola vez y lo dejaba congelado en el idioma que hubiera en ese
+// instante. Se traduce al pintar, en el .map de más abajo.
 private enum class TemporizadorSonido(val etiqueta: String, val milisegundos: Long?) {
     MIN_30("30 min", 30L * 60_000),
     HORA_1("1 h", 60L * 60_000),
-    INFINITO(L10n.t("Infinito"), null)
+    INFINITO("Infinito", null)
 }
 
 @Composable
@@ -142,7 +147,7 @@ fun PantallaSonidos() {
         EtiquetaSeccionSonidos(L10n.t("Temporizador"))
         Spacer(Modifier.height(10.dp))
         SelectorSegmentadoSonidos(
-            opciones = TemporizadorSonido.entries.map { it to it.etiqueta },
+            opciones = TemporizadorSonido.entries.map { it to L10n.t(it.etiqueta) },
             actual = temporizador,
             onCambiar = { nuevo ->
                 temporizador = nuevo

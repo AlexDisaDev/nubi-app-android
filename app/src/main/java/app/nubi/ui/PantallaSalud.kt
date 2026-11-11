@@ -85,8 +85,11 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
+// [titulo] en español, sin L10n.t() aquí: mismo motivo que en Navegacion.kt
+// y PantallaCrece.kt — un enum se inicializa una sola vez y lo dejaba
+// congelado en el idioma que hubiera en ese instante para siempre.
 private enum class SeccionSalud(val titulo: String) {
-    VACUNAS(L10n.t("Vacunas")), CITAS(L10n.t("Citas")), ENFERMEDADES(L10n.t("Enfermedades"))
+    VACUNAS("Vacunas"), CITAS("Citas"), ENFERMEDADES("Enfermedades")
 }
 
 /**
@@ -290,7 +293,7 @@ private fun SelectorSeccionSalud(seleccion: SeccionSalud, onSeleccion: (SeccionS
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    s.titulo,
+                    L10n.t(s.titulo),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (seleccionada) colores.tinta else colores.tintaTenue
                 )
