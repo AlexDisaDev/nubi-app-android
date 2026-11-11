@@ -1836,8 +1836,8 @@ private fun BotonCircular(tipo: TipoRegistro, bloqueado: Boolean = false, onClic
 }
 
 /** Una fila de la lista "Todo lo del día": insignia + línea que conecta
- *  con la siguiente, título con sus chips, subtítulo, y una X para borrar.
- *  Tocar la fila (fuera de la X) abre la hoja de edición de ese registro. */
+ *  con la siguiente, título con sus chips, subtítulo, y un lápiz + una X
+ *  para editar/borrar. Tocar la fila en cualquier punto también edita. */
 @Composable
 private fun FilaTimeline(
     registro: Registro,
@@ -1890,14 +1890,25 @@ private fun FilaTimeline(
                 color = colores.tintaSuave
             )
         }
+        // El lápiz deja claro, sin tener que explicarlo en un texto aparte,
+        // que el registro se puede tocar para editarlo (igual que en iOS).
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onEditar),
+            contentAlignment = Alignment.Center
+        ) {
+            Icono(IconoNubi.LAPIZ, tint = colores.tintaSuave, tamano = 16.dp)
+        }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
                 .clip(CircleShape)
                 .clickable(onClick = onBorrar),
             contentAlignment = Alignment.Center
         ) {
-            Icono(IconoNubi.EQUIS, tint = colores.tintaTenue, tamano = 12.dp)
+            Icono(IconoNubi.EQUIS, tint = colores.tintaSuave, tamano = 16.dp)
         }
     }
 }
