@@ -92,6 +92,15 @@ data class CambioPendiente(
  *
  * La regla 3 es deliberadamente conservadora: ante la duda, se conservan
  * los datos del bebé aunque sobre alguna fila de más.
+ *
+ * 4. EXCEPCIÓN a la regla 3: si el bebé en caché no es nuestro (Bebe.usuarioId
+ *    es el del dueño que nos invitó, no el nuestro) y el servidor deja de
+ *    devolver su fila de "bebes", no es un fallo pasajero — es que la RLS ya
+ *    no nos deja verlo, porque el dueño ha dejado de compartir. Aquí la
+ *    regla 3 se invierte a propósito: seguir mostrando los datos de otra
+ *    persona después de que nos quiten el acceso sería un fallo de
+ *    privacidad, no solo una pérdida de datos. Ver el bloque de
+ *    "perdioAccesoCompartido" en bajarCambios().
  */
 class Sincronizador(private val local: AlmacenLocal) {
 
@@ -396,6 +405,37 @@ class Sincronizador(private val local: AlmacenLocal) {
             Supabase.client.from(Tablas.PERFILES).select {
                 filter { eq("id", it) }
             }.decodeList<Perfil>().firstOrNull()
+        }
+
+        // Regla 4 (ver el comentario de la cabecera de la clase): si el bebé
+        // en caché es de otra persona (nos invitó) y ya no nos llega su fila
+        // de "bebes", hemos perdido el acceso — el dueño ha dejado de
+        // compartir, o hemos salido desde otro móvil. No se mezcla nada: se
+        // limpia todo lo del bebé y se vuelve al estado "sin bebé" (la
+        // pantalla raíz ya sabe llevar a alguien sin bebé a crear el suyo o
+        // a aceptar una invitación nueva).
+        val bebeCacheado = local.datos.value.bebe
+        val eraInvitadoDeEsteBebe = miId != null && bebeCacheado != null &&
+            bebeCacheado.usuarioId.isNotEmpty() && bebeCacheado.usuarioId != miId
+        val perdioAccesoCompartido = eraInvitadoDeEsteBebe && bebes.isEmpty() &&
+            bebeCacheado!!.id !in pendientes
+
+        if (perdioAccesoCompartido) {
+            local.modificar { d ->
+                DatosNubi(
+                    perfil = perfil ?: d.perfil,
+                    tema = d.tema,
+                    idioma = d.idioma,
+                    comunidad = d.comunidad,
+                    avisoComidaActivo = d.avisoComidaActivo,
+                    avisoComidaIntervaloMin = d.avisoComidaIntervaloMin,
+                    avisoComidaUltimaTomaAvisadaMs = d.avisoComidaUltimaTomaAvisadaMs,
+                    eventosFunnel = d.eventosFunnel,
+                    dispositivoId = d.dispositivoId,
+                    plataformaRegistrada = d.plataformaRegistrada
+                )
+            }
+            return
         }
 
         // Foto del bebé: solo la fila de ESTE bebé (no traerTodo() — por
