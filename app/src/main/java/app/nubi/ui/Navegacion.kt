@@ -113,7 +113,7 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val datos by Repositorio.local.datos.collectAsState()
     var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
-    val premium = Premium.activo(perfil)
+    val premium = Premium.activo(perfil, datos.premiumCompartido)
     val colores = NubiTheme.colores
 
     // Navegar nunca se bloquea: a TODAS las pestañas y secciones se entra

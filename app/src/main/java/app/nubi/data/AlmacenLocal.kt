@@ -49,6 +49,17 @@ data class DatosNubi(
      */
     val perfil: Perfil? = null,
 
+    /**
+     * ¿El DUEÑO de "bebe" tiene premium activo? (ver Compartir.kt y
+     * Sincronizador.bajarCambios()). Es el equivalente Android de
+     * Sincronizador.esParticipante en iOS, pero basado en pago real en vez
+     * de en el simple hecho de ser participante: si eres el dueño, da lo
+     * mismo que perfil.tieneAccesoPagado(); si eres invitado, refleja el
+     * premium de quien te invitó. Premium.activo() lo usa junto al perfil
+     * propio — nunca a solas.
+     */
+    val premiumCompartido: Boolean = false,
+
     /** Hora del despertar marcado a mano (iOS: despertarManual). */
     val despertarManual: Fecha? = null,
 

@@ -411,10 +411,18 @@ class Sincronizador(private val local: AlmacenLocal) {
             }.decodeList<FilaFotoBebe>().firstOrNull()
         }
 
+        // Si el dueño de este bebé (sea este móvil o quien lo compartió)
+        // tiene premium activo ahora mismo — ver Compartir.tienePremiumCompartido
+        // y la función tiene_premium_compartido() en Supabase. Se recalcula en
+        // cada sincronización, igual que el resto del perfil: no tiene
+        // pendientes propios, lo decide siempre el servidor.
+        val premiumCompartido = bebeActualId?.let { Compartir.tienePremiumCompartido(it) } ?: false
+
         local.modificar { d ->
             d.copy(
                 bebe = bebes.firstOrNull()?.takeIf { it.id !in pendientes } ?: d.bebe,
                 perfil = perfil ?: d.perfil,
+                premiumCompartido = premiumCompartido,
                 fotoPerfilBase64 = if (fotoPendiente) d.fotoPerfilBase64 else fotoRemota?.fotoBase64,
                 registros = fundir(d.registros, registros, pendientes, { it.id }, { it.actualizadoEn }),
                 medicinas = fundir(d.medicinas, medicinas, pendientes, { it.id }, { it.actualizadoEn }),

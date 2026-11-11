@@ -2349,7 +2349,8 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     // no usa para decidir acceso (ver el comentario de
     // Perfil.puedeUsarApp() en Modelos.kt) — decía una cosa mientras el
     // resto de la app, correctamente, se regía por otra.
-    val premiumActivo = Premium.activo(perfil)
+    val datos by Repositorio.local.datos.collectAsState()
+    val premiumActivo = Premium.activo(perfil, datos.premiumCompartido)
     var mostrarPaywall by remember { mutableStateOf(false) }
     var mostrarHojaCanje by remember { mutableStateOf(false) }
 

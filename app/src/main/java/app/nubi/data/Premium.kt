@@ -37,7 +37,18 @@ object Premium {
         if (BuildConfig.DEBUG) _forzadoEnPruebas.value = !_forzadoEnPruebas.value
     }
 
-    /** La única pregunta que debe hacerse la UI para decidir si algo premium se desbloquea. */
-    fun activo(perfil: Perfil?): Boolean =
-        (BuildConfig.DEBUG && _forzadoEnPruebas.value) || perfil?.tieneAccesoPagado() == true
+    /**
+     * La única pregunta que debe hacerse la UI para decidir si algo premium
+     * se desbloquea.
+     *
+     * [premiumCompartido] es DatosNubi.premiumCompartido (ver Compartir.kt
+     * y Sincronizador.bajarCambios()): true si el dueño del bebé actual
+     * —sea este móvil u otro, iPhone o Android— tiene premium activo
+     * ahora mismo. Es el equivalente de Sincronizador.esParticipante en
+     * iOS, pero mirando el pago real en vez de solo "soy participante".
+     */
+    fun activo(perfil: Perfil?, premiumCompartido: Boolean = false): Boolean =
+        (BuildConfig.DEBUG && _forzadoEnPruebas.value) ||
+            perfil?.tieneAccesoPagado() == true ||
+            premiumCompartido
 }

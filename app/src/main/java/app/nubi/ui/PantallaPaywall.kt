@@ -158,7 +158,7 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
     // premium mientras este paywall está abierto — igual que iOS cierra
     // el suyo (cerrar()) tanto tras comprar como tras canjear.
     val datos by Repositorio.local.datos.collectAsState()
-    val premiumActivo = Premium.activo(datos.perfil)
+    val premiumActivo = Premium.activo(datos.perfil, datos.premiumCompartido)
     val eraPremiumAlAbrir = remember { premiumActivo }
     LaunchedEffect(premiumActivo) {
         if (!eraPremiumAlAbrir && premiumActivo) {

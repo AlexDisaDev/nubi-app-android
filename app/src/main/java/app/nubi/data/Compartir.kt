@@ -109,4 +109,25 @@ object Compartir {
             filter { eq("bebe_id", bebeId) }
         }
     }
+
+    /**
+     * ¿El DUEÑO de este bebé tiene premium activo AHORA MISMO? (backend/0xx:
+     * ver tiene_premium_compartido en Supabase.) Es la pieza que faltaba
+     * para que compartir funcione igual que entre iPhones por CKShare, pero
+     * de verdad: si quien invitó paga, los invitados ven premium; si no,
+     * no. Sirve igual para Android<->Android que para iPhone<->Android,
+     * porque no depende de CloudKit — ver Sincronizador.bajarCambios(),
+     * que guarda el resultado en DatosNubi.premiumCompartido para que
+     * Premium.activo() lo use sin tener que llamar aquí desde cada pantalla.
+     *
+     * Devuelve false si falla la llamada (sin red, etc.): nunca se debe
+     * tratar un fallo de red como "sí hay premium compartido".
+     */
+    suspend fun tienePremiumCompartido(bebeId: String): Boolean =
+        runCatching {
+            Supabase.client.postgrest.rpc(
+                "tiene_premium_compartido",
+                buildJsonObject { put("p_bebe_id", bebeId) }
+            ).decodeAs<Boolean>()
+        }.getOrDefault(false)
 }
