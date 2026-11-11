@@ -94,6 +94,14 @@ data class DatosNubi(
      */
     val avisoComidaActivo: Boolean = false,
     val avisoComidaIntervaloMin: Int = 180,
+    /**
+     * Epoch millis de la "última toma" (Registro.inicio) para la que ya se
+     * lanzó el aviso de "casi al momento" cuando ya tocaba comer y no se
+     * había anotado la toma (ver avisarDeComida en Repositorio.kt). Evita
+     * que el aviso se repita en cada recálculo mientras no se anota una
+     * toma nueva — preferencia de este móvil, no se sincroniza.
+     */
+    val avisoComidaUltimaTomaAvisadaMs: Long? = null,
 
     /** Última vez que se tocó algo en este móvil. */
     val modificado: Fecha? = null,

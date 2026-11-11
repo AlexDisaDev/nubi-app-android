@@ -145,12 +145,27 @@ object Repositorio {
         }
 
         val ahora = Instant.now()
-        var proximaToma = ultimaToma.inicio.plusSeconds(datos.avisoComidaIntervaloMin * 60L)
-        // Si para cuando se (re)calcula esto ya tocaba comer, no se deja
-        // caer en silencio por culpa del margen de AlarmManager: se avisa
-        // casi al momento, igual que iOS.
-        if (!proximaToma.isAfter(ahora.plusSeconds(65))) {
+        val proximaTomaNormal = ultimaToma.inicio.plusSeconds(datos.avisoComidaIntervaloMin * 60L)
+        val tomaMs = ultimaToma.inicio.toEpochMilli()
+
+        val proximaToma: Instant
+        if (!proximaTomaNormal.isAfter(ahora.plusSeconds(65))) {
+            // Ya tocaba comer (o toca ya mismo) para ESTA toma. Si ya
+            // habíamos lanzado el aviso de "casi al momento" para ella, no
+            // lo repetimos: antes, cada recálculo (abrir la app, guardar
+            // cualquier registro...) mientras la toma seguía sin anotarse
+            // volvía a empujar esto a "ahora + 65s" y el aviso sonaba sin
+            // parar. Dejamos tranquila la alarma ya programada y salimos.
+            if (datos.avisoComidaUltimaTomaAvisadaMs == tomaMs) return
+            local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = tomaMs) }
             proximaToma = ahora.plusSeconds(65)
+        } else {
+            // Toma dentro de lo normal: limpiamos la marca de un ciclo
+            // anterior para que la próxima vez que SÍ toque, sí avise.
+            if (datos.avisoComidaUltimaTomaAvisadaMs != null) {
+                local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = null) }
+            }
+            proximaToma = proximaTomaNormal
         }
 
         AvisosNubi.programar(
