@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -791,6 +792,7 @@ fun PantallaHoy(
  * tiempo, contado desde la última toma (biberón o pecho), se quiere el
  * aviso "Ya es la hora de comer de {bebé}" — en horas y minutos.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HojaAvisoComida(onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
@@ -938,7 +940,7 @@ fun HojaAvisoComida(onCerrar: () -> Unit) {
 }
 
 @Composable
-private fun ContadorAvisoComida(valor: Int, unidad: String, paso: Int, minimo: Int, maximo: Int, onCambiar: (Int) -> Unit) {
+private fun RowScope.ContadorAvisoComida(valor: Int, unidad: String, paso: Int, minimo: Int, maximo: Int, onCambiar: (Int) -> Unit) {
     val colores = NubiTheme.colores
     Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(valor.toString(), style = MaterialTheme.typography.displaySmall, color = colores.tinta)

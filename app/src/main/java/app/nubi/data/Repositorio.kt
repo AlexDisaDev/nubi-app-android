@@ -157,13 +157,13 @@ object Repositorio {
             // volvía a empujar esto a "ahora + 65s" y el aviso sonaba sin
             // parar. Dejamos tranquila la alarma ya programada y salimos.
             if (datos.avisoComidaUltimaTomaAvisadaMs == tomaMs) return
-            local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = tomaMs) }
+            ambito.launch { local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = tomaMs) } }
             proximaToma = ahora.plusSeconds(65)
         } else {
             // Toma dentro de lo normal: limpiamos la marca de un ciclo
             // anterior para que la próxima vez que SÍ toque, sí avise.
             if (datos.avisoComidaUltimaTomaAvisadaMs != null) {
-                local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = null) }
+                ambito.launch { local.modificar { it.copy(avisoComidaUltimaTomaAvisadaMs = null) } }
             }
             proximaToma = proximaTomaNormal
         }
