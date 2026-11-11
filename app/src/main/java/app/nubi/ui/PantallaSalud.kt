@@ -116,7 +116,7 @@ fun PantallaSalud(
     val comunidad = remember(comunidadGuardada) {
         runCatching { Comunidad.valueOf(comunidadGuardada) }.getOrDefault(Comunidad.COMUN)
     }
-    val gruposCalendario = remember(comunidad) { CalendarioVacunal.grupos(comunidad) }
+    val gruposCalendario = remember(comunidad, L10n.idiomaEfectivo) { CalendarioVacunal.grupos(comunidad) }
 
     val citasProximas = remember(citas) { citas.filterNot { it.pasada() }.sortedBy { it.fecha } }
     val citasPasadas = remember(citas) { citas.filter { it.pasada() }.sortedByDescending { it.fecha } }
@@ -1370,7 +1370,7 @@ private fun HojaAnadirVacuna(grupo: GrupoVacunas, onAnadir: (String, Boolean, In
     var fecha by remember { mutableStateOf(Instant.now()) }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
 
-    val resultados = remember(busqueda) { CatalogoVacunas.buscar(busqueda) }
+    val resultados = remember(busqueda, L10n.idiomaEfectivo) { CatalogoVacunas.buscar(busqueda) }
     val textoLimpio = busqueda.trim()
     val esNombreNuevo = textoLimpio.isNotEmpty() && resultados.none { it.equals(textoLimpio, ignoreCase = true) }
 

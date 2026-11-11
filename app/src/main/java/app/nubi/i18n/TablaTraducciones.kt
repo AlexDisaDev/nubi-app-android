@@ -864,4 +864,19 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     ),
     "Ahorras" to mapOf("en" to "You save", "it" to "Risparmi", "fr" to "Vous économisez"),
     "sale a" to mapOf("en" to "works out to", "it" to "viene", "fr" to "revient à"),
+
+    // Avisos del sistema. En iOS estos tres pasan por L10n.t pero nunca se
+    // metieron en Traducciones.swift, así que allí también salen en español
+    // — conviene añadirlos igual cuando se toque el proyecto de iOS.
+    "Hora de comer" to mapOf("en" to "Time to eat", "it" to "È ora di mangiare", "fr" to "C'est l'heure de manger"),
+    "Te quedan 3 días de prueba" to mapOf(
+        "en" to "3 days left of your trial",
+        "it" to "Ti restano 3 giorni di prova",
+        "fr" to "Il vous reste 3 jours d'essai"
+    ),
+    "Sigue anticipándote a cada siesta de tu bebé sin cortes: no pierdas lo que has avanzado con Nubi Premium." to mapOf(
+        "en" to "Keep staying ahead of every nap without interruption: don't lose the progress you've made with Nubi Premium.",
+        "it" to "Continua ad anticipare ogni sonnellino senza interruzioni: non perdere i progressi fatti con Nubi Premium.",
+        "fr" to "Continuez à anticiper chaque sieste sans interruption : ne perdez pas ce que vous avez accompli avec Nubi Premium."
+    ),
 )

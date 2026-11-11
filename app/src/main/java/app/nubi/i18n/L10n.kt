@@ -289,6 +289,32 @@ object L10n {
         else -> "$n ${if (n == 1) "toma" else "tomas"}"
     }
 
+    // -----------------------------------------------------------------
+    // Calendario vacunal (puerto literal de Traducciones.swift).
+    // -----------------------------------------------------------------
+
+    /** El "(2ª)" que se le añade al nombre de una vacuna con varias dosis. */
+    fun dosisN(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "(dose $n)"
+        IdiomaNubi.ITALIANO -> "(${n}ª dose)"
+        IdiomaNubi.FRANCES -> "(dose $n)"
+        else -> "(${n}ª)"
+    }
+
+    fun calendarioDeComunidad(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$nombre schedule for 2026. Check it against the vaccination booklet: the timing often depends on the birth date."
+        IdiomaNubi.ITALIANO -> "Calendario di $nombre per il 2026. Confrontalo con il libretto: le tempistiche dipendono spesso dalla data di nascita."
+        IdiomaNubi.FRANCES -> "Calendrier de $nombre pour 2026. Comparez-le avec le carnet de santé : le calendrier dépend souvent de la date de naissance."
+        else -> "Calendario de $nombre para 2026. Contrástalo con la cartilla: las pautas dependen a menudo de la fecha de nacimiento."
+    }
+
+    fun calendarioNoCargado(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "I don't have $nombre's own schedule loaded yet, so the common one is shown instead. Add below whatever's missing."
+        IdiomaNubi.ITALIANO -> "Non ho ancora caricato il calendario proprio di $nombre, quindi si mostra quello comune. Aggiungi qui sotto quello che manca."
+        IdiomaNubi.FRANCES -> "Je n'ai pas encore le calendrier propre à $nombre, le calendrier commun est donc affiché. Ajoutez ci-dessous ce qui manque."
+        else -> "Todavía no tengo cargado el calendario propio de $nombre, así que se muestra el común. Añade abajo lo que falte."
+    }
+
     /** Para el chip de "pecho" del resumen del día (ver chipsResumenDelDia en
      *  VistaLinea.swift de iOS). */
     fun tomasPechoResumen(n: Int): String = when (idiomaEfectivo) {

@@ -1,11 +1,13 @@
 package app.nubi.data
 
+import app.nubi.i18n.L10n
+
 /**
  * Comunidades autónomas de España (ver CalendarioVacunal.swift). "OTROS"
  * representa países sin calendario cargado: ahí la app no inventa un
  * calendario oficial, solo deja añadir vacunas a mano.
  */
-enum class Comunidad(val nombre: String) {
+enum class Comunidad(private val nombreEs: String) {
     OTROS("Otros países"),
     COMUN("Calendario común (España)"),
     ANDALUCIA("Andalucía"),
@@ -27,6 +29,11 @@ enum class Comunidad(val nombre: String) {
     NAVARRA("Navarra"),
     PAIS_VASCO("País Vasco / Euskadi"),
     RIOJA("La Rioja");
+
+    /** El nombre ya traducido — lo que se guarda en Ajustes es el nombre del
+     *  caso del enum (Comunidad.valueOf), así que traducir esto no afecta a
+     *  lo que hay almacenado. Igual que `nombre` en CalendarioVacunal.swift. */
+    val nombre: String get() = L10n.t(nombreEs)
 
     val esCalendarioOficial: Boolean get() = this != OTROS
 }
@@ -83,20 +90,31 @@ object CalendarioVacunal {
     private val hepA = V("hepa", "Hepatitis A", "")
 
     /** Añade el número de dosis al nombre sin cambiar el identificador. */
-    private fun d(v: V, n: Int): V = V(v.cod, "${v.nombre} (${n}ª)", v.detalle)
+    private fun d(v: V, n: Int): V =
+        V(v.cod, "${L10n.t(v.nombre)} ${L10n.dosisN(n)}", if (v.detalle.isEmpty()) "" else L10n.t(v.detalle))
 
-    private fun nota(v: V, texto: String): V = V(v.cod, v.nombre, texto)
+    private fun nota(v: V, texto: String): V = V(v.cod, L10n.t(v.nombre), L10n.t(texto))
 
     private fun gr(gid: String, etiqueta: String, meses: Double, vs: List<V>): GrupoVacunal =
         GrupoVacunal(
             id = gid,
-            etiqueta = etiqueta,
+            etiqueta = L10n.t(etiqueta),
             meses = meses,
-            items = vs.map { ItemVacuna(id = "$gid-${it.cod}", nombre = it.nombre, detalle = it.detalle) }
+            items = vs.map {
+                ItemVacuna(
+                    id = "$gid-${it.cod}",
+                    // L10n.t() es una búsqueda en una tabla: si el nombre o el
+                    // detalle ya vienen traducidos desde d() o nota(), no
+                    // encuentra esa clave en español y los devuelve tal cual,
+                    // así que volver a pasarlos por aquí es seguro.
+                    nombre = L10n.t(it.nombre),
+                    detalle = if (it.detalle.isEmpty()) "" else L10n.t(it.detalle)
+                )
+            }
         )
 
     // MARK: Calendario común del SNS (2026)
-    private val comun: List<GrupoVacunal> = listOf(
+    private val comun: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
@@ -111,7 +129,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Comunidad de Madrid
-    private val madrid: List<GrupoVacunal> = listOf(
+    private val madrid: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
@@ -132,7 +150,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Andalucía
-    private val andalucia: List<GrupoVacunal> = listOf(
+    private val andalucia: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr(
             "g2", "2 meses", 2.0, listOf(
@@ -157,7 +175,7 @@ object CalendarioVacunal {
     )
 
     // MARK: País Vasco
-    private val paisVasco: List<GrupoVacunal> = listOf(
+    private val paisVasco: List<GrupoVacunal> get() = listOf(
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc, 1), d(menb, 1),
@@ -176,7 +194,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Catalunya
-    private val cataluna: List<GrupoVacunal> = listOf(
+    private val cataluna: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(nota(vrs, "A todos los menores de 12 meses en su primera temporada."))),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
@@ -201,7 +219,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Galicia
-    private val galicia: List<GrupoVacunal> = listOf(
+    private val galicia: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr(
             "g2", "2 meses", 2.0, listOf(
@@ -226,7 +244,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Comunitat Valenciana
-    private val valencia: List<GrupoVacunal> = listOf(
+    private val valencia: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc20, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc20, 2), d(rota, 2), d(menacwy, 1))),
@@ -247,7 +265,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Castilla y León
-    private val castillaYLeon: List<GrupoVacunal> = listOf(
+    private val castillaYLeon: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc20, 1), d(menb, 1), d(rota, 1))),
         gr("g3", "3 meses", 3.0, listOf(nota(rota, "Segunda dosis, según la vacuna utilizada."))),
@@ -274,7 +292,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Castilla-La Mancha
-    private val castillaLaMancha: List<GrupoVacunal> = listOf(
+    private val castillaLaMancha: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(rota, 2), d(menacwy, 1))),
@@ -299,7 +317,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Asturias
-    private val asturias: List<GrupoVacunal> = listOf(
+    private val asturias: List<GrupoVacunal> get() = listOf(
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc, 1),
@@ -330,7 +348,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Aragón
-    private val aragon: List<GrupoVacunal> = listOf(
+    private val aragon: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr(
             "g2", "2 meses", 2.0, listOf(
@@ -366,7 +384,7 @@ object CalendarioVacunal {
     )
 
     // MARK: Índice
-    private val porComunidad: Map<Comunidad, List<GrupoVacunal>> = mapOf(
+    private val porComunidad: Map<Comunidad, List<GrupoVacunal>> get() = mapOf(
         Comunidad.MADRID to madrid,
         Comunidad.ANDALUCIA to andalucia,
         Comunidad.PAIS_VASCO to paisVasco,
@@ -400,20 +418,20 @@ object CalendarioVacunal {
     /** Aviso que acompaña al listado y que explica de dónde sale. */
     fun aviso(comunidad: Comunidad): String = when {
         comunidad == Comunidad.OTROS ->
-            "Cada país tiene su propio calendario de vacunación. Usa la sección «Añadidas por ti» para guardar las vacunas de tu bebé."
+            L10n.t("Cada país tiene su propio calendario de vacunación. Usa la sección «Añadidas por ti» para guardar las vacunas de tu bebé.")
 
         comunidad == Comunidad.COMUN ->
-            "Calendario común del Sistema Nacional de Salud para 2026. Tu comunidad puede adelantar o añadir vacunas: elígela arriba."
+            L10n.t("Calendario común del Sistema Nacional de Salud para 2026. Tu comunidad puede adelantar o añadir vacunas: elígela arriba.")
 
         comunidadesCargadas.contains(comunidad) ->
-            "Calendario de ${comunidad.nombre} para 2026. Contrástalo con la cartilla: las pautas dependen a menudo de la fecha de nacimiento."
+            L10n.calendarioDeComunidad(comunidad.nombre)
 
         else ->
-            "Todavía no tengo cargado el calendario propio de ${comunidad.nombre}, así que se muestra el común. Añade abajo lo que falte."
+            L10n.calendarioNoCargado(comunidad.nombre)
     }
 
-    val avisoGeneral: String =
-        "El calendario es orientativo y se actualiza cada año. La referencia válida es siempre la cartilla de tu bebé y tu enfermera de pediatría."
+    val avisoGeneral: String
+        get() = L10n.t("El calendario es orientativo y se actualiza cada año. La referencia válida es siempre la cartilla de tu bebé y tu enfermera de pediatría.")
 }
 
 /**
@@ -422,7 +440,10 @@ object CalendarioVacunal {
  */
 object CatalogoVacunas {
 
-    val nombres: List<String> = listOf(
+    /** Ya traducidos, igual que en CalendarioVacunal.swift (iOS). */
+    val nombres: List<String> get() = nombresEs.map { L10n.t(it) }
+
+    private val nombresEs: List<String> = listOf(
         "Hexavalente (DTPa-VPI-Hib-HB)",
         "Pentavalente (DTPa-VPI-Hib)",
         "Difteria, tétanos y tosferina (DTPa)",

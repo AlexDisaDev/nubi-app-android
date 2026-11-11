@@ -498,7 +498,12 @@ fun PantallaHoy(
 
     // La etapa que le toca al bebé ahora mismo (ver MotorEtapas.kt), si hay
     // alguna definida para su edad.
-    val etapaActual = remember(bebe.id) { MotorEtapas.etapaActual(bebe.edadEnDias()) }
+    // El idioma entra en la clave del remember a propósito: los textos de la
+    // etapa se resuelven al construirla (MotorEtapas.t), así que sin esto se
+    // quedaban en el idioma que hubiera al abrir la app.
+    val etapaActual = remember(bebe.id, L10n.idiomaEfectivo) {
+        MotorEtapas.etapaActual(bebe.edadEnDias())
+    }
 
     // Próxima ventana de sueño (ver MotorSueno.kt, traducido de VentanasDespierto.swift):
     // null si ya está durmiendo, si no hay suficientes datos del día, o si el
