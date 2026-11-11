@@ -93,6 +93,7 @@ import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.data.TipoPrediccion
 import app.nubi.data.TipoRegistro
+import app.nubi.data.UnidadBiberon
 import app.nubi.i18n.IdiomaNubi
 import app.nubi.i18n.L10n
 import app.nubi.notificaciones.NotificadorPrueba
@@ -113,6 +114,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 
 // =====================================================================
 // Canjear código — se usa en dos sitios: al entrar por primera vez y
@@ -552,10 +554,15 @@ fun PantallaHoy(
                 }
             }
             Box(modifier = Modifier.clickable { alCambiarTema() }) {
+                // Igual que iOS (modoOscuro en VistaInicio.swift): el icono
+                // va coloreado (mantequilla/indigo) sobre un fondo translúcido
+                // muy sutil, no sobre un círculo sólido — si no, el sol se ve
+                // como un contorno oscuro con fondo amarillo en vez de un sol
+                // amarillo de verdad.
                 BadgeIcono(
                     if (oscuro) IconoNubi.SOL else IconoNubi.LUNA,
-                    colorFondo = if (oscuro) colores.mantequilla else colores.lila,
-                    colorIcono = colores.tinta,
+                    colorFondo = if (oscuro) colores.tinta.copy(alpha = 0.15f) else colores.lila.copy(alpha = 0.25f),
+                    colorIcono = if (oscuro) colores.mantequilla else colores.indigo,
                     tamano = 44.dp,
                     tamanoIcono = 20.dp
                 )
@@ -1317,7 +1324,6 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
         .sumOf { r -> tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { (desde, hasta) -> ((hasta - desde) * 60).toLong() } ?: 0L }
     val minutosSueno = (suenosDelDia.sumOf { (_, tramo) -> ((tramo.second - tramo.first) * 60).toLong() } - minutosDespierto)
         .coerceAtLeast(0L)
-    val tomas = eventosDelDia.count { it.tipo.esAlimentacion }
 
     // Si lo acumulado hoy ya cae dentro de lo que le toca dormir a su edad
     // (misma tabla de MotorSueno que usa la predicción de Hoy), la tarjeta
@@ -1339,15 +1345,7 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
             .padding(NubiGeometria.margen)
     ) {
         Text(L10n.t("Su día"), style = MaterialTheme.typography.displaySmall)
-        Text(
-            buildString {
-                append(if (minutosSueno <= 0L) L10n.t("Sin sueño aún") else L10n.deSueno(textoDuracion(minutosSueno)))
-                append(" · ")
-                append(L10n.tomasResumen(tomas))
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = colores.tintaSuave
-        )
+        ChipsResumenDelDia(eventosDelDia)
 
         Spacer(Modifier.height(16.dp))
         Row(
@@ -1496,6 +1494,109 @@ private fun BotonFlechaDia(mirar: Boolean, habilitado: Boolean = true, onClick: 
             modifier = if (mirar) Modifier.graphicsLayer(scaleX = -1f) else Modifier
         )
     }
+}
+
+/**
+ * El acumulado del día bajo "Su día": biberón, tomas de pecho y pañales,
+ * cada uno con su icono y su propia cápsula de color (igual que
+ * chipsResumenDelDia / resumenChips en VistaLinea.swift de iOS).
+ *
+ * El total de sueño NO va aquí a propósito: ya se ve entero en la barra
+ * de "SUEÑO DE HOY" que hay justo debajo del reloj, y repetirlo arriba
+ * era lo que dejaba la pantalla sin el dato que sí falta (los pañales).
+ */
+@Composable
+private fun ChipsResumenDelDia(eventosDelDia: List<Registro>) {
+    val colores = NubiTheme.colores
+
+    val biberones = eventosDelDia.filter { it.tipo == TipoRegistro.BIBERON }
+    val totalBiberonMl: Double = biberones.fold(0.0) { total, r ->
+        val cantidad = r.cantidadBiberon
+        val unidad = r.unidadBiberon
+        if (cantidad == null || unidad == null) total else total + cantidad * unidad.factor
+    }
+    // iOS tiene una preferencia guardada de unidad (unidadBiberonPreferida);
+    // aquí todavía no, así que se enseña en la unidad en la que él mismo
+    // apuntó los biberones de hoy — y solo se cae a ml si ese día mezcló
+    // las dos unidades.
+    val unidadesUsadas = biberones.mapNotNull { it.unidadBiberon }.distinct()
+    val unidadResumen = unidadesUsadas.singleOrNull() ?: UnidadBiberon.ML
+
+    val tomasPecho = eventosDelDia.count { it.tipo == TipoRegistro.PECHO }
+    val panales = eventosDelDia.filter { it.tipo == TipoRegistro.PANAL }
+
+    val hayAlgo = totalBiberonMl > 0.0 || tomasPecho > 0 || panales.isNotEmpty()
+    if (!hayAlgo) {
+        Text(
+            L10n.t("Sin registros"),
+            style = MaterialTheme.typography.bodySmall,
+            color = colores.tintaTenue
+        )
+        return
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (totalBiberonMl > 0.0) {
+            ChipResumen(
+                icono = IconoNubi.BIBERON,
+                color = colores.mantequilla,
+                texto = textoResumenBiberon(totalBiberonMl, unidadResumen)
+            )
+        }
+        if (tomasPecho > 0) {
+            ChipResumen(
+                icono = IconoNubi.CORAZON,
+                color = colores.melocoton,
+                texto = L10n.tomasPechoResumen(tomasPecho)
+            )
+        }
+        if (panales.isNotEmpty()) {
+            ChipResumen(
+                icono = IconoNubi.PANAL,
+                color = colores.cielo,
+                texto = L10n.pañalesResumenDesglosado(
+                    total = panales.size,
+                    pis = panales.count { it.panalPis == true },
+                    caca = panales.count { it.panalCaca == true }
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChipResumen(icono: IconoNubi, color: Color, texto: String) {
+    val colores = NubiTheme.colores
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.16f))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icono(icono, tint = color, tamano = 13.dp)
+        Text(
+            texto,
+            style = MaterialTheme.typography.labelMedium,
+            color = colores.tintaSuave,
+            maxLines = 1
+        )
+    }
+}
+
+/** El total de biberón del día, en la unidad en la que él lo apuntó
+ *  (ver formatearCantidadResumenBiberon en VistaLinea.swift de iOS). */
+private fun textoResumenBiberon(totalMl: Double, unidad: UnidadBiberon): String {
+    val valor = totalMl / unidad.factor
+    if (unidad == UnidadBiberon.ML) return "${valor.roundToInt()} ml"
+    val redondeado = (valor * 10).roundToInt() / 10.0
+    return if (redondeado % 1.0 == 0.0) "${redondeado.toInt()} oz"
+    else String.format(Locale.US, "%.1f oz", redondeado)
 }
 
 /**
@@ -1660,7 +1761,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                 Spacer(Modifier.height(12.dp))
             }
             Text(
-                if (premium) L10n.t("Toca para apuntarlo")
+                // Mismo texto que iOS (botoneraRegistro en VistaLinea.swift).
+                if (premium) L10n.t("¿Se te olvidó? Toca y elige la hora")
                 else L10n.t("Apuntar a otra hora es parte de Nubi Premium."),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
@@ -1691,16 +1793,28 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
 @Composable
 private fun BotonCircular(tipo: TipoRegistro, bloqueado: Boolean = false, onClick: () -> Unit) {
     val colores = NubiTheme.colores
+    // El círculo mide 38 dp con un icono de 17,5 dp — exactamente la misma
+    // proporción que Insignia en iOS (diametro 38, icono diametro * 0.46).
+    // Antes el círculo era de 44 dp con icono de 18 dp y el dibujo salía
+    // visiblemente más pequeño dentro del círculo que en iOS. La caja que
+    // recibe el toque se deja en 44 dp para no perder zona táctil.
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(colorDeTipo(tipo, colores))
-            .graphicsLayer(alpha = if (bloqueado) 0.4f else 1f)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icono(iconoDeTipo(tipo), tint = tinteIconoDeTipo(tipo, porDefecto = colores.tinta), tamano = 18.dp)
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(colorDeTipo(tipo, colores))
+                .graphicsLayer(alpha = if (bloqueado) 0.4f else 1f),
+            contentAlignment = Alignment.Center
+        ) {
+            Icono(iconoDeTipo(tipo), tint = tinteIconoDeTipo(tipo, porDefecto = colores.tinta), tamano = 17.5.dp)
+        }
         if (bloqueado) {
             Box(
                 modifier = Modifier

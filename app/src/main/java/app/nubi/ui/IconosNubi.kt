@@ -40,7 +40,7 @@ import kotlin.math.sin
 enum class IconoNubi {
     NUBE, RELOJ, CRECE, MALETIN, LIBRETA,
     BIBERON, CRONOMETRO, ONDAS,
-    SOL, LUNA, OJO_ABIERTO, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
+    SOL, LUNA, LUNA_OJO_ABIERTO, OJO_ABIERTO, CORAZON, GOTA, BOMBILLA, CONTROLES, CHEVRON,
     MEDICINA, BANO, EQUIS,
     MAS, BASCULA, REGLA, PAPELERA,
     JERINGA, CALENDARIO, BOTIQUIN, CHECK,
@@ -71,6 +71,7 @@ fun Icono(
             IconoNubi.ONDAS -> dibujarOndas(tint)
             IconoNubi.SOL -> dibujarSol(tint)
             IconoNubi.LUNA -> dibujarLuna(tint)
+            IconoNubi.LUNA_OJO_ABIERTO -> dibujarLunaOjoAbierto(tint)
             IconoNubi.OJO_ABIERTO -> dibujarOjoAbierto(tint)
             IconoNubi.CORAZON -> dibujarCorazon(tint)
             IconoNubi.GOTA -> dibujarGota(tint)
@@ -337,18 +338,49 @@ private fun DrawScope.dibujarSol(color: Color) {
     }
 }
 
-private fun DrawScope.dibujarLuna(color: Color) {
+/** El cuarto creciente, con las proporciones exactas de `luna` en
+ *  Ilustraciones.swift (iOS): sobre un lienzo de 24, círculo de 19 menos
+ *  otro de 16 desplazado (6, -4,5). Antes el círculo que se restaba era
+ *  más grande y estaba menos desplazado, y salía una luna mucho más fina
+ *  que la de iOS. */
+private fun DrawScope.pathLuna(): Path {
+    val d = size.minDimension
     val c = Offset(size.width / 2f, size.height / 2f)
-    val r = size.minDimension * 0.36f
-    val p1 = Path().apply { addOval(Rect(c.x - r, c.y - r, c.x + r, c.y + r)) }
-    val desplazado = Offset(c.x + r * 0.55f, c.y - r * 0.3f)
-    val r2 = r * 0.95f
-    val p2 = Path().apply {
-        addOval(Rect(desplazado.x - r2, desplazado.y - r2, desplazado.x + r2, desplazado.y + r2))
+    val r = d * 0.39583f
+    val cuerpo = Path().apply { addOval(Rect(c.x - r, c.y - r, c.x + r, c.y + r)) }
+    val rHueco = d * 0.33333f
+    val cHueco = Offset(c.x + d * 0.25f, c.y - d * 0.1875f)
+    val hueco = Path().apply {
+        addOval(Rect(cHueco.x - rHueco, cHueco.y - rHueco, cHueco.x + rHueco, cHueco.y + rHueco))
     }
-    val resultado = Path()
-    resultado.op(p1, p2, PathOperation.Difference)
-    drawPath(resultado, color)
+    return Path().apply { op(cuerpo, hueco, PathOperation.Difference) }
+}
+
+private fun DrawScope.dibujarLuna(color: Color) {
+    // iOS la gira -12°, y sin el giro el creciente no "mira" igual.
+    rotate(degrees = -12f) { drawPath(pathLuna(), color) }
+}
+
+/** Despertar nocturno: la misma luna, con un ojo abierto recortado dentro
+ *  (igual que `lunaOjoAbierto` en Ilustraciones.swift de iOS). Antes aquí
+ *  se usaba OJO_ABIERTO a secas — un ojo suelto de contorno — que no se
+ *  parecía en nada al icono de iOS. */
+private fun DrawScope.dibujarLunaOjoAbierto(color: Color) {
+    val d = size.minDimension
+    val c = Offset(size.width / 2f, size.height / 2f)
+    // Elipse del ojo y pupila, en las mismas proporciones que iOS:
+    // elipse de 7 x 4,2 y pupila de 2,8 en el offset (-2,5, -0,5).
+    val cOjo = Offset(c.x - d * 0.104167f, c.y - d * 0.020833f)
+    val rxOjo = d * 0.145833f
+    val ryOjo = d * 0.0875f
+    val ojo = Path().apply {
+        addOval(Rect(cOjo.x - rxOjo, cOjo.y - ryOjo, cOjo.x + rxOjo, cOjo.y + ryOjo))
+    }
+    rotate(degrees = -12f) {
+        val creciente = Path().apply { op(pathLuna(), ojo, PathOperation.Difference) }
+        drawPath(creciente, color)
+        drawCircle(color, radius = d * 0.058333f, center = cOjo)
+    }
 }
 
 /** Pañal — mismas proporciones que `panal` en Ilustraciones.swift (iOS):
@@ -647,38 +679,31 @@ private fun DrawScope.dibujarChevron(color: Color) {
     )
 }
 
-/** Jeringa: cuerpo, émbolo y una gota en la aguja — para las vacunas. */
+/** Jeringa maciza, con las proporciones de `jeringa` en Ilustraciones.swift
+ *  (iOS): cuerpo + reborde + émbolo + aguja, con la marca del nivel
+ *  recortada, y girada -38°. Antes era de contorno fino y girada +45°, y
+ *  dentro del círculo blanco de "Medicina" parecía más un enchufe que una
+ *  jeringa. */
 private fun DrawScope.dibujarJeringa(color: Color) {
     val w = size.width
     val h = size.height
-    val grosor = w * 0.08f
-    rotate(degrees = 45f) {
-        drawRoundRect(
-            color = color,
-            topLeft = Offset(w * 0.3f, h * 0.22f),
-            size = Size(w * 0.4f, h * 0.4f),
-            cornerRadius = CornerRadius(w * 0.05f),
-            style = Stroke(width = grosor)
-        )
-        drawLine(
-            color, Offset(w * 0.5f, h * 0.14f), Offset(w * 0.5f, h * 0.22f),
-            strokeWidth = grosor, cap = StrokeCap.Round
-        )
-        drawLine(
-            color, Offset(w * 0.5f, h * 0.62f), Offset(w * 0.5f, h * 0.9f),
-            strokeWidth = grosor * 0.7f, cap = StrokeCap.Round
-        )
-        drawLine(
-            color, Offset(w * 0.38f, h * 0.14f), Offset(w * 0.62f, h * 0.14f),
-            strokeWidth = grosor, cap = StrokeCap.Round
-        )
-        listOf(0.34f, 0.44f).forEach { fy ->
-            drawLine(
-                color, Offset(w * 0.3f, h * fy), Offset(w * 0.38f, h * fy),
-                strokeWidth = grosor * 0.6f, cap = StrokeCap.Round
-            )
-        }
+
+    fun pieza(izq: Float, arr: Float, der: Float, aba: Float, radio: Float): RoundRect {
+        val r = CornerRadius(w * radio, h * radio)
+        return RoundRect(w * izq, h * arr, w * der, h * aba, r, r, r, r)
     }
+
+    val solido = Path().apply {
+        addRoundRect(pieza(0.3333f, 0.28125f, 0.6667f, 0.80208f, 0.08333f))   // cuerpo
+        addRoundRect(pieza(0.26042f, 0.275f, 0.73958f, 0.375f, 0.05f))        // reborde
+        addRoundRect(pieza(0.44583f, 0.10833f, 0.55417f, 0.275f, 0.05417f))   // émbolo
+        addRoundRect(pieza(0.45833f, 0.77083f, 0.54167f, 1.02083f, 0.04167f)) // aguja
+    }
+    val marca = Path().apply {
+        addRoundRect(pieza(0.39583f, 0.45208f, 0.60417f, 0.50625f, 0.02708f))
+    }
+    val resultado = Path().apply { op(solido, marca, PathOperation.Difference) }
+    rotate(degrees = -38f) { drawPath(resultado, color) }
 }
 
 /** Calendario: marco con dos anillas arriba y una línea de cabecera. */

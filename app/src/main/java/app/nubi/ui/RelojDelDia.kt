@@ -717,7 +717,9 @@ fun iconoDeTipo(tipo: TipoRegistro): IconoNubi = when (tipo) {
     TipoRegistro.BIBERON -> IconoNubi.BIBERON
     TipoRegistro.PECHO -> IconoNubi.CORAZON
     TipoRegistro.PANAL -> IconoNubi.PANAL
-    TipoRegistro.DESPERTAR -> IconoNubi.OJO_ABIERTO
+    // La luna con el ojo abierto, igual que iOS (TipoRegistro.simbolo en
+    // Modelos.swift): un ojo suelto no decía "despertar NOCTURNO".
+    TipoRegistro.DESPERTAR -> IconoNubi.LUNA_OJO_ABIERTO
     // La jeringa, no el bote de medicina: es el mismo dibujo que ya usa
     // la propia hoja de Medicina (HojaMedicinaDia en PantallaSalud.kt), y
     // así la insignia del día coincide con lo que se ve al tocarla.

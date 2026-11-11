@@ -289,6 +289,25 @@ object L10n {
         else -> "$n ${if (n == 1) "toma" else "tomas"}"
     }
 
+    /** Para el chip de "pecho" del resumen del día (ver chipsResumenDelDia en
+     *  VistaLinea.swift de iOS). */
+    fun tomasPechoResumen(n: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$n ${if (n == 1) "breastfeed" else "breastfeeds"}"
+        IdiomaNubi.ITALIANO -> "$n ${if (n == 1) "allattamento" else "allattamenti"}"
+        IdiomaNubi.FRANCES -> "$n ${if (n == 1) "tétée au sein" else "tétées au sein"}"
+        else -> "$n ${if (n == 1) "toma de pecho" else "tomas de pecho"}"
+    }
+
+    /** Igual que un recuento normal de pañales, pero desglosando cuántos
+     *  fueron pis y cuántos caca — para el chip de "pañal" del resumen del
+     *  día (ver pañalesResumenDesglosado en Traducciones.swift de iOS). */
+    fun pañalesResumenDesglosado(total: Int, pis: Int, caca: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$total ${if (total == 1) "diaper" else "diapers"} · $pis pee · $caca poop"
+        IdiomaNubi.ITALIANO -> "$total ${if (total == 1) "pannolino" else "pannolini"} · $pis pipì · $caca cacca"
+        IdiomaNubi.FRANCES -> "$total ${if (total == 1) "couche" else "couches"} · $pis pipi · $caca caca"
+        else -> "$total ${if (total == 1) "pañal" else "pañales"} · $pis pis · $caca caca"
+    }
+
     fun sueleDormir(a: String, b: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES -> "At this age babies usually sleep between $a and $b h a day."
         IdiomaNubi.ITALIANO -> "A questa età di solito dorme tra $a e $b h al giorno."
