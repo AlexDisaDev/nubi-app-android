@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -170,6 +171,7 @@ private fun textoPersonas(n: Int, invitado: Boolean): String =
  * con marca Nubi que usa iOS (appnubi.netlify.app/invitar), solo que con
  * "token" en vez de "u": invitar.html ya sabe leer cualquiera de los dos.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Unit) {
     val colores = NubiTheme.colores

@@ -2601,6 +2601,7 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
  *  ya se usaba suelto en PantallaBienvenida. Al canjear NO se cierra sola
  *  (igual que HojaRedimirCodigo.swift: el mensaje "¡Canjeado!" se queda
  *  visible y hay un botón "Cerrar" explícito para no taparlo). */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HojaCanjearCodigo(alCerrar: () -> Unit) {
     val estadoHoja = rememberModalBottomSheetState(skipPartiallyExpanded = true)
