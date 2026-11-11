@@ -34,6 +34,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="app.nubi" android:host="login-callback" />
             </intent-filter>
+
+            <!-- Invitación a un bebé compartido: mismo esquema que ya usa
+                 iOS (nubi://unirme) para que la pasarela web
+                 (nubi-web/invitar.html) pueda abrir cualquiera de las dos
+                 apps con el mismo enlace, sin tener que detectar el SO
+                 ella misma salvo para la tienda de descarga. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nubi" android:host="unirme" />
+            </intent-filter>
         </activity>
 
         <receiver

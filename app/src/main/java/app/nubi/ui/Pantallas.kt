@@ -2030,6 +2030,14 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
         TarjetaIdioma()
         Spacer(Modifier.height(14.dp))
 
+        // Mismo sitio que TarjetaCompartir en VistaAjustes.swift (justo
+        // debajo del idioma) — aquí por Supabase en vez de CKShare, ver
+        // TarjetaCompartir.kt.
+        bebe?.let {
+            TarjetaCompartir(bebeId = it.id, nombreBebe = it.nombre)
+            Spacer(Modifier.height(14.dp))
+        }
+
         bebe?.let {
             Card(
                 shape = RoundedCornerShape(NubiGeometria.radioChico),

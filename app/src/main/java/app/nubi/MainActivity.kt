@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import app.nubi.data.Compartir
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.i18n.L10n
@@ -80,6 +82,11 @@ class MainActivity : ComponentActivity() {
         // Si la app se abrió DESDE CERO con el enlace del email, esto
         // completa el login (Supabase lee el token del propio intent).
         Supabase.client.handleDeeplinks(intent)
+
+        // Si se abrió con un enlace de invitación (nubi://unirme?token=...),
+        // esto no hace nada si no lo es — y si lo es, guarda el token para
+        // que ContenidoApp ofrezca aceptarlo en cuanto haya sesión.
+        Compartir.recibirEnlace(intent.data)
 
         setContent {
             val datos by Repositorio.local.datos.collectAsState()
@@ -109,6 +116,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Supabase.client.handleDeeplinks(intent)
+        Compartir.recibirEnlace(intent.data)
     }
 }
 
@@ -148,6 +156,13 @@ fun ContenidoApp() {
     var bienvenidaVista by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
 
+    // Invitación por enlace (nubi://unirme?token=...) pendiente de aceptar
+    // — ver Compartir.kt. Se ofrece aquí, por encima de cualquier pantalla,
+    // para que funcione tanto si ya se tiene bebé como si todavía no.
+    val invitacionPendiente by Compartir.invitacionPendiente.collectAsState()
+    var aceptandoInvitacion by remember { mutableStateOf(false) }
+    var errorInvitacion by remember { mutableStateOf<String?>(null) }
+
     // Permiso de notificaciones (obligatorio desde Android 13): se pide una
     // vez al entrar, para que los avisos de medicina y citas puedan sonar.
     // Antes de Android 13 las apps ya tienen el permiso concedido de serie.
@@ -164,6 +179,7 @@ fun ContenidoApp() {
         }
     }
 
+    Box(Modifier.fillMaxSize()) {
     when {
         // Mismo tratamiento que VistaCargandoSesion en iOS: el logo completo
         // en vez de texto suelto, para no enseñar una pantalla en blanco
@@ -213,6 +229,50 @@ fun ContenidoApp() {
                 ambito.launch { Supabase.client.auth.signOut() }
             }
         )
+    }
+
+    if (invitacionPendiente != null) {
+        AlertDialog(
+            onDismissRequest = { if (!aceptandoInvitacion) Compartir.descartarInvitacionPendiente() },
+            title = { Text(L10n.t("Te han invitado a un bebé")) },
+            text = {
+                Column {
+                    Text(L10n.t("Alguien quiere compartir el seguimiento de su bebé contigo. Vas a ver y poder anotar sus datos."))
+                    errorInvitacion?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !aceptandoInvitacion,
+                    onClick = {
+                        val token = invitacionPendiente ?: return@TextButton
+                        ambito.launch {
+                            aceptandoInvitacion = true
+                            errorInvitacion = null
+                            try {
+                                Compartir.aceptarInvitacion(token)
+                                Repositorio.sincronizarEnSegundoPlano()
+                                Compartir.descartarInvitacionPendiente()
+                            } catch (e: Exception) {
+                                errorInvitacion = "${L10n.t("No se pudo aceptar la invitación:")} ${e.message}"
+                            } finally {
+                                aceptandoInvitacion = false
+                            }
+                        }
+                    }
+                ) { Text(if (aceptandoInvitacion) L10n.t("Un momento…") else L10n.t("Unirme")) }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !aceptandoInvitacion,
+                    onClick = { Compartir.descartarInvitacionPendiente() }
+                ) { Text(L10n.t("Ahora no")) }
+            }
+        )
+    }
     }
 }
 
