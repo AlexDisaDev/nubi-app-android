@@ -426,7 +426,7 @@ fun HojaPanal(
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
                 Spacer(Modifier.height(14.dp))
-                CabeceraHojaEditar(IconoNubi.GOTA, colores.cielo, L10n.t("Pañal"))
+                CabeceraHojaEditar(IconoNubi.PANAL, colores.cielo, L10n.t("Pañal"))
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
                 Spacer(Modifier.height(14.dp))
@@ -435,7 +435,7 @@ fun HojaPanal(
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BadgeIcono(
-                        IconoNubi.GOTA,
+                        IconoNubi.PANAL,
                         colorFondo = colores.cielo,
                         colorIcono = colores.tinta,
                         tamano = 40.dp,

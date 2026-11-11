@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -47,7 +48,8 @@ enum class IconoNubi {
     BRAZOS, CUNA, CARRITO, COCHE,
     CONTENTO, MOLESTO,
     CANDADO,
-    CAMARA, GALERIA, PULGAR_ARRIBA, PULGAR_ABAJO, PLAY, PAUSA
+    CAMARA, GALERIA, PULGAR_ARRIBA, PULGAR_ABAJO, PLAY, PAUSA,
+    PANAL
 }
 
 @Composable
@@ -102,6 +104,7 @@ fun Icono(
             IconoNubi.PULGAR_ABAJO -> dibujarPulgarAbajo(tint)
             IconoNubi.PLAY -> dibujarPlay(tint)
             IconoNubi.PAUSA -> dibujarPausa(tint)
+            IconoNubi.PANAL -> dibujarPanal(tint)
         }
     }
 }
@@ -311,9 +314,15 @@ private fun DrawScope.dibujarSol(color: Color) {
     val c = Offset(size.width / 2f, size.height / 2f)
     val r = size.minDimension * 0.22f
     drawCircle(color, radius = r, center = c)
-    val desde = r * 1.35f
-    val hasta = r * 1.95f
-    val grosor = size.minDimension * 0.08f
+    // Rayos más largos y finos que antes (menos separación entre grosor y
+    // longitud): con los números anteriores, a los tamaños pequeños en los
+    // que se usa este icono (p.ej. el badge de día/noche de Hoy) los 8
+    // rayos cortos y gruesos se leían como un destello/estrella en vez de
+    // un sol tranquilo, a diferencia del sun.max.fill de iOS en ese mismo
+    // sitio.
+    val desde = r * 1.5f
+    val hasta = r * 2.3f
+    val grosor = size.minDimension * 0.055f
     for (i in 0 until 8) {
         val angulo = i * (2.0 * PI / 8.0)
         val p1 = Offset(
@@ -339,6 +348,46 @@ private fun DrawScope.dibujarLuna(color: Color) {
     }
     val resultado = Path()
     resultado.op(p1, p2, PathOperation.Difference)
+    drawPath(resultado, color)
+}
+
+/** Pañal — mismas proporciones que `panal` en Ilustraciones.swift (iOS):
+ *  cuerpo + banda de cintura + dos pestañas a la altura del hombro, con un
+ *  único hueco en forma de "U" para las piernas (en vez de reutilizar GOTA,
+ *  que no se parecía nada a un pañal). Mismo truco de recorte que
+ *  dibujarLuna: se junta el "sólido" en un Path y se le resta el círculo
+ *  del hueco con PathOperation.Difference. */
+private fun DrawScope.dibujarPanal(color: Color) {
+    val w = size.width
+    val h = size.height
+
+    fun rect(cxFrac: Float, cyFrac: Float, wFrac: Float, hFrac: Float, radioFrac: Float): RoundRect {
+        val cx = w * cxFrac
+        val cy = h * cyFrac
+        val hw = w * wFrac / 2f
+        val hh = h * hFrac / 2f
+        val radio = CornerRadius(w * radioFrac, h * radioFrac)
+        return RoundRect(cx - hw, cy - hh, cx + hw, cy + hh, radio, radio, radio, radio)
+    }
+
+    val solido = Path().apply {
+        addRoundRect(rect(0.5f, 0.625f, 0.6667f, 0.5417f, 0.25f))       // cuerpo
+        addRoundRect(rect(0.5f, 0.3083f, 0.5625f, 0.2083f, 0.0917f))    // banda de cintura
+        addRoundRect(rect(0.125f, 0.3917f, 0.1917f, 0.2667f, 0.0833f))  // pestaña izquierda
+        addRoundRect(rect(0.875f, 0.3917f, 0.1917f, 0.2667f, 0.0833f))  // pestaña derecha
+    }
+    val radioHueco = w * 0.2292f
+    val centroHueco = Offset(w * 0.5f, h * 0.825f)
+    val hueco = Path().apply {
+        addOval(
+            Rect(
+                centroHueco.x - radioHueco, centroHueco.y - radioHueco,
+                centroHueco.x + radioHueco, centroHueco.y + radioHueco
+            )
+        )
+    }
+    val resultado = Path()
+    resultado.op(solido, hueco, PathOperation.Difference)
     drawPath(resultado, color)
 }
 

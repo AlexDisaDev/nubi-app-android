@@ -713,7 +713,7 @@ fun PantallaHoy(
             titulo = ultimoPanal?.let { "${L10n.t("Pañal")} · ${hace(it.inicio)}" } ?: L10n.t("Pañal"),
             subtitulo = ultimoPanal?.let { "${L10n.t("Último a las")} ${formatoHora.format(it.inicio)}" }
                 ?: L10n.t("Sin registrar todavía"),
-            icono = IconoNubi.GOTA,
+            icono = IconoNubi.PANAL,
             colorBadge = colores.cielo,
             bloqueado = !premium,
             onClick = { if (premium) mostrarHojaPanal = true else mostrarBloqueo = true }
@@ -2101,19 +2101,12 @@ private fun TarjetaRegalarNubi() {
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(colores.rosa),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = null,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.nubi_logo_mark),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(32.dp).clip(CircleShape)
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(

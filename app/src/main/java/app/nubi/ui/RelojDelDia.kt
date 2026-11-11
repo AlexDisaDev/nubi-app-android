@@ -716,7 +716,7 @@ fun iconoDeTipo(tipo: TipoRegistro): IconoNubi = when (tipo) {
     TipoRegistro.NOCHE -> IconoNubi.LUNA
     TipoRegistro.BIBERON -> IconoNubi.BIBERON
     TipoRegistro.PECHO -> IconoNubi.CORAZON
-    TipoRegistro.PANAL -> IconoNubi.GOTA
+    TipoRegistro.PANAL -> IconoNubi.PANAL
     TipoRegistro.DESPERTAR -> IconoNubi.OJO_ABIERTO
     // La jeringa, no el bote de medicina: es el mismo dibujo que ya usa
     // la propia hoja de Medicina (HojaMedicinaDia en PantallaSalud.kt), y
