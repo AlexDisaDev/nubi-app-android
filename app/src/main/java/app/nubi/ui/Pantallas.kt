@@ -2030,19 +2030,6 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
         TarjetaIdioma()
         Spacer(Modifier.height(14.dp))
 
-        Card(
-            shape = RoundedCornerShape(NubiGeometria.radioChico),
-            colors = CardDefaults.cardColors(containerColor = colores.superficie),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Text(L10n.t("Canjear código de regalo"), style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(10.dp))
-                BloqueCanjearCodigo()
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-
         bebe?.let {
             Card(
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
@@ -2136,6 +2123,16 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 )
             }
         }
+        Spacer(Modifier.height(18.dp))
+
+        // Mismo pie que VistaAjustes.swift, al final de toda la pantalla.
+        Text(
+            L10n.t("Nubi no sustituye el criterio de un profesional sanitario."),
+            style = MaterialTheme.typography.bodySmall,
+            color = colores.tintaTenue,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(Modifier.height(24.dp))
     }
 
@@ -2346,6 +2343,7 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     // resto de la app, correctamente, se regía por otra.
     val premiumActivo = Premium.activo(perfil)
     var mostrarPaywall by remember { mutableStateOf(false) }
+    var mostrarHojaCanje by remember { mutableStateOf(false) }
 
     val titulo: String
     val subtitulo: String
@@ -2433,6 +2431,26 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                     }
                     Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
                 }
+                Spacer(Modifier.height(10.dp))
+            } else {
+                // Mismo lugar y mismo propósito que el Link "Gestionar
+                // suscripción en Apple" de iOS: con premium activo no hace
+                // falta el CTA de arriba, pero sí un enlace directo a
+                // gestionarla donde se cobra de verdad.
+                Text(
+                    L10n.t("Gestionar suscripción en Google Play"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = colores.indigo,
+                    modifier = Modifier
+                        .clickable {
+                            abrirUrl(
+                                contexto,
+                                "https://play.google.com/store/account/subscriptions?package=com.app.nubi"
+                            )
+                        }
+                        .padding(vertical = 4.dp)
+                )
                 Spacer(Modifier.height(10.dp))
             }
 
@@ -2522,11 +2540,82 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Canjear código: fila compacta dentro de esta misma tarjeta,
+            // justo después de "Regalar Nubi" — igual que iOS, en vez de
+            // una tarjeta aparte en la pantalla.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { mostrarHojaCanje = true }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BadgeIcono(
+                    IconoNubi.REGALO,
+                    colorFondo = colores.mantequilla,
+                    colorIcono = colores.tinta,
+                    tamano = 32.dp,
+                    tamanoIcono = 15.dp
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        L10n.t("Canjear código de regalo"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        L10n.t("¿Tienes un código? Úsalo aquí"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaSuave
+                    )
+                }
+                Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+            }
         }
     }
 
     if (mostrarPaywall) {
         HojaPremiumBloqueado { mostrarPaywall = false }
+    }
+
+    if (mostrarHojaCanje) {
+        HojaCanjearCodigo { mostrarHojaCanje = false }
+    }
+}
+
+/** Hoja para canjear un código de regalo — reusa BloqueCanjearCodigo, que
+ *  ya se usaba suelto en PantallaBienvenida. Al canjear NO se cierra sola
+ *  (igual que HojaRedimirCodigo.swift: el mensaje "¡Canjeado!" se queda
+ *  visible y hay un botón "Cerrar" explícito para no taparlo). */
+@Composable
+private fun HojaCanjearCodigo(alCerrar: () -> Unit) {
+    val estadoHoja = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = alCerrar, sheetState = estadoHoja) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(NubiGeometria.margen)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    L10n.t("Canjear código de regalo"),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(onClick = alCerrar) {
+                    Text(L10n.t("Cerrar"))
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            BloqueCanjearCodigo()
+            Spacer(Modifier.height(8.dp))
+        }
     }
 }
 
@@ -2558,10 +2647,15 @@ private fun TarjetaIdioma() {
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Globo sobre fondo translúcido, igual que iOS
+                    // (Image(systemName: "globe") en indigo sobre
+                    // Theme.cielo.opacity(0.3)) — antes era BOMBILLA sobre
+                    // un círculo sólido, que no decía "idioma" a simple
+                    // vista.
                     BadgeIcono(
-                        IconoNubi.BOMBILLA,
-                        colorFondo = colores.cielo,
-                        colorIcono = colores.tinta,
+                        IconoNubi.MUNDO,
+                        colorFondo = colores.cielo.copy(alpha = 0.3f),
+                        colorIcono = colores.indigo,
                         tamano = 34.dp,
                         tamanoIcono = 16.dp
                     )

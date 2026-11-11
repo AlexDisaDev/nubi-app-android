@@ -216,6 +216,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Se borran los registros, las medidas, las citas y el diario. No se puede deshacer." to mapOf("en" to "This deletes the records, measurements, appointments and diary. It can't be undone.", "it" to "Vengono eliminati i registri, le misure, gli appuntamenti e il diario. Non si può annullare.", "fr" to "Cela supprime les enregistrements, les mesures, les rendez-vous et le journal. Cette action est irréversible."),
     "Nubi gratis" to mapOf("en" to "Nubi free", "it" to "Nubi gratuito", "fr" to "Nubi gratuit"),
     "Gestionar suscripción en Apple" to mapOf("en" to "Manage subscription on Apple", "it" to "Gestisci l'abbonamento su Apple", "fr" to "Gérer l'abonnement sur Apple"),
+    "Gestionar suscripción en Google Play" to mapOf("en" to "Manage subscription on Google Play", "it" to "Gestisci l'abbonamento su Google Play", "fr" to "Gérer l'abonnement sur Google Play"),
     "Regalar Nubi" to mapOf("en" to "Gift Nubi", "it" to "Regala Nubi", "fr" to "Offrir Nubi"),
     "Regala 1, 3 o 12 meses de Nubi" to mapOf("en" to "Gift 1, 3 or 12 months of Nubi", "it" to "Regala 1, 3 o 12 mesi di Nubi", "fr" to "Offrez 1, 3 ou 12 mois de Nubi"),
     "Canjear código de regalo" to mapOf("en" to "Redeem a gift code", "it" to "Riscatta un codice regalo", "fr" to "Utiliser un code cadeau"),

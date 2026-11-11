@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Los dibujos propios de Nubi (sustituyen a los puntos de color de antes).
@@ -49,7 +50,7 @@ enum class IconoNubi {
     CONTENTO, MOLESTO,
     CANDADO,
     CAMARA, GALERIA, PULGAR_ARRIBA, PULGAR_ABAJO, PLAY, PAUSA,
-    PANAL
+    PANAL, MUNDO, REGALO
 }
 
 @Composable
@@ -106,6 +107,8 @@ fun Icono(
             IconoNubi.PLAY -> dibujarPlay(tint)
             IconoNubi.PAUSA -> dibujarPausa(tint)
             IconoNubi.PANAL -> dibujarPanal(tint)
+            IconoNubi.MUNDO -> dibujarMundo(tint)
+            IconoNubi.REGALO -> dibujarRegalo(tint)
         }
     }
 }
@@ -1074,4 +1077,79 @@ private fun DrawScope.dibujarPausa(color: Color) {
             cornerRadius = CornerRadius(w * 0.04f)
         )
     }
+}
+
+/** Globo terráqueo: círculo + meridiano + paralelos — selector de idioma
+ *  en Ajustes (antes usaba BOMBILLA ahí, que no decía "idioma"). Los
+ *  paralelos usan la cuerda real del círculo a esa altura (sqrt(r²-y²))
+ *  para que sigan la curva en vez de verse como líneas sueltas. */
+private fun DrawScope.dibujarMundo(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.075f
+    val r = w * 0.38f
+    val c = Offset(w * 0.5f, h * 0.5f)
+    drawCircle(color, radius = r, center = c, style = Stroke(width = grosor))
+    drawOval(
+        color = color,
+        topLeft = Offset(c.x - r * 0.42f, c.y - r),
+        size = Size(r * 0.84f, r * 2f),
+        style = Stroke(width = grosor * 0.85f)
+    )
+    drawLine(
+        color, Offset(c.x - r, c.y), Offset(c.x + r, c.y),
+        strokeWidth = grosor * 0.85f
+    )
+    listOf(-0.5f, 0.5f).forEach { f ->
+        val y = c.y + r * f
+        val anchoMedio = r * sqrt(1f - f * f)
+        drawLine(
+            color, Offset(c.x - anchoMedio, y), Offset(c.x + anchoMedio, y),
+            strokeWidth = grosor * 0.75f
+        )
+    }
+}
+
+/** Caja de regalo: contorno + cinta en cruz + lazo — igual que la
+ *  "regalo" de Ilustraciones.swift (código de regalo en Ajustes). La
+ *  caja es solo contorno, la cinta va sólida, y el lazo son dos bucles
+ *  con bezier que asoman por encima de la caja (igual que en iOS). */
+private fun DrawScope.dibujarRegalo(color: Color) {
+    val w = size.width
+    val h = size.height
+    val grosor = w * 0.0792f
+
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.1042f, h * 0.2917f),
+        size = Size(w * 0.7917f, h * 0.6667f),
+        cornerRadius = CornerRadius(w * 0.125f),
+        style = Stroke(width = grosor)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.45f, h * 0.2917f),
+        size = Size(w * 0.1f, h * 0.6667f),
+        cornerRadius = CornerRadius(w * 0.05f)
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(w * 0.1042f, h * 0.7417f),
+        size = Size(w * 0.7917f, h * 0.1f),
+        cornerRadius = CornerRadius(h * 0.05f)
+    )
+
+    val lazoIzq = Path().apply {
+        moveTo(w * 0.375f, h * 0.125f)
+        cubicTo(w * 0.375f, h * 0.125f, w * 0.25f, h * -0.0417f, w * 0.25f, h * 0f)
+        cubicTo(w * 0.25f, h * 0.0417f, w * 0.375f, h * 0.125f, w * 0.375f, h * 0.125f)
+    }
+    drawPath(lazoIzq, color, style = Stroke(width = grosor, cap = StrokeCap.Round, join = StrokeJoin.Round))
+
+    val lazoDer = Path().apply {
+        moveTo(w * 0.625f, h * 0.125f)
+        cubicTo(w * 0.625f, h * 0.125f, w * 0.75f, h * -0.0417f, w * 0.75f, h * 0f)
+        cubicTo(w * 0.75f, h * 0.0417f, w * 0.625f, h * 0.125f, w * 0.625f, h * 0.125f)
+    }
+    drawPath(lazoDer, color, style = Stroke(width = grosor, cap = StrokeCap.Round, join = StrokeJoin.Round))
 }
