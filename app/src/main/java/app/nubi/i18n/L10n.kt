@@ -117,6 +117,14 @@ object L10n {
         else -> "hace $m min"
     }
 
+    /** Cuerpo del aviso de "toca comer" — copia literal de iOS (Traducciones.swift). */
+    fun yaEsHoraDeComer(nombreBebe: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "It's time for $nombreBebe to eat."
+        IdiomaNubi.ITALIANO -> "È ora che $nombreBebe mangi."
+        IdiomaNubi.FRANCES -> "C'est l'heure de nourrir $nombreBebe."
+        else -> "Ya es la hora de comer de $nombreBebe."
+    }
+
     // -----------------------------------------------------------------
     // Paywall. Las cuatro son copia literal de las de iOS
     // (Traducciones.swift) para que las dos apps digan exactamente lo

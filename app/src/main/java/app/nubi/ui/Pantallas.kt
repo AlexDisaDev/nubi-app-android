@@ -2,7 +2,11 @@ package app.nubi.ui
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,6 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +52,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,8 +68,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +79,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.nubi.R
 import app.nubi.data.Bebe
+import app.nubi.data.FotosNubi
 import app.nubi.data.GuiaEdadAjustada
 import app.nubi.data.LadoPecho
 import app.nubi.data.MotorEtapas
@@ -89,6 +99,7 @@ import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -205,6 +216,145 @@ fun PantallaBienvenida(alContinuar: () -> Unit) {
 // =====================================================================
 // Alta del bebé — sin esto no hay nada que mostrar
 // =====================================================================
+
+/**
+ * Círculo de foto del bebé, tocable para elegir una de la galería, con un
+ * lapicero pequeño de "editar" en la esquina — igual que iOS (NubiApp.swift
+ * y VistaAjustes.swift: PhotosPicker + badge de lápiz). Se usa en el alta
+ * (PantallaNuevoBebe), en Ajustes y en la cabecera de la pestaña Hoy.
+ *
+ * Solo pide la foto a la galería y la deja ya comprimida en base64
+ * (FotosNubi.comprimirParaPerfil): quien llama no toca Bitmaps ni Uris.
+ */
+@Composable
+private fun SelectorFotoBebe(
+    base64: String?,
+    inicialNombre: String,
+    onFotoSeleccionada: (String) -> Unit,
+    onQuitarFoto: () -> Unit,
+    tamano: androidx.compose.ui.unit.Dp = 72.dp
+) {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+
+    val lanzadorGaleria = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            FotosNubi.comprimirParaPerfil(contexto, uri)?.let(onFotoSeleccionada)
+        }
+    }
+
+    val bitmap = remember(base64) { base64?.let(FotosNubi::decodificarPerfil) }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Box(
+                modifier = Modifier
+                    .size(tamano)
+                    .clip(CircleShape)
+                    .clickable {
+                        lanzadorGaleria.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(colores.lila.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            inicialNombre.trim().take(1).uppercase().ifEmpty { "?" },
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = colores.indigo
+                        )
+                    }
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(colores.indigo)
+                    .border(2.dp, colores.lienzoAlto, CircleShape)
+                    .clickable {
+                        lanzadorGaleria.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icono(IconoNubi.LAPIZ, tint = Color.White, tamano = 13.dp)
+            }
+        }
+        if (base64 != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L10n.t("Quitar foto"),
+                style = MaterialTheme.typography.labelMedium,
+                color = colores.coral,
+                modifier = Modifier.clickable(onClick = onQuitarFoto)
+            )
+        }
+    }
+}
+
+/**
+ * Foto del bebé junto a su nombre en la cabecera de Hoy (ver fotoBebeCabecera
+ * en VistaInicio.swift de iOS). Sin foto guardada, muestra su inicial en vez
+ * de dejar un hueco vacío. Tocarla la cambia al momento (abre la galería y
+ * guarda directamente), sin pasar por Ajustes.
+ */
+@Composable
+private fun FotoBebeCabecera(base64: String?, nombre: String, onFotoSeleccionada: (String) -> Unit) {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    val lanzadorGaleria = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            FotosNubi.comprimirParaPerfil(contexto, uri)?.let(onFotoSeleccionada)
+        }
+    }
+    val bitmap = remember(base64) { base64?.let(FotosNubi::decodificarPerfil) }
+
+    Box(
+        modifier = Modifier
+            .size(50.dp)
+            .clip(CircleShape)
+            .clickable {
+                lanzadorGaleria.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+            .border(1.dp, colores.tinta.copy(alpha = 0.08f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().background(colores.lila.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    nombre.trim().take(1).uppercase().ifEmpty { "?" },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colores.indigo
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     var nombre by remember { mutableStateOf("") }
@@ -212,14 +362,28 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     var mes by remember { mutableStateOf("") }
     var anio by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
+    var fotoBase64 by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(NubiGeometria.margen),
+            .padding(NubiGeometria.margen)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center
     ) {
         Text(L10n.t("¿Cómo se llama?"), style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(16.dp))
+
+        // Foto opcional, igual que en iOS (NubiApp.swift): mismo selector
+        // que luego se repite en Ajustes.
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            SelectorFotoBebe(
+                base64 = fotoBase64,
+                inicialNombre = nombre,
+                onFotoSeleccionada = { fotoBase64 = it },
+                onQuitarFoto = { fotoBase64 = null }
+            )
+        }
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
@@ -274,14 +438,14 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
                     // que luego nunca podría subirse a Supabase.
                     miId == null -> error = L10n.t("No hay sesión iniciada. Vuelve a entrar e inténtalo de nuevo.")
                     else -> {
-                        Repositorio.guardarBebe(
-                            Bebe(
-                                usuarioId = miId,
-                                nombre = nombre.trim(),
-                                fechaNacimiento = fecha.atTime(LocalTime.NOON)
-                                    .atZone(ZoneId.systemDefault()).toInstant()
-                            )
+                        val nuevoBebe = Bebe(
+                            usuarioId = miId,
+                            nombre = nombre.trim(),
+                            fechaNacimiento = fecha.atTime(LocalTime.NOON)
+                                .atZone(ZoneId.systemDefault()).toInstant()
                         )
+                        Repositorio.guardarBebe(nuevoBebe)
+                        fotoBase64?.let { Repositorio.guardarFotoBebe(it, idBebe = nuevoBebe.id) }
                         alGuardar()
                     }
                 }
@@ -310,6 +474,7 @@ fun PantallaHoy(
     registros: List<Registro>,
     premium: Boolean,
     oscuro: Boolean = false,
+    fotoBase64: String? = null,
     alCambiarTema: () -> Unit = {},
     alAbrirAjustes: () -> Unit = {}
 ) {
@@ -342,6 +507,7 @@ fun PantallaHoy(
     var mostrarHojaBiberon by remember { mutableStateOf(false) }
     var mostrarHojaPanal by remember { mutableStateOf(false) }
     var mostrarHojaEtapa by remember { mutableStateOf(false) }
+    var mostrarHojaAvisoComida by remember { mutableStateOf(false) }
     // Se abre al tocar algo bloqueado de esta pantalla (predicción, toma,
     // pañal). El registro de sueño/siesta de arriba NUNCA pasa por aquí:
     // es justo lo que se deja gratis para que el motor (MotorSueno.kt)
@@ -364,12 +530,25 @@ fun PantallaHoy(
                     style = MaterialTheme.typography.bodyMedium,
                     color = colores.tintaSuave
                 )
-                Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
-                Text(
-                    textoEdadDetallada(bebe),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colores.tintaSuave
-                )
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Foto a la izquierda del nombre/edad. Tocarla la
+                    // cambia, sin tener que entrar en Ajustes — igual que iOS.
+                    FotoBebeCabecera(
+                        base64 = fotoBase64,
+                        nombre = bebe.nombre,
+                        onFotoSeleccionada = { Repositorio.guardarFotoBebe(it) }
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
+                        Text(
+                            textoEdadDetallada(bebe),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colores.tintaSuave
+                        )
+                    }
+                }
             }
             Box(modifier = Modifier.clickable { alCambiarTema() }) {
                 BadgeIcono(
@@ -519,6 +698,8 @@ fun PantallaHoy(
             ultimoBiberon = ultimoBiberon,
             ultimoPecho = ultimoPecho,
             bloqueado = !premium,
+            oscuro = oscuro,
+            onReloj = { if (premium) mostrarHojaAvisoComida = true else mostrarBloqueo = true },
             onBiberon = { if (premium) mostrarHojaBiberon = true else mostrarBloqueo = true },
             onPecho = { if (premium) mostrarHojaPecho = true else mostrarBloqueo = true }
         )
@@ -577,7 +758,7 @@ fun PantallaHoy(
         // Regalar Nubi: mismo sitio que en iOS (VistaInicio.swift), al final
         // del scroll de Hoy, siempre visible.
         Spacer(Modifier.height(14.dp))
-        TarjetaRegalarNubi()
+        TarjetaDinamicaRegalarInstagram()
 
         Spacer(Modifier.height(24.dp))
     }
@@ -596,8 +777,195 @@ fun PantallaHoy(
             HojaEtapa(etapa = etapa) { mostrarHojaEtapa = false }
         }
     }
+    if (mostrarHojaAvisoComida) {
+        HojaAvisoComida { mostrarHojaAvisoComida = false }
+    }
     if (mostrarBloqueo) {
         HojaPremiumBloqueado { mostrarBloqueo = false }
+    }
+}
+
+/**
+ * Se abre desde el reloj a la izquierda del biberón en la pestaña Hoy (ver
+ * HojaAvisoComida en VistaInicio.swift de iOS). Deja decidir cada cuánto
+ * tiempo, contado desde la última toma (biberón o pecho), se quiere el
+ * aviso "Ya es la hora de comer de {bebé}" — en horas y minutos.
+ */
+@Composable
+fun HojaAvisoComida(onCerrar: () -> Unit) {
+    val colores = NubiTheme.colores
+    val datos by Repositorio.local.datos.collectAsState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var activo by remember { mutableStateOf(datos.avisoComidaActivo) }
+    // Igual que iOS: si el intervalo guardado fuera 0 (no debería pasar,
+    // pero por si acaso), se parte de 3h en vez de un contador a cero.
+    var horas by remember {
+        mutableIntStateOf(datos.avisoComidaIntervaloMin / 60)
+    }
+    var minutos by remember { mutableIntStateOf(datos.avisoComidaIntervaloMin % 60) }
+    LaunchedEffect(Unit) {
+        if (horas == 0 && minutos == 0) horas = 3
+    }
+
+    fun guardar() {
+        val total = (horas * 60 + minutos).coerceAtLeast(15)
+        Repositorio.guardarAvisoComida(activo = activo, intervaloMin = total)
+        onCerrar()
+    }
+
+    ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = NubiGeometria.margen)
+                .padding(bottom = 28.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(colores.lienzoAlto)
+                        .clickable(onClick = onCerrar),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icono(IconoNubi.EQUIS, tint = colores.tinta, tamano = 14.dp)
+                }
+                Text(L10n.t("Aviso de comida"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Card(
+                shape = RoundedCornerShape(NubiGeometria.radio),
+                colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    BadgeIcono(IconoNubi.RELOJ, colorFondo = colores.indigo, colorIcono = Color.White, tamano = 54.dp, tamanoIcono = 24.dp)
+                    Spacer(Modifier.height(10.dp))
+                    Text(L10n.t("Aviso de comida"), style = MaterialTheme.typography.titleMedium, color = colores.tinta)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        L10n.t("Un aviso cuando pase el tiempo que marques desde la última toma"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaSuave,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Card(
+                shape = RoundedCornerShape(NubiGeometria.radio),
+                colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            L10n.t("Avisar cuando toque comer"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colores.tinta
+                        )
+                        Switch(checked = activo, onCheckedChange = { activo = it })
+                    }
+
+                    if (activo) {
+                        Spacer(Modifier.height(14.dp))
+                        HorizontalDivider(color = colores.separador)
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            L10n.t("Cada").uppercase(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = colores.tintaTenue
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ContadorAvisoComida(
+                                valor = horas, unidad = "h", paso = 1, minimo = 0, maximo = 12,
+                                onCambiar = { horas = it }
+                            )
+                            ContadorAvisoComida(
+                                valor = minutos, unidad = L10n.t("min"), paso = 5, minimo = 0, maximo = 55,
+                                onCambiar = { minutos = it }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (activo) {
+                Spacer(Modifier.height(14.dp))
+                Card(
+                    shape = RoundedCornerShape(NubiGeometria.radioChico),
+                    colors = CardDefaults.cardColors(containerColor = colores.superficie),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(L10n.t("Resumen:"), style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+                        Text(
+                            "${horas} h ${minutos} min",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colores.tinta
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = { guardar() },
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(L10n.t("Guardar"))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContadorAvisoComida(valor: Int, unidad: String, paso: Int, minimo: Int, maximo: Int, onCambiar: (Int) -> Unit) {
+    val colores = NubiTheme.colores
+    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(valor.toString(), style = MaterialTheme.typography.displaySmall, color = colores.tinta)
+        Text(unidad, style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(colores.lila)
+                    .clickable { onCambiar((valor - paso).coerceIn(minimo, maximo)) },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(Modifier.width(14.dp).height(2.dp).clip(RoundedCornerShape(50)).background(colores.tinta))
+            }
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(colores.lila)
+                    .clickable { onCambiar((valor + paso).coerceIn(minimo, maximo)) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icono(IconoNubi.MAS, tint = colores.tinta, tamano = 16.dp)
+            }
+        }
     }
 }
 
@@ -749,6 +1117,8 @@ private fun FilaUltimaToma(
     ultimoBiberon: Registro?,
     ultimoPecho: Registro?,
     bloqueado: Boolean = false,
+    oscuro: Boolean = false,
+    onReloj: () -> Unit = {},
     onBiberon: () -> Unit,
     onPecho: () -> Unit
 ) {
@@ -786,6 +1156,19 @@ private fun FilaUltimaToma(
                     modifier = Modifier.clickable(onClick = onBiberon)
                 )
             } else {
+                // Círculo del mismo tamaño que biberón/pecho (40dp, el que ya
+                // trae BadgeIcono por defecto), con el icono del reloj más
+                // grande dentro (22dp), y en blanco/negro invertido según el
+                // tema — igual que iOS: en tema día, fondo negro con el
+                // reloj en blanco; en tema noche, al revés.
+                BadgeIcono(
+                    IconoNubi.RELOJ,
+                    colorFondo = if (oscuro) Color.White else Color.Black,
+                    colorIcono = if (oscuro) Color.Black else Color.White,
+                    tamanoIcono = 22.dp,
+                    modifier = Modifier.clickable(onClick = onReloj)
+                )
+                Spacer(Modifier.width(8.dp))
                 BadgeIcono(
                     IconoNubi.BIBERON,
                     colorFondo = colores.mantequilla,
@@ -1746,6 +2129,74 @@ private fun TarjetaRegalarNubi() {
             }
             Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
         }
+    }
+}
+
+/**
+ * Tarjeta de Instagram — mismo sitio que TarjetaInstagramNubi en
+ * VistaInicio.swift: abre el perfil de Instagram de Nubi.
+ */
+@Composable
+private fun TarjetaInstagramNubi() {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                abrirUrl(contexto, "https://www.instagram.com/nubibaby.app?rpxt=MThpcjViYzY3Y3J3")
+            }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(R.drawable.logo_instagram),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    L10n.t("Aprende a usar Nubi"),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    L10n.t("Síguenos en Instagram"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaSuave
+                )
+            }
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+        }
+    }
+}
+
+/**
+ * Envuelve TarjetaRegalarNubi y TarjetaInstagramNubi en un carrusel que
+ * cambia solo cada 5 segundos (y que también se puede deslizar a mano en
+ * cualquier momento) — igual que TarjetaDinamicaRegalarInstagram en
+ * VistaInicio.swift.
+ */
+@Composable
+private fun TarjetaDinamicaRegalarInstagram() {
+    val estadoPagina = rememberPagerState(pageCount = { 2 })
+
+    LaunchedEffect(estadoPagina) {
+        while (true) {
+            delay(5000)
+            estadoPagina.animateScrollToPage((estadoPagina.currentPage + 1) % 2)
+        }
+    }
+
+    HorizontalPager(state = estadoPagina, modifier = Modifier.fillMaxWidth()) { pagina ->
+        if (pagina == 0) TarjetaRegalarNubi() else TarjetaInstagramNubi()
     }
 }
 

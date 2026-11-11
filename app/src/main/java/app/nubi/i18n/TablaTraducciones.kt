@@ -21,6 +21,18 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Empezar" to mapOf("en" to "Start", "it" to "Inizia", "fr" to "Commencer"),
     "Guardar" to mapOf("en" to "Save", "it" to "Salva", "fr" to "Enregistrer"),
     "Cancelar" to mapOf("en" to "Cancel", "it" to "Annulla", "fr" to "Annuler"),
+    "Aviso de comida" to mapOf("en" to "Feeding reminder", "it" to "Promemoria pappa", "fr" to "Rappel de repas"),
+    "Avisar cuando toque comer" to mapOf("en" to "Remind me when it's time to eat", "it" to "Avvisami quando è ora di mangiare", "fr" to "Me prévenir quand c'est l'heure de manger"),
+    "Un aviso cuando pase el tiempo que marques desde la última toma" to mapOf(
+        "en" to "A reminder once the time you set has passed since the last feeding",
+        "it" to "Un avviso trascorso il tempo che imposti dall'ultima pappa",
+        "fr" to "Un rappel une fois le temps défini écoulé depuis la dernière tétée"
+    ),
+    "Cada" to mapOf("en" to "Every", "it" to "Ogni", "fr" to "Toutes les"),
+    "min" to mapOf("en" to "min", "it" to "min", "fr" to "min"),
+    "Quitar foto" to mapOf("en" to "Remove photo", "it" to "Rimuovi foto", "fr" to "Supprimer la photo"),
+    "Aprende a usar Nubi" to mapOf("en" to "Learn how to use Nubi", "it" to "Scopri come usare Nubi", "fr" to "Apprends à utiliser Nubi"),
+    "Síguenos en Instagram" to mapOf("en" to "Follow us on Instagram", "it" to "Seguici su Instagram", "fr" to "Suivez-nous sur Instagram"),
     "Listo" to mapOf("en" to "Done", "it" to "Fatto", "fr" to "OK"),
     "Restaurar compras" to mapOf("en" to "Restore purchases", "it" to "Ripristina acquisti", "fr" to "Restaurer les achats"),
     "Buenos días" to mapOf("en" to "Good morning", "it" to "Buongiorno", "fr" to "Bonjour"),

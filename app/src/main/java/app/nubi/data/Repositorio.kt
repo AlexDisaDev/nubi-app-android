@@ -86,6 +86,7 @@ object Repositorio {
         datos.medicinas.forEach { avisarDeMedicina(contexto, it) }
         datos.citas.forEach { avisarDeCita(contexto, it) }
         avisarDeSueno(contexto, datos)
+        avisarDeComida(contexto, datos)
         NotificadorPrueba.reprogramar(contexto)
     }
 
@@ -120,6 +121,43 @@ object Repositorio {
             val texto = "${L10n.t("Buena ventana ahora · hasta")} ${formatoHoraAviso.format(prediccion.hasta)}"
             AvisosNubi.programar(contexto, id, prediccion.desde, L10n.t("Hora de la siesta"), texto)
         }
+    }
+
+    /**
+     * Aviso de "toca comer" (ver NotificadorComida.swift en iOS): un único
+     * aviso para "última toma (biberón o pecho) + avisoComidaIntervaloMin",
+     * con id fijo ("comida_siguiente") para que programar() de nuevo
+     * sustituya al anterior en vez de apilarlo — igual que medicina o
+     * sueño. Se recalcula entero cada vez (ver guardarRegistro/
+     * borrarRegistro y reprogramarAvisos), así que no hace falta llevar la
+     * cuenta de nada más.
+     */
+    private fun avisarDeComida(contexto: Context, datos: DatosNubi = local.datos.value) {
+        val id = "comida_siguiente"
+        val bebe = datos.bebe
+        val ultimaToma = datos.registros
+            .filter { it.tipo == TipoRegistro.BIBERON || it.tipo == TipoRegistro.PECHO }
+            .maxByOrNull { it.inicio }
+
+        if (!datos.avisoComidaActivo || bebe == null || ultimaToma == null || datos.avisoComidaIntervaloMin <= 0) {
+            AvisosNubi.cancelar(contexto, id)
+            return
+        }
+
+        val ahora = Instant.now()
+        var proximaToma = ultimaToma.inicio.plusSeconds(datos.avisoComidaIntervaloMin * 60L)
+        // Si para cuando se (re)calcula esto ya tocaba comer, no se deja
+        // caer en silencio por culpa del margen de AlarmManager: se avisa
+        // casi al momento, igual que iOS.
+        if (!proximaToma.isAfter(ahora.plusSeconds(65))) {
+            proximaToma = ahora.plusSeconds(65)
+        }
+
+        AvisosNubi.programar(
+            contexto, id, proximaToma,
+            L10n.t("Hora de comer"),
+            L10n.yaEsHoraDeComer(bebe.nombre)
+        )
     }
 
     private fun avisarDeMedicina(contexto: Context, medicina: Medicina) {
@@ -212,6 +250,18 @@ object Repositorio {
     }
 
     /**
+     * Ajustes del aviso de "toca comer" (ver HojaAvisoComida en Pantallas.kt).
+     * Igual que tema/idioma: de este móvil, no se sincroniza. Reprograma el
+     * aviso al momento con el nuevo valor.
+     */
+    fun guardarAvisoComida(activo: Boolean, intervaloMin: Int) {
+        ambito.launch {
+            local.modificar { it.copy(avisoComidaActivo = activo, avisoComidaIntervaloMin = intervaloMin) }
+            avisarDeComida(contexto)
+        }
+    }
+
+    /**
      * Parche de una sola vez para instalaciones de antes de que Bebe tuviera
      * usuario_id: si el bebé guardado en local tiene ese campo vacío y hay
      * sesión iniciada, se rellena con el usuario actual y se marca pendiente
@@ -236,6 +286,27 @@ object Repositorio {
         }
     }
 
+    /**
+     * Foto de perfil del bebé ya redimensionada y en base64 (ver
+     * FotosNubi.comprimirParaPerfil), o null para quitarla.
+     *
+     * "idBebe" es opcional y solo hace falta en el alta (PantallaNuevoBebe):
+     * ahí se llama justo después de guardarBebe(), cuyo guardado en local
+     * es asíncrono (ambito.launch), así que local.datos.value.bebe todavía
+     * podría no tener el bebé nuevo un instante después. Pasando el id que
+     * ya se conoce de sobra (el que se le dio al crear el Bebe) se evita
+     * esa carrera. El resto de sitios (Hoy, Ajustes) no lo necesitan: el
+     * bebé ya existe y guardado, así que local.datos.value.bebe.id vale.
+     */
+    fun guardarFotoBebe(base64: String?, idBebe: String? = null) {
+        ambito.launch {
+            val bebeId = idBebe ?: local.datos.value.bebe?.id ?: return@launch
+            local.modificar { it.copy(fotoPerfilBase64 = base64) }
+            local.marcarPendiente(Tablas.FOTOS_BEBE, bebeId, borrado = base64 == null)
+            sincronizador.sincronizar()
+        }
+    }
+
     fun guardarRegistro(registro: Registro) {
         ambito.launch {
             val actualizado = registro.copy(actualizadoEn = Instant.now())
@@ -247,6 +318,10 @@ object Repositorio {
             // Una siesta o un despertar nuevos pueden mover la próxima
             // ventana de sueño: se recalcula el aviso con el dato ya guardado.
             avisarDeSueno(contexto)
+            // Y una toma nueva (biberón o pecho) mueve el aviso de "toca
+            // comer" — se recalcula entero desde la toma que acaba de
+            // guardarse, igual que iOS.
+            avisarDeComida(contexto)
         }
     }
 
@@ -256,6 +331,7 @@ object Repositorio {
             local.marcarPendiente(Tablas.REGISTROS, id, borrado = true)
             sincronizador.sincronizar()
             avisarDeSueno(contexto)
+            avisarDeComida(contexto)
         }
     }
 

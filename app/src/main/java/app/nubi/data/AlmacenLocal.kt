@@ -53,6 +53,18 @@ data class DatosNubi(
     val despertarManual: Fecha? = null,
 
     /**
+     * Foto de perfil del bebé, en base64 (JPEG redimensionado a 400px,
+     * igual que iOS — ver NubiApp.resized en el repo de iOS). Va aparte
+     * de "bebe" a propósito: Bebe se sube a Supabase con un upsert()
+     * genérico tal cual (ver Sincronizador.subir), y la tabla "bebes" no
+     * tiene esta columna — si viviera dentro de Bebe, ese upsert fallaría.
+     * Se sincroniza por su cuenta contra "fotos_bebe" (backend/015_foto_bebe.sql,
+     * la misma tabla que ya usa iOS) usando el mecanismo normal de
+     * pendientes con Tablas.FOTOS_BEBE (ver Sincronizador).
+     */
+    val fotoPerfilBase64: String? = null,
+
+    /**
      * Tema elegido en Ajustes: "sistema", "claro" u "oscuro".
      * Es una preferencia de este móvil, no se sincroniza.
      */
@@ -72,6 +84,16 @@ data class DatosNubi(
      * preferencia de este móvil: no hay columna para esto en Supabase.
      */
     val comunidad: String = "COMUN",
+
+    /**
+     * Aviso de "toca comer" (ver NotificadorComida.swift en iOS): si está
+     * activo, y cada cuántos minutos desde la última toma (biberón o
+     * pecho) se quiere el recordatorio. Apagado por defecto, igual que
+     * iOS; es una preferencia de este móvil (como tema/idioma), no se
+     * sincroniza.
+     */
+    val avisoComidaActivo: Boolean = false,
+    val avisoComidaIntervaloMin: Int = 180,
 
     /** Última vez que se tocó algo en este móvil. */
     val modificado: Fecha? = null,

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -33,7 +34,26 @@ object Tablas {
     const val ENFERMEDADES = "enfermedades"
     const val PERFILES = "perfiles"
     const val EVENTOS_FUNNEL = "eventos_funnel"
+
+    /**
+     * Foto de perfil del bebé (backend/015_foto_bebe.sql). Tabla aparte de
+     * "bebes" a propósito — ver el comentario de fotoPerfilBase64 en
+     * AlmacenLocal.kt. Su clave no es "id" sino "bebe_id", así que
+     * borrarRemoto() la trata como caso especial.
+     */
+    const val FOTOS_BEBE = "fotos_bebe"
 }
+
+/**
+ * Fila de "fotos_bebe" (mismas columnas que usa iOS en
+ * SincronizadorSupabase.FotoBebeFila — ver backend/015_foto_bebe.sql).
+ */
+@Serializable
+private data class FilaFotoBebe(
+    @SerialName("bebe_id") val bebeId: String,
+    @SerialName("foto_base64") val fotoBase64: String?,
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
+)
 
 /**
  * Una fila creada, cambiada o borrada en este móvil que todavía no se ha
@@ -143,6 +163,14 @@ class Sincronizador(private val local: AlmacenLocal) {
     }
 
     private suspend fun borrarRemoto(cambio: CambioPendiente) {
+        // fotos_bebe no tiene columna "id": su clave es "bebe_id" (ver
+        // backend/015_foto_bebe.sql), así que necesita su propio delete.
+        if (cambio.tabla == Tablas.FOTOS_BEBE) {
+            Supabase.client.from(cambio.tabla).delete {
+                filter { eq("bebe_id", cambio.id) }
+            }
+            return
+        }
         Supabase.client.from(cambio.tabla).delete {
             filter { eq("id", cambio.id) }
         }
@@ -152,6 +180,14 @@ class Sincronizador(private val local: AlmacenLocal) {
         when (cambio.tabla) {
             Tablas.BEBES ->
                 datos.bebe?.takeIf { it.id == cambio.id }?.let { subir(cambio.tabla, it) }
+
+            // Solo se marca pendiente cuando hay una foto que subir (si se
+            // quitó la foto, el borrado va por borrarRemoto de arriba, ver
+            // Repositorio.guardarFotoBebe).
+            Tablas.FOTOS_BEBE ->
+                datos.bebe?.takeIf { it.id == cambio.id }?.let {
+                    subir(cambio.tabla, FilaFotoBebe(bebeId = it.id, fotoBase64 = datos.fotoPerfilBase64))
+                }
 
             Tablas.REGISTROS ->
                 datos.registros.find { it.id == cambio.id }?.let { subir(cambio.tabla, it) }
@@ -352,10 +388,24 @@ class Sincronizador(private val local: AlmacenLocal) {
             }.decodeList<Perfil>().firstOrNull()
         }
 
+        // Foto del bebé: solo la fila de ESTE bebé (no traerTodo() — por
+        // cuenta hay como mucho una foto). Si está pendiente de subir (o
+        // de borrar), se deja la de este móvil tal cual, igual que el
+        // resto de pendientes; si no, gana el servidor tal cual venga —
+        // incluida la ausencia de fila, que significa "sin foto".
+        val bebeActualId = bebes.firstOrNull()?.id ?: local.datos.value.bebe?.id
+        val fotoPendiente = bebeActualId == null || bebeActualId in pendientes
+        val fotoRemota = bebeActualId?.takeIf { !fotoPendiente }?.let { id ->
+            Supabase.client.from(Tablas.FOTOS_BEBE).select {
+                filter { eq("bebe_id", id) }
+            }.decodeList<FilaFotoBebe>().firstOrNull()
+        }
+
         local.modificar { d ->
             d.copy(
                 bebe = bebes.firstOrNull()?.takeIf { it.id !in pendientes } ?: d.bebe,
                 perfil = perfil ?: d.perfil,
+                fotoPerfilBase64 = if (fotoPendiente) d.fotoPerfilBase64 else fotoRemota?.fotoBase64,
                 registros = fundir(d.registros, registros, pendientes, { it.id }, { it.actualizadoEn }),
                 medicinas = fundir(d.medicinas, medicinas, pendientes, { it.id }, { it.actualizadoEn }),
                 medidas = fundir(d.medidas, medidas, pendientes, { it.id }, { it.actualizadoEn }),

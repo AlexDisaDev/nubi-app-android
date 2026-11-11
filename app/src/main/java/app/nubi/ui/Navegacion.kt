@@ -245,6 +245,7 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                                     registros = datos.registros,
                                     premium = premium,
                                     oscuro = oscuroActual,
+                                    fotoBase64 = datos.fotoPerfilBase64,
                                     alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
                                     alAbrirAjustes = { enAjustes = true }
                                 )
