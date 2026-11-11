@@ -2239,7 +2239,7 @@ private fun TarjetaRegalarNubi() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(R.drawable.nubi_logo_mark),
+                painter = painterResource(R.drawable.regalo_nubi),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(32.dp).clip(CircleShape)
