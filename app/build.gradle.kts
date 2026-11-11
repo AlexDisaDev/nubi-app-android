@@ -88,6 +88,11 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     // Para llamar al Edge Function verificar-compra-android (ver Compras.kt).
     implementation("io.github.jan-tennert.supabase:functions-kt")
+    // Para enterarse al instante de los cambios que suba la pareja, en vez
+    // de esperar al siguiente sincronizar() manual (ver Sincronizador.kt).
+    implementation("io.github.jan-tennert.supabase:realtime-kt")
+    // ktor-client-okhttp ya soporta WebSockets, así que no hace falta
+    // ningún motor adicional para Realtime.
     implementation("io.ktor:ktor-client-okhttp:3.1.2")
 
     // Google Play Billing (suscripción Premium) — ver app.nubi.data.Compras.

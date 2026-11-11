@@ -135,6 +135,9 @@ fun PantallaRaiz() {
     LaunchedEffect(sessionStatus) {
         if (sessionStatus is SessionStatus.Authenticated) {
             Repositorio.sincronizarEnSegundoPlano()
+            // Para enterarse al instante de lo que suba la pareja (o el
+            // propio iPhone) sin esperar a volver a abrir la app.
+            Repositorio.activarTiempoReal()
         }
     }
 
@@ -226,6 +229,7 @@ fun ContenidoApp() {
         else -> Navegacion(
             perfil = datos.perfil,
             alCerrarSesion = {
+                Repositorio.desactivarTiempoReal()
                 ambito.launch { Supabase.client.auth.signOut() }
             }
         )

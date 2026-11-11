@@ -7,6 +7,7 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 import io.ktor.client.plugins.HttpTimeout
 
 /**
@@ -39,6 +40,10 @@ object Supabase {
         // comprueba las compras de Play Billing contra Google antes de
         // activar premium.
         install(Functions)
+        // Para enterarse al instante de los cambios que suba la pareja (ver
+        // Sincronizador.activarTiempoReal) en vez de depender solo de
+        // sincronizar() en cada apertura o cada cambio propio.
+        install(Realtime)
 
         // Sin esto, el cliente HTTP no tiene ningún límite de tiempo: una
         // conexión que se queda a medias (típico en emuladores recién

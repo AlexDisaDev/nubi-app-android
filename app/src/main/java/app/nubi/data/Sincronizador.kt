@@ -4,10 +4,20 @@ import app.nubi.BuildConfig
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.realtime.PostgresAction
+import io.github.jan.supabase.realtime.RealtimeChannel
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.postgresChangeFlow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -448,11 +458,90 @@ class Sincronizador(private val local: AlmacenLocal) {
         return resultado.values.toList()
     }
 
+    // -----------------------------------------------------------------
+    // Tiempo real
+    //
+    // Sin esto, la única forma de enterarse de un cambio de la pareja (o
+    // del propio iPhone) es abrir la app o tocar algo propio, momentos en
+    // los que se llama a sincronizar(). A diferencia de iOS, aquí no hay
+    // ningún sondeo periódico de fondo, así que esto no es solo "más
+    // rápido": es la única vía para enterarse sin reabrir la app.
+    //
+    // No se duplica la lógica de fundir() aquí: Realtime se usa solo como
+    // aviso de "algo ha cambiado, repasa" — quien decide de verdad qué
+    // hacer con ese cambio sigue siendo sincronizar()/bajarCambios(), con
+    // las mismas tres reglas de la cabecera de la clase.
+    // -----------------------------------------------------------------
+
+    private var canalTiempoReal: RealtimeChannel? = null
+    private val avisoDeCambioRemoto = Channel<Unit>(Channel.CONFLATED)
+
+    /**
+     * Se suscribe a los cambios remotos de todas las tablas de datos y,
+     * cada vez que llega alguno, vuelve a llamar a sincronizar(). Segura
+     * de llamar sin sesión (no hace nada) y más de una vez (si ya hay un
+     * canal activo, no crea otro).
+     *
+     * [ambito] debe vivir mientras dure la sesión — Repositorio le pasa el
+     * suyo, que vive toda la vida de la app.
+     */
+    fun activarTiempoReal(ambito: CoroutineScope) {
+        if (canalTiempoReal != null) return
+        val usuarioId = Supabase.client.auth.currentUserOrNull()?.id ?: return
+
+        val canal = Supabase.client.channel("cambios-datos-$usuarioId")
+        canalTiempoReal = canal
+
+        for (tabla in TABLAS_EN_TIEMPO_REAL) {
+            canal.postgresChangeFlow<PostgresAction>(schema = "public") { table = tabla }
+                .onEach { avisoDeCambioRemoto.trySend(Unit) }
+                .launchIn(ambito)
+        }
+
+        ambito.launch {
+            for (aviso in avisoDeCambioRemoto) {
+                // Pequeña espera: si llegan varios cambios seguidos (varias
+                // filas de golpe), se agrupan en un solo sincronizar() en
+                // vez de lanzar uno por cada fila.
+                delay(800)
+                sincronizar()
+            }
+        }
+
+        ambito.launch {
+            runCatching { canal.subscribe() }
+        }
+    }
+
+    /**
+     * Corta la suscripción de tiempo real. Pensada para el cierre de
+     * sesión, para no dejar un canal escuchando cambios de una cuenta que
+     * ya no es la activa.
+     */
+    suspend fun desactivarTiempoReal() {
+        val canal = canalTiempoReal ?: return
+        canalTiempoReal = null
+        runCatching { canal.unsubscribe() }
+    }
+
     private companion object {
         /**
          * Veces que se reintenta un evento del funnel que falla él solo
          * (mientras otros del mismo lote sí suben) antes de descartarlo.
          */
         const val MAX_INTENTOS_EVENTO = 5
+
+        /**
+         * Mismas tablas que trae bajarCambios(), menos PERFILES y
+         * EVENTOS_FUNNEL (la primera la gestiona el servidor en exclusiva,
+         * la segunda es de solo inserción y nunca se lee de vuelta — ver
+         * sus comentarios más arriba).
+         */
+        val TABLAS_EN_TIEMPO_REAL = listOf(
+            Tablas.BEBES, Tablas.REGISTROS, Tablas.MEDICINAS, Tablas.MEDIDAS, Tablas.CITAS,
+            Tablas.VACUNAS_ESTADO, Tablas.VACUNAS_GRUPOS, Tablas.VACUNAS_PROPIAS, Tablas.DIARIO,
+            Tablas.EXTRACCIONES, Tablas.USOS_LECHE, Tablas.COMIDAS, Tablas.ENFERMEDADES,
+            Tablas.FOTOS_BEBE
+        )
     }
 }

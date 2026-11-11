@@ -210,6 +210,21 @@ object Repositorio {
     }
 
     /**
+     * Arranca la escucha de cambios en tiempo real (ver
+     * Sincronizador.activarTiempoReal). Se llama desde PantallaRaiz en
+     * cuanto hay sesión — igual que sincronizarEnSegundoPlano(), ver su
+     * comentario de arriba sobre por qué no basta con Repositorio.iniciar().
+     */
+    fun activarTiempoReal() {
+        sincronizador.activarTiempoReal(ambito)
+    }
+
+    /** Corta la escucha de tiempo real — llamar al cerrar sesión. */
+    fun desactivarTiempoReal() {
+        ambito.launch { sincronizador.desactivarTiempoReal() }
+    }
+
+    /**
      * Registra un evento del embudo de conversión (ver EventosFunnel.kt).
      * Se encola en local primero (persistido en disco) y luego se intenta
      * subir enseguida; si falla o no hay red, sincronizador.sincronizar()
