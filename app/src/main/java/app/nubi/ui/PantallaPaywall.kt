@@ -1,6 +1,8 @@
 package app.nubi.ui
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -512,7 +514,18 @@ fun SelectorPlanesPremium(e: Float = 1f) {
     val detalles = Compras.detalles
     val verificando by Compras.verificando.collectAsState()
     val error by Compras.ultimoError.collectAsState()
-    val activity = LocalContext.current as? Activity
+    // Este paywall se pinta SIEMPRE dentro de un ModalBottomSheet
+    // (HojaPremiumBloqueado, en HojasRegistro.kt) — nunca como pantalla
+    // suelta (PantallaPaywall() está definida pero no se usa en ningún
+    // sitio ahora mismo). El Context que da LocalContext.current ahí
+    // dentro es el del propio diálogo/hoja (un ContextWrapper), NO la
+    // Activity que lo aloja, así que "as? Activity" siempre devolvía null
+    // — por eso el botón salía siempre en gris, aunque detalles ya
+    // hubiera cargado bien: "activity" nunca llegaba a ser no-null.
+    // encontrarActivity() sube por los ContextWrapper hasta dar con la
+    // Activity de verdad, que es lo que de verdad hace falta para
+    // lanzar el flujo de compra de Play (Compras.comprar(activity, ...)).
+    val activity = LocalContext.current.encontrarActivity()
 
     if (detalles == null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -987,4 +1000,19 @@ private fun sufijoPeriodo(iso: String): String = when (iso) {
     "P6M" -> "/6 ${L10n.t("meses")}"
     "P1Y" -> "/${L10n.t("año")}"
     else -> ""
+}
+
+/**
+ * Sube por los ContextWrapper (como el de un ModalBottomSheet/Dialog) hasta
+ * encontrar la Activity real que los contiene, o null si no hay ninguna
+ * (no debería pasar en la práctica: todo Context de la UI de Android acaba
+ * colgando de una Activity). Hace falta porque un simple
+ * "LocalContext.current as? Activity" devuelve null en cuanto el composable
+ * se pinta dentro de un Dialog/ModalBottomSheet — justo el caso de
+ * SelectorPlanesPremium, que SIEMPRE vive dentro de uno (ver más arriba).
+ */
+private tailrec fun Context.encontrarActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.encontrarActivity()
+    else -> null
 }
