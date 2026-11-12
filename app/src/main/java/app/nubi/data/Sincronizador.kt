@@ -85,20 +85,25 @@ data class CambioPendiente(
  *    de pendientes, lo que venga del servidor para esa fila se ignora: lo
  *    que el usuario acaba de apuntar nunca se pisa con una versión vieja.
  * 2. Para el resto, gana la marca de tiempo más reciente (actualizado_en).
- * 3. Nada se borra en local por no venir del servidor. Si una fila no
- *    aparece en la respuesta, se queda como está; borrar solo ocurre
- *    cuando el usuario lo pide expresamente, y entonces va como un
- *    pendiente de tipo borrado.
+ * 3. Un borrado real (hecho por el dueño del bebé, o por cualquier otro
+ *    participante, en cualquier dispositivo) SÍ se aplica en local: ver
+ *    mezclarPorFecha y DatosNubi.sellosRemotos. Antes (fundir(), que
+ *    todavía se usa para vacunas_estado — ver el comentario en
+ *    bajarCambios — porque esa tabla nunca se borra, solo se desmarca)
+ *    esta regla era "nada se borra en local por no venir del servidor",
+ *    deliberadamente conservadora: pero eso significaba que un borrado
+ *    hecho en OTRO dispositivo (el dueño desde el suyo, o cualquier otro
+ *    participante) nunca llegaba a desaparecer aquí — se quedaba
+ *    viéndose para siempre, aunque ya no existiera en Supabase. Un
+ *    borrado hecho por ESTE móvil sigue yendo como pendiente de tipo
+ *    borrado (regla 1): eso no cambia.
  *
- * La regla 3 es deliberadamente conservadora: ante la duda, se conservan
- * los datos del bebé aunque sobre alguna fila de más.
- *
- * 4. EXCEPCIÓN a la regla 3: si el bebé en caché no es nuestro (Bebe.usuarioId
+ * 4. EXCEPCIÓN: si el bebé en caché no es nuestro (Bebe.usuarioId
  *    es el del dueño que nos invitó, no el nuestro) y el servidor deja de
  *    devolver su fila de "bebes", no es un fallo pasajero — es que la RLS ya
- *    no nos deja verlo, porque el dueño ha dejado de compartir. Aquí la
- *    regla 3 se invierte a propósito: seguir mostrando los datos de otra
- *    persona después de que nos quiten el acceso sería un fallo de
+ *    no nos deja verlo, porque el dueño ha dejado de compartir. Aquí se
+ *    borra TODO lo del bebé a propósito: seguir mostrando los datos de
+ *    otra persona después de que nos quiten el acceso sería un fallo de
  *    privacidad, no solo una pérdida de datos. Ver el bloque de
  *    "perdioAccesoCompartido" en bajarCambios().
  */
@@ -459,24 +464,43 @@ class Sincronizador(private val local: AlmacenLocal) {
         val premiumCompartido = bebeActualId?.let { Compartir.tienePremiumCompartido(it) } ?: false
 
         local.modificar { d ->
+            val primeraVez = !d.sellosRemotosInicializados
+            val nuevosSellos = d.sellosRemotos.toMutableMap()
+
+            fun <T> aplicar(
+                tabla: String, locales: List<T>, remotas: List<T>,
+                clave: (T) -> String, marca: (T) -> Instant
+            ): List<T> {
+                val (resultado, sellosTabla) = mezclarPorFecha(
+                    locales, remotas, pendientes, d.sellosRemotos[tabla] ?: emptyMap(), primeraVez, clave, marca
+                )
+                nuevosSellos[tabla] = sellosTabla
+                return resultado
+            }
+
             d.copy(
                 bebe = bebes.firstOrNull()?.takeIf { it.id !in pendientes } ?: d.bebe,
                 perfil = perfil ?: d.perfil,
                 premiumCompartido = premiumCompartido,
                 fotoPerfilBase64 = if (fotoPendiente) d.fotoPerfilBase64 else fotoRemota?.fotoBase64,
-                registros = fundir(d.registros, registros, pendientes, { it.id }, { it.actualizadoEn }),
-                medicinas = fundir(d.medicinas, medicinas, pendientes, { it.id }, { it.actualizadoEn }),
-                medidas = fundir(d.medidas, medidas, pendientes, { it.id }, { it.actualizadoEn }),
-                citas = fundir(d.citas, citas, pendientes, { it.id }, { it.actualizadoEn }),
+                registros = aplicar(Tablas.REGISTROS, d.registros, registros, { it.id }, { it.actualizadoEn }),
+                medicinas = aplicar(Tablas.MEDICINAS, d.medicinas, medicinas, { it.id }, { it.actualizadoEn }),
+                medidas = aplicar(Tablas.MEDIDAS, d.medidas, medidas, { it.id }, { it.actualizadoEn }),
+                citas = aplicar(Tablas.CITAS, d.citas, citas, { it.id }, { it.actualizadoEn }),
+                // vacunas_estado nunca se borra (solo se desmarca, ver
+                // Repositorio.marcarVacuna): sigue por fundir(), sin
+                // detección de borrado, igual que antes.
                 vacunas = fundir(d.vacunas, vacunas, pendientes,
                     { "${it.bebeId}|${it.clave}" }, { it.actualizadoEn }),
-                gruposVacunas = fundir(d.gruposVacunas, grupos, pendientes, { it.id }, { it.actualizadoEn }),
-                vacunasPropias = fundir(d.vacunasPropias, propias, pendientes, { it.id }, { it.actualizadoEn }),
-                diario = fundir(d.diario, diario, pendientes, { it.id }, { it.actualizadoEn }),
-                extracciones = fundir(d.extracciones, extracciones, pendientes, { it.id }, { it.actualizadoEn }),
-                usosLeche = fundir(d.usosLeche, usos, pendientes, { it.id }, { it.actualizadoEn }),
-                comidas = fundir(d.comidas, comidas, pendientes, { it.id }, { it.actualizadoEn }),
-                enfermedades = fundir(d.enfermedades, enfermedades, pendientes, { it.id }, { it.actualizadoEn })
+                gruposVacunas = aplicar(Tablas.VACUNAS_GRUPOS, d.gruposVacunas, grupos, { it.id }, { it.actualizadoEn }),
+                vacunasPropias = aplicar(Tablas.VACUNAS_PROPIAS, d.vacunasPropias, propias, { it.id }, { it.actualizadoEn }),
+                diario = aplicar(Tablas.DIARIO, d.diario, diario, { it.id }, { it.actualizadoEn }),
+                extracciones = aplicar(Tablas.EXTRACCIONES, d.extracciones, extracciones, { it.id }, { it.actualizadoEn }),
+                usosLeche = aplicar(Tablas.USOS_LECHE, d.usosLeche, usos, { it.id }, { it.actualizadoEn }),
+                comidas = aplicar(Tablas.COMIDAS, d.comidas, comidas, { it.id }, { it.actualizadoEn }),
+                enfermedades = aplicar(Tablas.ENFERMEDADES, d.enfermedades, enfermedades, { it.id }, { it.actualizadoEn }),
+                sellosRemotos = nuevosSellos,
+                sellosRemotosInicializados = true
             )
         }
     }
@@ -485,6 +509,10 @@ class Sincronizador(private val local: AlmacenLocal) {
      * Mezcla la lista local con la del servidor aplicando las tres reglas
      * de arriba: lo pendiente no se toca, de lo demás gana lo más reciente,
      * y nada local desaparece por no venir del servidor.
+     *
+     * Usada tal cual solo para vacunas_estado, que nunca se borra (ver
+     * bajarCambios): para el resto de tablas, ver mezclarPorFecha, que sí
+     * detecta y aplica un borrado remoto real.
      */
     private fun <T> fundir(
         locales: List<T>,
@@ -504,6 +532,73 @@ class Sincronizador(private val local: AlmacenLocal) {
             }
         }
         return resultado.values.toList()
+    }
+
+    /**
+     * Como fundir(), pero detectando también un borrado remoto real: una
+     * clave que antes se conocía por el servidor (tiene sello) y ya no
+     * aparece en esta descarga se borra también en local — no solo lo que
+     * añadan o cambien, como hacía fundir() (ver DatosNubi.sellosRemotos
+     * para el porqué).
+     *
+     * Lo pendiente (regla 1 de fundir) nunca se toca: ni se sustituye por
+     * lo remoto, ni se borra por no aparecer en remoto — eso solo
+     * significa que el cambio propio de este móvil (incluido un borrado)
+     * todavía no ha llegado a Supabase; se resolverá solo en el próximo
+     * ciclo, cuando subirPendientes() lo haya mandado y deje de estar
+     * pendiente.
+     *
+     * primeraVez: ver el comentario de DatosNubi.sellosRemotosInicializados.
+     * Devuelve la lista mezclada y los sellos ya puestos al día para esta tabla.
+     */
+    private fun <T> mezclarPorFecha(
+        locales: List<T>,
+        remotas: List<T>,
+        pendientes: Set<String>,
+        sellos: Map<String, Instant>,
+        primeraVez: Boolean,
+        clave: (T) -> String,
+        marca: (T) -> Instant
+    ): Pair<List<T>, Map<String, Instant>> {
+        val porClave = locales.associateByTo(LinkedHashMap(), clave)
+        val clavesRemotasVistas = remotas.map(clave).toSet()
+        val nuevosSellos = sellos.toMutableMap()
+
+        for (remota in remotas) {
+            val k = clave(remota)
+            if (k in pendientes) continue // regla 1: pendiente propio, no se toca
+
+            val actual = porClave[k]
+            if (actual != null) {
+                if (primeraVez) {
+                    nuevosSellos[k] = marca(remota)
+                    continue
+                }
+                val selloConocido = nuevosSellos[k]
+                if (selloConocido != null && !marca(remota).isAfter(selloConocido)) continue
+                porClave[k] = remota
+                nuevosSellos[k] = marca(remota)
+            } else if (nuevosSellos[k] == null) {
+                // No está en local y nunca se ha visto: de verdad nuevo
+                // (lo añadió el dueño, u otro participante).
+                porClave[k] = remota
+                nuevosSellos[k] = marca(remota)
+            }
+            // Si no está en local pero SÍ hay sello conocido: se borró
+            // aquí mismo y ese borrado todavía no ha llegado a Supabase
+            // (o acaba de llegar y este móvil no se ha enterado todavía).
+            // No se resucita.
+        }
+
+        if (!primeraVez) {
+            val clavesABorrar = nuevosSellos.keys.filter { it !in clavesRemotasVistas && it !in pendientes }
+            for (k in clavesABorrar) {
+                porClave.remove(k)
+                nuevosSellos.remove(k)
+            }
+        }
+
+        return Pair(porClave.values.toList(), nuevosSellos)
     }
 
     // -----------------------------------------------------------------

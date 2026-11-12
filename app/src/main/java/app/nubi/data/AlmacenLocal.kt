@@ -158,7 +158,32 @@ data class DatosNubi(
      * repetir la llamada; si se perdiera, se volvería a mandar y el
      * servidor lo trata igual.
      */
-    val plataformaRegistrada: Boolean = false
+    val plataformaRegistrada: Boolean = false,
+
+    /**
+     * Último actualizado_en de Supabase ya aplicado a este móvil, por
+     * tabla y por clave (ver Sincronizador.mezclarPorFecha). Con esto se
+     * puede detectar un borrado remoto real: una clave que antes estaba
+     * aquí y ya no aparece en la descarga — a diferencia de fundir() (ver
+     * su comentario), que nunca borra nada local por no venir del
+     * servidor. Sin esto, un borrado hecho por el dueño del bebé (o por
+     * cualquier otro participante) nunca desaparecía en este móvil, se
+     * quedaba viéndose para siempre aunque ya no existiera en Supabase.
+     */
+    val sellosRemotos: Map<String, Map<String, Fecha>> = emptyMap(),
+
+    /**
+     * Si ya se ha hecho al menos una mezcla con sellosRemotos desde que
+     * existe este mecanismo. La primera vez que corre en una instalación
+     * que ya tenía datos de antes (sellosRemotos vacío, campo nuevo) no
+     * hay ningún sello guardado todavía, así que no se puede distinguir
+     * "esto cambió de verdad en remoto" de "este móvil tiene un cambio
+     * propio sin subir todavía". Esa primera vez, igual que fundir(),
+     * solo se añade lo que falte (nunca se sustituye ni se borra nada
+     * existente) y se usa para fijar la base de sellos; a partir de la
+     * segunda ya se mezcla y se borra de verdad.
+     */
+    val sellosRemotosInicializados: Boolean = false
 )
 
 /**
