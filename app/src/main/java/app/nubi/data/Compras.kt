@@ -356,6 +356,11 @@ object Compras : PurchasesUpdatedListener {
         val ok: Boolean = false,
         val estado: String? = null,
         val tieneAcceso: Boolean = false,
+        // El servidor también manda "premiumHasta" (ISO 8601); aquí no se
+        // usa, pero sin declararlo el decodificador fallaba con
+        // "Encountered an unknown key 'premiumHasta'" aunque la compra
+        // se hubiera verificado bien.
+        val premiumHasta: String? = null,
         val error: String? = null,
     )
 
@@ -387,7 +392,9 @@ object Compras : PurchasesUpdatedListener {
             setBody(Json.encodeToString(CuerpoVerificarCompra.serializer(), cuerpo))
         }
 
-        val resultado = Json.decodeFromString(
+        // ignoreUnknownKeys: que un campo nuevo del servidor nunca vuelva a
+        // romper la lectura de una compra ya verificada.
+        val resultado = Json { ignoreUnknownKeys = true }.decodeFromString(
             RespuestaVerificarCompra.serializer(),
             respuesta.bodyAsText()
         )

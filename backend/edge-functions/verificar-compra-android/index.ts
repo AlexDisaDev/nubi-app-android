@@ -26,6 +26,20 @@
 // Respuesta: { ok, estado, premiumHasta, tieneAcceso } o { error }.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createRemoteJWKSet, jwtVerify } from "https://esm.sh/jose@5";
+
+// Este proyecto usa las claves nuevas de Supabase (asimétricas, ES256:
+// ver el "alg" del JWT decodificado en los logs de diagnóstico). Con
+// esas claves, llamar a GoTrue (/auth/v1/user) por HTTP para preguntar
+// "¿de quién es este token?" no funciona bien aquí — GoTrue contestaba
+// 401 "no_authorization" con un token perfectamente válido (sin vencer,
+// issuer/audience/role correctos). La forma recomendada por Supabase
+// para claves asimétricas es verificar el JWT en el propio código,
+// contra la clave pública del proyecto (JWKS) — sin red de por medio
+// hacia GoTrue, y sin ese problema.
+const JWKS = createRemoteJWKSet(
+  new URL(`${Deno.env.get("SUPABASE_URL")}/auth/v1/.well-known/jwks.json`),
+);
 
 const PAQUETE_ANDROID = "com.app.nubi";
 const SCOPE_ANDROID_PUBLISHER = "https://www.googleapis.com/auth/androidpublisher";
@@ -129,27 +143,29 @@ Deno.serve(async (req) => {
     // mande el propio cliente (eso dejaría a cualquiera activarse premium
     // a sí mismo con solo cambiar el id en el body).
     //
-    // Esto llama a GoTrue (/auth/v1/user) directamente con fetch, en vez
-    // de supabase-js (createClient(...).auth.getUser(jwt)): probado en
-    // los logs del proyecto, esa llamada del SDK mandaba la cabecera
-    // Authorization VACÍA pese a pasarle el jwt explícito — el propio
-    // GoTrue registraba la petición con
-    // request.sb.jwt.authorization.invalid = "Not a JWT" y auth_header
-    // vacío, nunca con el token de verdad. Con fetch se controla
-    // exactamente qué cabeceras salen, sin depender de ese comportamiento
-    // del cliente.
-    const respuestaUsuario = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
-      headers: {
-        Authorization: cabeceraAuth,
-        apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
-      },
-    });
-    if (!respuestaUsuario.ok) {
-      return new Response(JSON.stringify({ error: "sesion_invalida" }), { status: 401 });
-    }
-    const datosUsuario = await respuestaUsuario.json();
-    const usuarioId = datosUsuario.id as string | undefined;
-    if (!usuarioId) {
+    // Se verifica el JWT aquí mismo, contra la clave pública del
+    // proyecto (JWKS): este proyecto usa claves asimétricas (ES256) y la
+    // forma recomendada por Supabase es verificar en local, sin pasar por
+    // GoTrue (/auth/v1/user), que aquí contestaba 401 con tokens válidos.
+    //
+    // OJO: la app Android (Compras.kt) puede mandar la cabecera
+    // Authorization DUPLICADA — el plugin Functions del SDK ya la pone
+    // con el token de la sesión y bearerAuth() añade una segunda, y
+    // llega como "Bearer <jwt>,Bearer <jwt>" (visto en los logs: 5
+    // trozos separados por "." en vez de 3, y jose decía "Invalid
+    // Compact JWS"). Por eso se coge solo el primer valor, el que va
+    // antes de la primera coma (un JWT en base64url nunca lleva comas).
+    const jwtCrudo = cabeceraAuth.slice(7).split(",")[0].trim();
+    let usuarioId: string;
+    try {
+      const { payload } = await jwtVerify(jwtCrudo, JWKS, {
+        issuer: `${Deno.env.get("SUPABASE_URL")}/auth/v1`,
+        audience: "authenticated",
+      });
+      if (typeof payload.sub !== "string") throw new Error("El JWT no tiene 'sub'");
+      usuarioId = payload.sub;
+    } catch (e) {
+      console.error("sesion_invalida: verificación JWT (JWKS) falló:", String(e));
       return new Response(JSON.stringify({ error: "sesion_invalida" }), { status: 401 });
     }
 
