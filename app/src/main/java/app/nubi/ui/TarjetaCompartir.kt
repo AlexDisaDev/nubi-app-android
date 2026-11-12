@@ -293,8 +293,12 @@ private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Un
                             color = colores.tintaTenue
                         )
                         Spacer(Modifier.height(10.dp))
-                        TextButton(
+                        Button(
                             onClick = { enlace = null },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colores.indigo,
+                                contentColor = colores.tinta
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(L10n.t("Crear otro enlace (para otra persona, o si este ya caducó)"))
