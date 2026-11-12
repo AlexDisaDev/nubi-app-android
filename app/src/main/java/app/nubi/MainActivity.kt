@@ -87,6 +87,14 @@ class MainActivity : ComponentActivity() {
         // esto no hace nada si no lo es — y si lo es, guarda el token para
         // que ContenidoApp ofrezca aceptarlo en cuanto haya sesión.
         Compartir.recibirEnlace(intent.data)
+        // Importante: limpiar el data del intent una vez leído. Si no, el
+        // mismo token reaparece cada vez que el sistema recrea esta Activity
+        // (poca memoria, cambio de configuración, reabrir desde Recientes…)
+        // sin pasar por un enlace nuevo de verdad — Android sigue
+        // devolviendo este mismo intent en getIntent()/onCreate. Sin este
+        // borrado, una invitación ya aceptada hace tiempo vuelve a aparecer
+        // y falla con "invitacion_ya_usada" al intentar aceptarla otra vez.
+        intent.data = null
 
         setContent {
             val datos by Repositorio.local.datos.collectAsState()
@@ -117,6 +125,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         Supabase.client.handleDeeplinks(intent)
         Compartir.recibirEnlace(intent.data)
+        // setIntent(intent) para que getIntent() quede con ESTE intent (el
+        // nuevo, no el de cuando se abrió la Activity por primera vez), y
+        // luego se le borra el data por el mismo motivo que en onCreate: que
+        // una recreación posterior de la Activity no vuelva a leer este
+        // mismo token de invitación.
+        setIntent(intent)
+        intent.data = null
     }
 }
 
@@ -261,7 +276,28 @@ fun ContenidoApp() {
                                 Repositorio.sincronizarEnSegundoPlano()
                                 Compartir.descartarInvitacionPendiente()
                             } catch (e: Exception) {
-                                errorInvitacion = "${L10n.t("No se pudo aceptar la invitación:")} ${e.message}"
+                                val mensaje = e.message ?: ""
+                                when {
+                                    // Ya se aceptó antes (típicamente: el enlace
+                                    // reaparece solo al recrearse la Activity,
+                                    // sin que el usuario haya tocado nada nuevo).
+                                    // El acceso ya existe, así que no es un error
+                                    // de verdad: se cierra sin más.
+                                    "invitacion_ya_usada" in mensaje -> {
+                                        Repositorio.sincronizarEnSegundoPlano()
+                                        Compartir.descartarInvitacionPendiente()
+                                    }
+                                    "invitacion_caducada" in mensaje ->
+                                        errorInvitacion = L10n.t("Esta invitación ya ha caducado. Pide un enlace nuevo.")
+                                    "no_puedes_aceptar_tu_propia_invitacion" in mensaje ->
+                                        errorInvitacion = L10n.t("No puedes aceptar tu propia invitación.")
+                                    "invitacion_invalida" in mensaje ->
+                                        errorInvitacion = L10n.t("Este enlace de invitación ya no es válido.")
+                                    else ->
+                                        // Error inesperado (red, servidor, etc.): aquí
+                                        // sí interesa el detalle técnico para depurar.
+                                        errorInvitacion = "${L10n.t("No se pudo aceptar la invitación:")} $mensaje"
+                                }
                             } finally {
                                 aceptandoInvitacion = false
                             }
