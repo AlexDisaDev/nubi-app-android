@@ -526,7 +526,13 @@ fun PantallaHoy(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(NubiGeometria.margen)
+            // Antes era .padding(NubiGeometria.margen), es decir 20dp también
+            // arriba y abajo. iOS (VistaInicio.swift) solo pone 20pt a los
+            // lados y 8pt arriba / 4pt abajo — ese margen vertical de más
+            // (32dp extra) era buena parte de por qué esta pantalla
+            // necesitaba scroll y la de iOS no. Se iguala aquí.
+            .padding(horizontal = NubiGeometria.margen)
+            .padding(top = 8.dp, bottom = 4.dp)
     ) {
         // Cabecera: saludo, nombre, edad, y dos accesos rápidos. El de
         // sol/luna alterna el modo día/noche ahí mismo (ya no se elige
@@ -584,7 +590,9 @@ fun PantallaHoy(
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        // 12dp: mismo ritmo que el VStack(spacing: 12) de iOS entre tarjetas
+        // (antes eran 20dp, uno de los huecos que sobraban aquí).
+        Spacer(Modifier.height(12.dp))
 
         Card(
             shape = RoundedCornerShape(NubiGeometria.radio),
@@ -696,7 +704,7 @@ fun PantallaHoy(
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
 
         prediccion?.let { p ->
             if (premium) {
@@ -704,7 +712,7 @@ fun PantallaHoy(
             } else {
                 TarjetaPrediccionBloqueada { mostrarBloqueo = true }
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
         }
 
         FilaUltimaToma(
@@ -716,7 +724,7 @@ fun PantallaHoy(
             onBiberon = { if (premium) mostrarHojaBiberon = true else mostrarBloqueo = true },
             onPecho = { if (premium) mostrarHojaPecho = true else mostrarBloqueo = true }
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         // A diferencia de las demás tarjetas de esta pantalla, esta siempre
         // está visible: el botón de "Hoy" es para apuntar un pañal en el
@@ -731,7 +739,7 @@ fun PantallaHoy(
             bloqueado = !premium,
             onClick = { if (premium) mostrarHojaPanal = true else mostrarBloqueo = true }
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         // Etapa actual (ver MotorEtapas.kt): solo se muestra si hay una
         // definida para la edad del bebé, igual que en iOS.
@@ -770,10 +778,12 @@ fun PantallaHoy(
 
         // Regalar Nubi: mismo sitio que en iOS (VistaInicio.swift), al final
         // del scroll de Hoy, siempre visible.
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
         TarjetaDinamicaRegalarInstagram()
-
-        Spacer(Modifier.height(24.dp))
+        // Sin Spacer final: igual que iOS, el relleno del Scaffold (la barra
+        // de pestañas de abajo) ya da el margen inferior que hace falta, y
+        // quitar este Spacer de 24dp era el ahorro de altura más grande de
+        // todos los de esta pantalla.
     }
 
     if (mostrarHojaPecho) {
