@@ -2,6 +2,7 @@ package app.nubi.data
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
@@ -59,6 +60,8 @@ import java.time.ZoneId
  * planes base ahí, cámbialos también aquí.
  */
 object Compras : PurchasesUpdatedListener {
+
+    private const val TAG = "Compras"
 
     /** ID del producto de suscripción en Play Console ("Nubi Pro"). */
     const val ID_PRODUCTO = "nubi_pro"
@@ -140,7 +143,39 @@ object Compras : PurchasesUpdatedListener {
 
         cliente.queryProductDetailsAsync(params) { resultado, resultadoConsulta ->
             if (resultado.responseCode == BillingResponseCode.OK) {
-                detalles = resultadoConsulta.productDetailsList.firstOrNull()
+                val encontrado = resultadoConsulta.productDetailsList.firstOrNull()
+                detalles = encontrado
+                if (encontrado == null) {
+                    // Play respondió OK pero no devolvió "$ID_PRODUCTO": el
+                    // botón de comprar se queda en "Cargando los planes…"
+                    // para siempre porque detalles nunca deja de ser null.
+                    // Causas típicas de esto, de más a menos probable:
+                    //  1) La suscripción (o su base plan) no está "Activa"
+                    //     en Play Console → Monetizar con Play → Productos.
+                    //  2) La app se instaló con `adb install`/botón Run de
+                    //     Android Studio en vez de desde una pista de
+                    //     prueba de Play (interna/cerrada) — Billing solo
+                    //     reconoce builds instaladas desde Play.
+                    //  3) La cuenta probadora añadida en "Pruebas de
+                    //     licencia" todavía no ha propagado (puede tardar
+                    //     unas horas) o no es la cuenta de Google activa en
+                    //     el dispositivo.
+                    //  4) El ID del producto/los planes aquí no coinciden
+                    //     EXACTAMENTE con los de Play Console.
+                    Log.w(
+                        TAG,
+                        "queryProductDetailsAsync OK pero sin '$ID_PRODUCTO' en la respuesta " +
+                            "(revisa: suscripción activa en Play Console, build instalada desde una " +
+                            "pista de prueba de Play, y que la licencia de prueba ya haya propagado)"
+                    )
+                    _ultimoError.value = "Play no devolvió el plan \"$ID_PRODUCTO\". Comprueba que la " +
+                        "suscripción esté Activa en Play Console y que la app esté instalada desde una " +
+                        "pista de prueba de Play (no desde Android Studio/adb)."
+                }
+            } else {
+                Log.e(TAG, "queryProductDetailsAsync falló: ${resultado.responseCode} ${resultado.debugMessage}")
+                _ultimoError.value = "Error de Play al consultar planes (${resultado.responseCode}): " +
+                    resultado.debugMessage.ifBlank { "sin mensaje" }
             }
         }
     }
@@ -184,6 +219,18 @@ object Compras : PurchasesUpdatedListener {
     fun refrescar() {
         if (!iniciado) return
         recuperarComprasPendientes()
+    }
+
+    /**
+     * Vuelve a pedirle a Play la lista de planes (consultarProducto()).
+     * Para el botón "Reintentar" que aparece en PantallaPaywall cuando
+     * detalles se quedó en null con un error — no toca compras, solo la
+     * consulta de producto/planes.
+     */
+    fun reintentarConsultaPlanes() {
+        if (!iniciado) return
+        _ultimoError.value = null
+        consultarProducto()
     }
 
     private fun recuperarComprasPendientes() {

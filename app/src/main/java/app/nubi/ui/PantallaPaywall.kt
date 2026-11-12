@@ -516,14 +516,33 @@ fun SelectorPlanesPremium(e: Float = 1f) {
 
     if (detalles == null) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(8.dp))
-            Text(
-                L10n.t("Cargando los planes…"),
-                fontFamily = Cuerpo,
-                fontWeight = FontWeight.SemiBold,
-                color = colores.tintaTenue
-            )
+            // Si ya hay un error de Play (ver Compras.consultarProducto),
+            // esto deja de ser un "cargando" infinito y muestra por qué:
+            // antes este error quedaba invisible, porque el Text de la
+            // línea ~581 está más abajo, dentro de la rama que nunca se
+            // alcanza mientras detalles sea null.
+            if (error == null) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    L10n.t("Cargando los planes…"),
+                    fontFamily = Cuerpo,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colores.tintaTenue
+                )
+            } else {
+                Text(
+                    error ?: "",
+                    fontFamily = Cuerpo,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = { Compras.reintentarConsultaPlanes() }) {
+                    Text(L10n.t("Reintentar"))
+                }
+            }
         }
         return
     }

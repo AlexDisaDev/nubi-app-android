@@ -794,6 +794,7 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
         "fr" to "Après le septième jour, le plan choisi sera facturé. Annulez quand vous voulez depuis Google Play."
     ),
     "Cargando los planes…" to mapOf("en" to "Loading plans…", "it" to "Caricamento dei piani…", "fr" to "Chargement des offres…"),
+    "Reintentar" to mapOf("en" to "Retry", "it" to "Riprova", "fr" to "Réessayer"),
     "Comprobando tu compra…" to mapOf("en" to "Checking your purchase…", "it" to "Verifica del tuo acquisto…", "fr" to "Vérification de votre achat…"),
     "¿Ya pagaste? Restaurar compra" to mapOf("en" to "Already paid? Restore purchase", "it" to "Hai già pagato? Ripristina acquisto", "fr" to "Déjà payé ? Restaurer l'achat"),
     "gratis" to mapOf("en" to "free", "it" to "gratis", "fr" to "gratuit"),
