@@ -129,12 +129,20 @@ Deno.serve(async (req) => {
     // nunca se confía en un usuario_id que mande el propio cliente, eso
     // dejaría a cualquiera activarse premium a sí mismo con solo cambiar
     // el id en el body.
+    const jwt = cabeceraAuth.replace("Bearer ", "");
     const supabaseComoUsuario = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: cabeceraAuth } } },
     );
-    const { data: datosUsuario, error: errorUsuario } = await supabaseComoUsuario.auth.getUser();
+    // OJO: auth.getUser() IGNORA por completo el header Authorization que
+    // se ponga en `global.headers` al crear el cliente — ese header solo
+    // afecta a las llamadas de PostgREST/Storage (.from()/.storage), nunca
+    // a los métodos de .auth. Sin pasar el JWT explícito aquí, getUser()
+    // intentaba validar su propia sesión interna (vacía, por no haber
+    // iniciado sesión con este cliente de usar-y-tirar) y Supabase
+    // respondía "Not a JWT" — esto hacía fallar SIEMPRE esta verificación,
+    // para cualquier usuario y cualquier compra, de ahí "sesion_invalida".
+    const { data: datosUsuario, error: errorUsuario } = await supabaseComoUsuario.auth.getUser(jwt);
     if (errorUsuario || !datosUsuario?.user) {
       return new Response(JSON.stringify({ error: "sesion_invalida" }), { status: 401 });
     }
