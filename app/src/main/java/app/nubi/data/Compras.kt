@@ -360,6 +360,18 @@ object Compras : PurchasesUpdatedListener {
     )
 
     private suspend fun verificarEnServidor(compra: Purchase, productId: String, planId: String?) {
+        // Compras.iniciar() se llama desde NubiApplication.onCreate(), al
+        // mismo tiempo que Repositorio.iniciar() — y Play Billing puede
+        // conectarse (onBillingSetupFinished) ANTES de que el plugin Auth
+        // de Supabase termine de restaurar la sesión persistida del disco.
+        // Sin este await, currentAccessTokenOrNull() podía devolver null
+        // en ese ratito aunque el usuario SÍ tuviera sesión iniciada —
+        // justo lo que pasaba al reintentar una compra nada más abrir la
+        // app ("Sin sesión de Supabase" con una cuenta que sí la tenía).
+        // awaitInitialization() espera a que el plugin termine ese primer
+        // paso (la misma señal que ya usa MainActivity con sessionStatus)
+        // antes de mirar si hay token.
+        Supabase.client.auth.awaitInitialization()
         val accessToken = Supabase.client.auth.currentAccessTokenOrNull()
             ?: throw IllegalStateException("Sin sesión de Supabase")
 
