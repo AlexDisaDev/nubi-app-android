@@ -1294,6 +1294,37 @@ private fun textoDuracionCompacta(minutos: Long): String {
     return "${h}h%02d".format(m)
 }
 
+/**
+ * Minutos dormidos en `dia`, calculados igual que MotorSueño.sueñoDelDia de
+ * iOS para que las dos apps den el mismo total:
+ *  - cada sueño se recorta al día (de las 0:00 al final del día, o hasta
+ *    `ahora` si es hoy);
+ *  - un sueño EN CURSO (sin fin) cuenta hasta `ahora` — antes Android lo
+ *    ignoraba y daba, p. ej., 10h34 donde iOS daba 12h01 con el bebé
+ *    durmiendo;
+ *  - un despertar resta solo si cae DENTRO de un sueño (iOS), no cualquiera.
+ */
+private fun minutosSuenoDelDia(registros: List<Registro>, dia: LocalDate, zona: ZoneId, ahora: Instant): Long {
+    val inicioDia = dia.atStartOfDay(zona).toInstant()
+    val finDia = dia.plusDays(1).atStartOfDay(zona).toInstant()
+    val tope = if (finDia < ahora) finDia else ahora
+    fun segundos(r: Registro): Long {
+        val i = if (r.inicio > inicioDia) r.inicio else inicioDia
+        val f0 = r.fin ?: ahora
+        val f = if (f0 < tope) f0 else tope
+        if (f <= inicioDia || i >= tope) return 0L
+        return maxOf(0L, Duration.between(i, f).seconds)
+    }
+    val suenos = registros.filter { it.tipo.esSueno }
+    fun dentroDeUnSueno(d: Registro): Boolean {
+        val fd = d.fin ?: ahora
+        return suenos.any { s -> d.inicio >= s.inicio && fd <= (s.fin ?: ahora) }
+    }
+    val sumaSueno = suenos.sumOf { segundos(it) }
+    val sumaDespierto = registros.filter { it.tipo.restaSueno && dentroDeUnSueno(it) }.sumOf { segundos(it) }
+    return maxOf(0L, sumaSueno - sumaDespierto) / 60
+}
+
 private fun textoFechaDia(dia: LocalDate): String {
     val hoy = LocalDate.now(zonaLocal)
     return when (dia) {
@@ -1334,11 +1365,15 @@ fun PantallaDia(bebe: Bebe, registros: List<Registro>, premium: Boolean) {
     // marcado dentro del tramo de una noche/siesta ya contada arriba, así
     // que su duración hay que descontarla para no contar como dormido el
     // rato que estuvo despierto.
-    val minutosDespierto = registros
-        .filter { it.tipo.restaSueno && it.fin != null }
-        .sumOf { r -> tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { (desde, hasta) -> ((hasta - desde) * 60).toLong() } ?: 0L }
-    val minutosSueno = (suenosDelDia.sumOf { (_, tramo) -> ((tramo.second - tramo.first) * 60).toLong() } - minutosDespierto)
-        .coerceAtLeast(0L)
+    // "Ahora" avanza cada minuto para que un sueño en curso vaya sumando.
+    var ahoraDia by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000)
+            ahoraDia = Instant.now()
+        }
+    }
+    val minutosSueno = minutosSuenoDelDia(registros, diaSeleccionado, zonaLocal, ahoraDia)
 
     // Si lo acumulado hoy ya cae dentro de lo que le toca dormir a su edad
     // (misma tabla de MotorSueno que usa la predicción de Hoy), la tarjeta
