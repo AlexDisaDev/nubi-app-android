@@ -288,10 +288,17 @@ private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Un
                         }
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            L10n.t("Al tocarlo, tu pareja verá una página de Nubi con tu nombre. Si tiene la app, se abrirá y podrá unirse."),
+                            L10n.t("Al tocarlo, tu pareja verá una página de Nubi con tu nombre. Si tiene la app, se abrirá y podrá unirse. Este enlace sirve una sola vez: en cuanto alguien se une con él, deja de funcionar."),
                             style = MaterialTheme.typography.bodySmall,
                             color = colores.tintaTenue
                         )
+                        Spacer(Modifier.height(10.dp))
+                        TextButton(
+                            onClick = { enlace = null },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(L10n.t("Crear otro enlace (para otra persona, o si este ya caducó)"))
+                        }
                     }
                 }
             }
