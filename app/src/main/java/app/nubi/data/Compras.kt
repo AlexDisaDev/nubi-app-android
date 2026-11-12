@@ -120,6 +120,15 @@ object Compras : PurchasesUpdatedListener {
                 if (resultado.responseCode == BillingResponseCode.OK) {
                     consultarProducto()
                     recuperarComprasPendientes()
+                } else {
+                    // Si falla AQUÍ, consultarProducto() nunca llega a
+                    // llamarse y detalles se queda en null sin que el otro
+                    // registro (en consultarProducto) se entere — por eso
+                    // hace falta su propio log/error, si no esto también se
+                    // queda como un "Cargando los planes…" mudo para siempre.
+                    Log.e(TAG, "onBillingSetupFinished falló: ${resultado.responseCode} ${resultado.debugMessage}")
+                    _ultimoError.value = "No se pudo conectar con Google Play (${resultado.responseCode}): " +
+                        resultado.debugMessage.ifBlank { "sin mensaje" }
                 }
             }
 
