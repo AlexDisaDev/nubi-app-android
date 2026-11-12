@@ -125,28 +125,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "sin_sesion" }), { status: 401 });
     }
 
-    // Cliente "como el usuario" SOLO para averiguar quién es de verdad —
-    // nunca se confía en un usuario_id que mande el propio cliente, eso
-    // dejaría a cualquiera activarse premium a sí mismo con solo cambiar
-    // el id en el body.
-    const jwt = cabeceraAuth.replace("Bearer ", "");
-    const supabaseComoUsuario = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    // OJO: auth.getUser() IGNORA por completo el header Authorization que
-    // se ponga en `global.headers` al crear el cliente — ese header solo
-    // afecta a las llamadas de PostgREST/Storage (.from()/.storage), nunca
-    // a los métodos de .auth. Sin pasar el JWT explícito aquí, getUser()
-    // intentaba validar su propia sesión interna (vacía, por no haber
-    // iniciado sesión con este cliente de usar-y-tirar) y Supabase
-    // respondía "Not a JWT" — esto hacía fallar SIEMPRE esta verificación,
-    // para cualquier usuario y cualquier compra, de ahí "sesion_invalida".
-    const { data: datosUsuario, error: errorUsuario } = await supabaseComoUsuario.auth.getUser(jwt);
-    if (errorUsuario || !datosUsuario?.user) {
+    // Quién es de verdad el usuario, nunca confiando en un usuario_id que
+    // mande el propio cliente (eso dejaría a cualquiera activarse premium
+    // a sí mismo con solo cambiar el id en el body).
+    //
+    // Esto llama a GoTrue (/auth/v1/user) directamente con fetch, en vez
+    // de supabase-js (createClient(...).auth.getUser(jwt)): probado en
+    // los logs del proyecto, esa llamada del SDK mandaba la cabecera
+    // Authorization VACÍA pese a pasarle el jwt explícito — el propio
+    // GoTrue registraba la petición con
+    // request.sb.jwt.authorization.invalid = "Not a JWT" y auth_header
+    // vacío, nunca con el token de verdad. Con fetch se controla
+    // exactamente qué cabeceras salen, sin depender de ese comportamiento
+    // del cliente.
+    const respuestaUsuario = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
+      headers: {
+        Authorization: cabeceraAuth,
+        apikey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      },
+    });
+    if (!respuestaUsuario.ok) {
       return new Response(JSON.stringify({ error: "sesion_invalida" }), { status: 401 });
     }
-    const usuarioId = datosUsuario.user.id;
+    const datosUsuario = await respuestaUsuario.json();
+    const usuarioId = datosUsuario.id as string | undefined;
+    if (!usuarioId) {
+      return new Response(JSON.stringify({ error: "sesion_invalida" }), { status: 401 });
+    }
 
     const cuerpo = await req.json();
     const purchaseToken = cuerpo.purchaseToken as string | undefined;
