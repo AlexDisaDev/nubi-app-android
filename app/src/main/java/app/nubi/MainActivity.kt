@@ -159,7 +159,30 @@ fun PantallaRaiz() {
 
     when (sessionStatus) {
         is SessionStatus.Authenticated -> ContenidoApp()
+        // Al arrancar, sessionStatus empieza en Initializing mientras
+        // Supabase lee de disco la sesión guardada (casi siempre la hay).
+        // Antes esto caía en el "else" de abajo y se veía un parpadeo de
+        // PantallaLogin durante ese instante, aunque hubiera sesión. Se
+        // enseña la misma pantalla de logo+spinner que ya se usa más abajo
+        // (ContenidoApp, caso "cargando") hasta que se sepa de verdad si
+        // hay sesión o no.
+        is SessionStatus.Initializing -> PantallaCargandoSesion()
         else -> PantallaLogin()
+    }
+}
+
+@Composable
+private fun PantallaCargandoSesion() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(R.drawable.nubi_logo_splash),
+                contentDescription = null,
+                modifier = Modifier.width(160.dp)
+            )
+            Spacer(Modifier.height(20.dp))
+            CircularProgressIndicator()
+        }
     }
 }
 
@@ -203,20 +226,11 @@ fun ContenidoApp() {
 
     Box(Modifier.fillMaxSize()) {
     when {
-        // Mismo tratamiento que VistaCargandoSesion en iOS: el logo completo
+        // Mismo tratamiento que VistaCargandoSesion en iOS, y que
+        // PantallaCargandoSesion (arriba, en PantallaRaiz): el logo completo
         // en vez de texto suelto, para no enseñar una pantalla en blanco
         // mientras se comprueba si ya había sesión guardada.
-        cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(
-                    painter = painterResource(R.drawable.nubi_logo_splash),
-                    contentDescription = null,
-                    modifier = Modifier.width(160.dp)
-                )
-                Spacer(Modifier.height(20.dp))
-                CircularProgressIndicator()
-            }
-        }
+        cargando -> PantallaCargandoSesion()
 
         // Antes de ofrecer "crear bebé", se espera a que termine el primer
         // intento de sincronizar: en un móvil nuevo con una cuenta YA
