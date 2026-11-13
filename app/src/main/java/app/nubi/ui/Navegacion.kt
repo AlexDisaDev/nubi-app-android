@@ -189,7 +189,10 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = NubiGeometria.margen)
-                            .padding(top = 3.dp, bottom = 9.dp)
+                            // 3dp pegaba la fila a la hora/señal del móvil
+                            // (statusBarsPadding ya la aparta de la muesca,
+                            // pero sin aire propio quedaba demasiado cerca).
+                            .padding(top = 12.dp, bottom = 9.dp)
                     ) {
                         VistaSuperior.entries.forEach { v ->
                             val seleccionada = (destino as? Destino.Arriba)?.vista == v

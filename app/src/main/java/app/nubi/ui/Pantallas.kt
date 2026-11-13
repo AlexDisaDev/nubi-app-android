@@ -2443,11 +2443,13 @@ private fun TarjetaRegalarNubi() {
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Sin recorte circular: la propia imagen ya es el regalo de
+            // Nubi; un círculo blanco por encima solo tapaba parte.
             Image(
                 painter = painterResource(R.drawable.regalo_nubi),
                 contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(32.dp).clip(CircleShape)
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(32.dp)
             )
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
