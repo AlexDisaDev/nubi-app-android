@@ -658,7 +658,7 @@ fun PantallaHoy(
             Column(Modifier.weight(1f)) {
                 Text(
                     saludoSegunHora(),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     color = colores.tintaSuave
                 )
                 Spacer(Modifier.height(2.dp))
@@ -675,7 +675,7 @@ fun PantallaHoy(
                         Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
                         Text(
                             textoEdadDetallada(bebe),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                             color = colores.tintaTenue
                         )
                     }
@@ -726,7 +726,7 @@ fun PantallaHoy(
                         if (suenoEnCurso?.tipo == TipoRegistro.SIESTA) L10n.t("Siesta").uppercase()
                         else if (suenoEnCurso?.tipo == TipoRegistro.NOCHE) L10n.t("Sueño nocturno").uppercase()
                         else L10n.t("Sueño").uppercase(),
-                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp, letterSpacing = 1.4.sp),
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, letterSpacing = 1.4.sp),
                         color = colores.tintaTenue
                     )
                     if (suenoEnCurso != null) {
@@ -1371,7 +1371,7 @@ private fun BotonAccion(
         Spacer(Modifier.width(8.dp))
         Text(
             texto,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 17.sp),
             textAlign = TextAlign.Center
         )
     }
@@ -1384,13 +1384,13 @@ private val DIAMETRO_BADGE_HOY = 38.dp
 private val ICONO_BADGE_HOY = 17.dp
 
 private val estiloTituloFilaHoy
-    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
 private val estiloSubtituloFilaHoy
-    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
+    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp)
 private val estiloTituloEtapaHoy
-    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
 private val estiloSubtituloEtapaHoy
-    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp)
+    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
 
 private fun saludoSegunHora(): String {
     val hora = LocalTime.now().hour
