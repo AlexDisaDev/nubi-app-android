@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -32,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -200,7 +202,14 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { irA(v) },
+                                    // Sin indication = null, el toque dejaba un
+                                    // resalte cuadrado (el rectángulo del propio
+                                    // Column) en vez de solo cambiar el color del
+                                    // icono/texto, como en iOS.
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { irA(v) },
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -222,6 +231,11 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
         },
         bottomBar = {
             if (!enAjustes) {
+                // NavigationBarItem trae su propio ripple ligado al indicador
+                // de selección; con indicatorColor transparente, el toque se
+                // veía como un resalte cuadrado en vez de solo cambiar el
+                // color del icono, a diferencia de iOS. Se anula aquí.
+                CompositionLocalProvider(LocalRippleConfiguration provides null) {
                 NavigationBar(containerColor = colores.superficie) {
                     Pestana.entries.forEach { p ->
                         val activa = (destino as? Destino.Abajo)?.pestana == p
@@ -245,6 +259,7 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                             )
                         )
                     }
+                }
                 }
             }
         }

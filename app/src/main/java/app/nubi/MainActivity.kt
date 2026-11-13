@@ -53,8 +53,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.nubi.data.Compartir
@@ -398,35 +405,38 @@ fun PantallaLogin() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Mismo logo y mismo sitio que en VistaLogin de iOS: encabezando la
-        // pantalla de login, sin tocar ninguna otra imagen de la app.
+        // Icono solo (ya sin fondo blanco) + "Nubi" como texto aparte, en la
+        // tipografía de titulares — igual que VistaLogin en iOS — en vez del
+        // logo-completo.png de antes, cuyo "NUBI" iba en otra fuente dibujada.
         Image(
-            painter = painterResource(R.drawable.nubi_logo_splash),
+            painter = painterResource(R.drawable.nubi_logo_mark),
             contentDescription = null,
-            modifier = Modifier.width(140.dp)
+            modifier = Modifier.size(96.dp)
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
-            L10n.t("Inicia sesión para continuar"),
-            style = MaterialTheme.typography.bodyMedium,
-            color = NubiTheme.colores.tintaSuave
+            "Nubi",
+            style = MaterialTheme.typography.headlineSmall,
+            color = NubiTheme.colores.tinta
         )
+
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            L10n.t("Empieza a entender mejor el día de tu bebé."),
+            style = MaterialTheme.typography.headlineMedium,
+            color = NubiTheme.colores.tinta,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            L10n.t("Sueño, siestas, tomas y pañales en un solo lugar."),
+            style = MaterialTheme.typography.bodyMedium,
+            color = NubiTheme.colores.tintaSuave,
+            textAlign = TextAlign.Center
+        )
+
         Spacer(Modifier.height(28.dp))
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = NubiTheme.colores.superficie),
-            shape = RoundedCornerShape(NubiGeometria.radio),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                L10n.t("¿Ya eras usuario de Nubi? Tranquilo: tus datos no se van a borrar, siguen guardados tal y como estaban."),
-                style = MaterialTheme.typography.bodySmall,
-                color = NubiTheme.colores.tintaSuave,
-                modifier = Modifier.padding(14.dp)
-            )
-        }
-
-        Spacer(Modifier.height(20.dp))
 
         BotonGoogle(
             entrando = entrandoConGoogle,
@@ -434,7 +444,13 @@ fun PantallaLogin() {
                 ambito.launch {
                     entrandoConGoogle = true
                     try {
-                        Supabase.client.auth.signInWith(Google)
+                        // Sin "hl" la pantalla de consentimiento de Google se
+                        // abre en el idioma del navegador/sistema, no en el
+                        // elegido dentro de Nubi — es la pantalla del propio
+                        // Google, no texto nuestro.
+                        Supabase.client.auth.signInWith(Google) {
+                            queryParams["hl"] = L10n.idiomaEfectivo.rawValue
+                        }
                         error = null
                     } catch (e: Exception) {
                         error = "${L10n.t("No se pudo entrar con Google:")} ${e.message}"
@@ -442,6 +458,14 @@ fun PantallaLogin() {
                     entrandoConGoogle = false
                 }
             }
+        )
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            L10n.t("¿Ya usabas Nubi? Recuperaremos tus datos al continuar."),
+            style = MaterialTheme.typography.bodySmall,
+            color = NubiTheme.colores.tintaSuave,
+            textAlign = TextAlign.Center
         )
 
         Spacer(Modifier.height(28.dp))
@@ -496,10 +520,35 @@ fun PantallaLogin() {
         }
 
         Spacer(Modifier.height(28.dp))
+        val colorTenue = NubiTheme.colores.tintaTenue
+        val colorEnlace = NubiTheme.colores.tintaSuave
+        val textoLegal = buildAnnotatedString {
+            withStyle(SpanStyle(color = colorTenue)) {
+                append(L10n.t("Al continuar, aceptas los"))
+                append(" ")
+            }
+            withLink(
+                LinkAnnotation.Url(
+                    "https://appnubi.netlify.app/terminos",
+                    TextLinkStyles(style = SpanStyle(color = colorEnlace, textDecoration = TextDecoration.Underline))
+                )
+            ) { append(L10n.t("Términos de uso")) }
+            withStyle(SpanStyle(color = colorTenue)) {
+                append(" ")
+                append(L10n.t("y la"))
+                append(" ")
+            }
+            withLink(
+                LinkAnnotation.Url(
+                    "https://appnubi.netlify.app/privacidad",
+                    TextLinkStyles(style = SpanStyle(color = colorEnlace, textDecoration = TextDecoration.Underline))
+                )
+            ) { append(L10n.t("Política de privacidad")) }
+            withStyle(SpanStyle(color = colorTenue)) { append(".") }
+        }
         Text(
-            L10n.t("Al continuar aceptas nuestros términos y la política de privacidad de Nubi."),
+            textoLegal,
             style = MaterialTheme.typography.bodySmall,
-            color = NubiTheme.colores.tintaTenue,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
