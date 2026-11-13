@@ -298,12 +298,13 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                                     premium = premium,
                                     oscuro = oscuroActual,
                                     fotoBase64 = datos.fotoPerfilBase64,
+                                    despertarManual = datos.despertarManual,
                                     alCambiarTema = { Repositorio.guardarTema(if (oscuroActual) "claro" else "oscuro") },
                                     alAbrirAjustes = { enAjustes = true }
                                 )
                             }
                             Pestana.DIA -> datos.bebe?.let {
-                                PantallaDia(it, datos.registros, premium = premium)
+                                PantallaDia(it, datos.registros, premium = premium, despertarManual = datos.despertarManual)
                             }
                             Pestana.CRECE -> datos.bebe?.let { PantallaCrece(it, datos.medidas) }
                             Pestana.SALUD -> datos.bebe?.let {

@@ -919,4 +919,20 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
         "it" to "Continua ad anticipare ogni sonnellino senza interruzioni: non perdere i progressi fatti con Nubi Premium.",
         "fr" to "Continuez à anticiper chaque sieste sans interruption : ne perdez pas ce que vous avez accompli avec Nubi Premium."
     ),
+
+    // Alta del bebé en 2 pasos (PantallaNuevoBebe) — mismos textos que el
+    // nuevo VistaAlta de iOS, de ahí que vivan aquí y no arriba: ese bloque
+    // es textos que SÍ existen en Traducciones.swift, y estos acaban de
+    // añadirse en los dos sitios a la vez.
+    "Conozcamos a tu bebé" to mapOf("en" to "Let's meet your baby", "it" to "Conosciamo il tuo bebè", "fr" to "Faisons connaissance avec votre bébé"),
+    "Con su edad, Nubi personaliza las estimaciones de sueño." to mapOf("en" to "With their age, Nubi personalizes the sleep estimates.", "it" to "Con la sua età, Nubi personalizza le stime del sonno.", "fr" to "Avec son âge, Nubi personnalise les estimations de sommeil."),
+    "Nombre o apodo" to mapOf("en" to "Name or nickname", "it" to "Nome o soprannome", "fr" to "Prénom ou surnom"),
+    "Ej. Leo" to mapOf("en" to "E.g. Leo", "it" to "Es. Leo", "fr" to "Ex. Léo"),
+    "Seleccionar fecha" to mapOf("en" to "Select date", "it" to "Seleziona data", "fr" to "Sélectionner la date"),
+    "¿Nació antes de tiempo?" to mapOf("en" to "Born premature?", "it" to "Nato prematuro?", "fr" to "Né prématurément ?"),
+    "No" to mapOf("en" to "No", "it" to "No", "fr" to "Non"),
+    "Sí" to mapOf("en" to "Yes", "it" to "Sì", "fr" to "Oui"),
+    "Seleccionar hora" to mapOf("en" to "Select time", "it" to "Seleziona ora", "fr" to "Sélectionner l'heure"),
+    "No lo sé ahora" to mapOf("en" to "I don't know yet", "it" to "Non lo so ora", "fr" to "Je ne sais pas encore"),
+    "Continuar" to mapOf("en" to "Continue", "it" to "Continua", "fr" to "Continuer"),
 )

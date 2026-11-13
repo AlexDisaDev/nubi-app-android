@@ -112,6 +112,10 @@ fun RelojDelDia(
     // reloj sigue mostrando lo que de verdad ha pasado (sueños reales,
     // eventos, despertar), pero no lo que está por venir.
     mostrarPrediccion: Boolean = true,
+    // Hora de despertar marcada a mano en el alta (Repositorio.registrarDespertarManual),
+    // para que el primer día ya tenga predicción aunque todavía no haya
+    // ningún registro real — ver MotorSueno.despertarDeReferencia.
+    despertarManual: Instant? = null,
     alTocarEvento: (Registro) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -145,7 +149,10 @@ fun RelojDelDia(
 
     val ventanasIdeales: List<VentanaIdeal> =
         if (mostrarPrediccion) {
-            MotorSueno.ventanasIdealesDelDia(bebe = bebe, registros = registros, dia = diaInstante, ahora = ahora)
+            MotorSueno.ventanasIdealesDelDia(
+                bebe = bebe, registros = registros, dia = diaInstante, ahora = ahora,
+                despertarManual = despertarManual
+            )
         } else {
             emptyList()
         }

@@ -110,7 +110,9 @@ object Repositorio {
     private fun avisarDeSueno(contexto: Context, datos: DatosNubi = local.datos.value) {
         val id = "sueno_proximo"
         val bebe = datos.bebe
-        val prediccion = bebe?.let { MotorSueno.prediccionDelDia(bebe = it, registros = datos.registros) }
+        val prediccion = bebe?.let {
+            MotorSueno.prediccionDelDia(bebe = it, registros = datos.registros, despertarManual = datos.despertarManual)
+        }
         if (prediccion == null) {
             AvisosNubi.cancelar(contexto, id)
             return
@@ -324,6 +326,23 @@ object Repositorio {
             local.modificar { it.copy(bebe = bebe.copy(actualizadoEn = Instant.now())) }
             local.marcarPendiente(Tablas.BEBES, bebe.id)
             sincronizador.sincronizar()
+        }
+    }
+
+    /**
+     * Hora de despertar marcada a mano (iOS: Almacen.registrarDespertarManual),
+     * para cuando el usuario la indica en el alta del bebé (PantallaNuevoBebe)
+     * y todavía no hay ningún registro real del día. Es solo local — igual
+     * que en iOS, no se sube a Supabase ni se marca pendiente — y el propio
+     * motor (MotorSueno.despertarDeReferencia) la ignora en cuanto cambia de
+     * día, así que no hace falta borrarla a mano más adelante.
+     */
+    fun registrarDespertarManual(fecha: Instant) {
+        ambito.launch {
+            local.modificar { it.copy(despertarManual = fecha) }
+            // Igual que un despertar registrado: puede mover la próxima
+            // ventana de sueño del día, así que se recalcula el aviso.
+            avisarDeSueno(contexto)
         }
     }
 

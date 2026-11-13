@@ -95,6 +95,14 @@ object L10n {
     // literal de las funciones homónimas de Traducciones.swift).
     // -----------------------------------------------------------------
 
+    /** "Paso 1 de 2" — indicador de progreso del alta del bebé. */
+    fun paso(actual: Int, de: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Step $actual of $de"
+        IdiomaNubi.ITALIANO -> "Passo $actual di $de"
+        IdiomaNubi.FRANCES -> "Étape $actual sur $de"
+        else -> "Paso $actual de $de"
+    }
+
     val ahoraMismo: String
         get() = when (idiomaEfectivo) {
             IdiomaNubi.INGLES -> "just now"
