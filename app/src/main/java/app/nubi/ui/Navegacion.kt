@@ -1,6 +1,10 @@
 package app.nubi.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -149,8 +153,20 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
+            // Antes había SIEMPRE una TopAppBar de Material (64dp) encima de
+            // la fila de Banco/Alimentación/Sonidos, también en las pestañas
+            // de abajo, donde su título iba vacío: era una franja vacía que
+            // empujaba la barra hacia abajo y robaba espacio a todas las
+            // pantallas. En iOS (BarraSuperior en NubiApp.swift) la fila va
+            // pegada justo debajo de la barra de estado, sin título. Ahora
+            // igual: la TopAppBar solo aparece en Ajustes (para "Cerrar").
+            Column(
+                Modifier
+                    .background(if (enAjustes) colores.lienzo else colores.superficie)
+                    .statusBarsPadding()
+            ) {
+                if (enAjustes) TopAppBar(
+                    windowInsets = WindowInsets(0, 0, 0, 0),
                     title = { Text(titulo) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = colores.lienzo,
@@ -172,7 +188,8 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = NubiGeometria.margen, vertical = 10.dp)
+                            .padding(horizontal = NubiGeometria.margen)
+                            .padding(top = 3.dp, bottom = 9.dp)
                     ) {
                         VistaSuperior.entries.forEach { v ->
                             val seleccionada = (destino as? Destino.Arriba)?.vista == v
@@ -185,11 +202,14 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                             ) {
                                 Text(
                                     L10n.t(v.titulo),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontSize = 10.sp,
+                                        fontWeight = if (seleccionada) FontWeight.SemiBold else FontWeight.Normal
+                                    ),
                                     color = tinte
                                 )
-                                Spacer(Modifier.height(6.dp))
-                                Icono(iconoDe(v), tint = tinte, tamano = 20.dp)
+                                Spacer(Modifier.height(5.dp))
+                                Icono(iconoDe(v), tint = tinte, tamano = 22.dp)
                             }
                         }
                     }

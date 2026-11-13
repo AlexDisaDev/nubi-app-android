@@ -9,6 +9,12 @@ import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -128,14 +134,49 @@ class Sincronizador(private val local: AlmacenLocal) {
     val primeraSincronizacionHecha: StateFlow<Boolean> = _primeraSincronizacionHecha.asStateFlow()
 
     /**
+     * Progreso de la bajada en curso, de 0 a 1 (tablas ya descargadas sobre
+     * el total), o null si no se está bajando nada. Lo usa la pantalla de
+     * "Cargando el bebé compartido" (ver MainActivity) para enseñar una
+     * barra real en vez de un círculo girando sin más.
+     */
+    private val _progresoBajada = MutableStateFlow<Float?>(null)
+    val progresoBajada: StateFlow<Float?> = _progresoBajada.asStateFlow()
+
+    // Antes, si se pedía sincronizar mientras ya había una en marcha, la
+    // petición se descartaba sin más. Al aceptar una invitación eso dejaba
+    // sin bajar el bebé nuevo: la sincronización que ya estaba corriendo
+    // había empezado ANTES de unirse, y no volvía a haber otra hasta que
+    // algo la disparase (reabrir la app, un cambio en tiempo real…).
+    // Ahora las peticiones esperan su turno y se agrupan: si mientras una
+    // espera empieza otra sincronización completa, esa ya la cubre.
+    private val candado = Mutex()
+    private val peticiones = AtomicLong(0)
+    @Volatile private var peticionesCubiertas = 0L
+    @Volatile private var ultimoResultado = false
+
+    /**
      * Sube lo pendiente y baja lo que haya cambiado. Es seguro llamarla
      * tantas veces como haga falta: si no hay sesión o no hay red, no hace
-     * nada y lo pendiente sigue pendiente.
+     * nada y lo pendiente sigue pendiente. Devuelve true si se completó
+     * (subida y bajada) sin errores; quien llama puede esperarla.
      */
-    suspend fun sincronizar() {
-        if (Supabase.client.auth.currentSessionOrNull() == null) return
-        if (_estado.value == Estado.SINCRONIZANDO) return
+    suspend fun sincronizar(): Boolean {
+        if (Supabase.client.auth.currentSessionOrNull() == null) return false
+        val miPeticion = peticiones.incrementAndGet()
 
+        return candado.withLock {
+            // Una sincronización que empezó después de pedir esta ya la ha
+            // cubierto: no hace falta repetirla.
+            if (peticionesCubiertas >= miPeticion) return@withLock ultimoResultado
+            val cubre = peticiones.get()
+            val ok = sincronizarUnaVez()
+            peticionesCubiertas = cubre
+            ultimoResultado = ok
+            ok
+        }
+    }
+
+    private suspend fun sincronizarUnaVez(): Boolean {
         _estado.value = Estado.SINCRONIZANDO
         try {
             withContext(Dispatchers.IO) {
@@ -147,12 +188,15 @@ class Sincronizador(private val local: AlmacenLocal) {
             _estado.value = Estado.EN_REPOSO
             _ultimoError.value = null
             local.modificar { it.copy(ultimaSincronizacion = Instant.now()) }
+            return true
         } catch (e: Exception) {
             // Sin conexión no es un fallo: es el estado normal de un parque.
             // Lo pendiente se queda pendiente y se reintenta más tarde.
             _estado.value = Estado.SIN_CONEXION
             _ultimoError.value = e.message
+            return false
         } finally {
+            _progresoBajada.value = null
             // Se marca pase lo que pase (éxito, sin conexión o error): si
             // de verdad no hay red, no tiene sentido dejar a alguien
             // esperando para siempre a un intento que nunca llegará.
@@ -389,28 +433,70 @@ class Sincronizador(private val local: AlmacenLocal) {
     private suspend fun bajarCambios() {
         val pendientes = local.datos.value.pendientes.map { it.id }.toSet()
 
-        val bebes = traerTodo<Bebe>(Tablas.BEBES)
-        val registros = traerTodo<Registro>(Tablas.REGISTROS)
-        val medicinas = traerTodo<Medicina>(Tablas.MEDICINAS)
-        val medidas = traerTodo<Medida>(Tablas.MEDIDAS)
-        val citas = traerTodo<Cita>(Tablas.CITAS)
-        val vacunas = traerTodo<EstadoVacuna>(Tablas.VACUNAS_ESTADO)
-        val grupos = traerTodo<GrupoVacunas>(Tablas.VACUNAS_GRUPOS)
-        val propias = traerTodo<VacunaPropia>(Tablas.VACUNAS_PROPIAS)
-        val diario = traerTodo<EntradaDiario>(Tablas.DIARIO)
-        val extracciones = traerTodo<ExtraccionLeche>(Tablas.EXTRACCIONES)
-        val usos = traerTodo<UsoLeche>(Tablas.USOS_LECHE)
-        val comidas = traerTodo<ComidaComplementaria>(Tablas.COMIDAS)
-        val enfermedades = traerTodo<Enfermedad>(Tablas.ENFERMEDADES)
-
-        // El perfil (prueba/premium) no tiene pendientes propios: lo gestiona
-        // el servidor en exclusiva, aquí solo se lee la fila del usuario.
+        // Las 13 tablas y el perfil se piden A LA VEZ (antes era una detrás
+        // de otra: el tiempo total era la suma de todas; ahora es más o
+        // menos el de la más lenta). Si una falla, falla todo el bloque,
+        // igual que antes: no se aplica nada a medias.
         val miId = Supabase.client.auth.currentUserOrNull()?.id
-        val perfil = miId?.let {
-            Supabase.client.from(Tablas.PERFILES).select {
-                filter { eq("id", it) }
-            }.decodeList<Perfil>().firstOrNull()
+        val totalPasos = 16  // 13 tablas + perfil + foto + premium compartido
+        val hechos = AtomicInteger(0)
+        fun pasoHecho() {
+            _progresoBajada.value = hechos.incrementAndGet().toFloat() / totalPasos
         }
+        _progresoBajada.value = 0f
+
+        class Bajada(
+            val bebes: List<Bebe>, val registros: List<Registro>, val medicinas: List<Medicina>,
+            val medidas: List<Medida>, val citas: List<Cita>, val vacunas: List<EstadoVacuna>,
+            val grupos: List<GrupoVacunas>, val propias: List<VacunaPropia>, val diario: List<EntradaDiario>,
+            val extracciones: List<ExtraccionLeche>, val usos: List<UsoLeche>,
+            val comidas: List<ComidaComplementaria>, val enfermedades: List<Enfermedad>, val perfil: Perfil?
+        )
+        val b = coroutineScope {
+            val bebesD = async { traerTodo<Bebe>(Tablas.BEBES).also { pasoHecho() } }
+            val registrosD = async { traerTodo<Registro>(Tablas.REGISTROS).also { pasoHecho() } }
+            val medicinasD = async { traerTodo<Medicina>(Tablas.MEDICINAS).also { pasoHecho() } }
+            val medidasD = async { traerTodo<Medida>(Tablas.MEDIDAS).also { pasoHecho() } }
+            val citasD = async { traerTodo<Cita>(Tablas.CITAS).also { pasoHecho() } }
+            val vacunasD = async { traerTodo<EstadoVacuna>(Tablas.VACUNAS_ESTADO).also { pasoHecho() } }
+            val gruposD = async { traerTodo<GrupoVacunas>(Tablas.VACUNAS_GRUPOS).also { pasoHecho() } }
+            val propiasD = async { traerTodo<VacunaPropia>(Tablas.VACUNAS_PROPIAS).also { pasoHecho() } }
+            val diarioD = async { traerTodo<EntradaDiario>(Tablas.DIARIO).also { pasoHecho() } }
+            val extraccionesD = async { traerTodo<ExtraccionLeche>(Tablas.EXTRACCIONES).also { pasoHecho() } }
+            val usosD = async { traerTodo<UsoLeche>(Tablas.USOS_LECHE).also { pasoHecho() } }
+            val comidasD = async { traerTodo<ComidaComplementaria>(Tablas.COMIDAS).also { pasoHecho() } }
+            val enfermedadesD = async { traerTodo<Enfermedad>(Tablas.ENFERMEDADES).also { pasoHecho() } }
+            // El perfil (prueba/premium) no tiene pendientes propios: lo
+            // gestiona el servidor en exclusiva, aquí solo se lee la fila
+            // del usuario.
+            val perfilD = async {
+                miId?.let {
+                    Supabase.client.from(Tablas.PERFILES).select {
+                        filter { eq("id", it) }
+                    }.decodeList<Perfil>().firstOrNull()
+                }.also { pasoHecho() }
+            }
+            Bajada(
+                bebesD.await(), registrosD.await(), medicinasD.await(), medidasD.await(),
+                citasD.await(), vacunasD.await(), gruposD.await(), propiasD.await(),
+                diarioD.await(), extraccionesD.await(), usosD.await(), comidasD.await(),
+                enfermedadesD.await(), perfilD.await()
+            )
+        }
+        val bebes = b.bebes
+        val registros = b.registros
+        val medicinas = b.medicinas
+        val medidas = b.medidas
+        val citas = b.citas
+        val vacunas = b.vacunas
+        val grupos = b.grupos
+        val propias = b.propias
+        val diario = b.diario
+        val extracciones = b.extracciones
+        val usos = b.usos
+        val comidas = b.comidas
+        val enfermedades = b.enfermedades
+        val perfil = b.perfil
 
         // Regla 4 (ver el comentario de la cabecera de la clase): si el bebé
         // en caché es de otra persona (nos invitó) y ya no nos llega su fila
@@ -455,6 +541,7 @@ class Sincronizador(private val local: AlmacenLocal) {
                 filter { eq("bebe_id", id) }
             }.decodeList<FilaFotoBebe>().firstOrNull()
         }
+        pasoHecho()
 
         // Si el dueño de este bebé (sea este móvil o quien lo compartió)
         // tiene premium activo ahora mismo — ver Compartir.tienePremiumCompartido
@@ -462,6 +549,7 @@ class Sincronizador(private val local: AlmacenLocal) {
         // cada sincronización, igual que el resto del perfil: no tiene
         // pendientes propios, lo decide siempre el servidor.
         val premiumCompartido = bebeActualId?.let { Compartir.tienePremiumCompartido(it) } ?: false
+        pasoHecho()
 
         local.modificar { d ->
             val primeraVez = !d.sellosRemotosInicializados

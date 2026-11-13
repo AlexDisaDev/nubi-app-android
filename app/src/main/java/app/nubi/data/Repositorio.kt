@@ -210,6 +210,17 @@ object Repositorio {
     }
 
     /**
+     * Igual que sincronizarEnSegundoPlano(), pero esperando a que termine.
+     * Devuelve true si subió y bajó todo sin errores. Lo usa la pantalla de
+     * "Cargando el bebé compartido" al aceptar una invitación.
+     */
+    suspend fun sincronizarYEsperar(): Boolean = sincronizador.sincronizar()
+
+    /** Progreso (0..1) de la bajada en curso, o null si no hay ninguna. */
+    val progresoBajada: StateFlow<Float?>
+        get() = sincronizador.progresoBajada
+
+    /**
      * Arranca la escucha de cambios en tiempo real (ver
      * Sincronizador.activarTiempoReal). Se llama desde PantallaRaiz en
      * cuanto hay sesión — igual que sincronizarEnSegundoPlano(), ver su

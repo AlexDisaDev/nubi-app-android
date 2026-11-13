@@ -63,6 +63,7 @@ import app.nubi.data.Supabase
 import app.nubi.i18n.L10n
 import app.nubi.ui.Navegacion
 import app.nubi.ui.PantallaBienvenida
+import app.nubi.ui.PantallaCargandoCompartido
 import app.nubi.ui.PantallaNuevoBebe
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
@@ -180,6 +181,9 @@ fun ContenidoApp() {
     val invitacionPendiente by Compartir.invitacionPendiente.collectAsState()
     var aceptandoInvitacion by remember { mutableStateOf(false) }
     var errorInvitacion by remember { mutableStateOf<String?>(null) }
+    // Tras aceptar una invitación: pantalla completa de "Preparando el bebé
+    // compartido…" hasta que el bebé y sus registros están en el móvil.
+    var cargandoCompartido by remember { mutableStateOf(false) }
 
     // Permiso de notificaciones (obligatorio desde Android 13): se pide una
     // vez al entrar, para que los avisos de medicina y citas puedan sonar.
@@ -250,6 +254,10 @@ fun ContenidoApp() {
         )
     }
 
+    if (cargandoCompartido) {
+        PantallaCargandoCompartido(alTerminar = { cargandoCompartido = false })
+    }
+
     if (invitacionPendiente != null) {
         AlertDialog(
             onDismissRequest = { if (!aceptandoInvitacion) Compartir.descartarInvitacionPendiente() },
@@ -273,8 +281,8 @@ fun ContenidoApp() {
                             errorInvitacion = null
                             try {
                                 Compartir.aceptarInvitacion(token)
-                                Repositorio.sincronizarEnSegundoPlano()
                                 Compartir.descartarInvitacionPendiente()
+                                cargandoCompartido = true
                             } catch (e: Exception) {
                                 val mensaje = e.message ?: ""
                                 when {
@@ -284,8 +292,8 @@ fun ContenidoApp() {
                                     // El acceso ya existe, así que no es un error
                                     // de verdad: se cierra sin más.
                                     "invitacion_ya_usada" in mensaje -> {
-                                        Repositorio.sincronizarEnSegundoPlano()
                                         Compartir.descartarInvitacionPendiente()
+                                        cargandoCompartido = true
                                     }
                                     "invitacion_caducada" in mensaje ->
                                         errorInvitacion = L10n.t("Esta invitación ya ha caducado. Pide un enlace nuevo.")
