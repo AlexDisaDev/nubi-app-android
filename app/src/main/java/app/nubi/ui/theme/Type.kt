@@ -29,25 +29,29 @@ val RobotoCondensed = FontFamily(
 val Display = RobotoCondensed
 val Cuerpo = RobotoCondensed
 
+// Roboto Condensed, al ser condensada, ocupa menos ancho que la Roboto por
+// defecto que se usaba antes — a igual tamaño en sp se percibe más pequeña.
+// Para compensar, cada escalón sube ~1-2sp respecto a los tamaños "de catálogo"
+// de Material 3.
 val NubiTipografia = Typography(
     // Titulares: Roboto Condensed Regular 400, igual que Theme.display en iOS
-    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 34.sp),
-    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 28.sp),
-    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 24.sp),
-    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 28.sp),
-    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 24.sp),
-    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 20.sp),
+    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 36.sp),
+    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 30.sp),
+    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 26.sp),
+    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 30.sp),
+    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 26.sp),
+    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 22.sp),
 
     // Texto corriente: la redondeada
-    titleLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 20.sp),
-    titleMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 16.sp),
-    titleSmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-    bodyLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 16.sp),
-    bodyMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-    bodySmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 12.sp),
+    titleLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 22.sp),
+    titleMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 18.sp),
+    titleSmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+    bodyLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 18.sp),
+    bodyMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 16.sp),
+    bodySmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.Normal, fontSize = 13.sp),
 
     // etiqueta de iOS: 11 pt, semibold, redondeada
-    labelLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
-    labelMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-    labelSmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+    labelLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+    labelMedium = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+    labelSmall = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
 )
