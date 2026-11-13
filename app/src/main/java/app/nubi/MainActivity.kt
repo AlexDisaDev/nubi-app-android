@@ -36,7 +36,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -77,7 +76,6 @@ import app.nubi.ui.theme.NubiTheme
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.Google
-import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.launch
 
@@ -380,19 +378,13 @@ private fun BotonGoogle(entrando: Boolean, onClick: () -> Unit) {
 }
 
 /**
- * Login. Google es el método principal: no depende de servidor de correo
- * propio ni de límites de envío, y vuelve a la app por el mismo enlace
- * app.nubi://login-callback que usa el enlace mágico.
- *
- * El email con enlace mágico se mantiene abajo como alternativa, pero el
- * servicio de correo de serie de Supabase solo envía 2 correos/hora y solo
- * a direcciones del equipo del proyecto, así que no sirve para usuarios
- * reales mientras no haya SMTP propio.
+ * Login. Google es la única forma de entrar: no depende de servidor de
+ * correo propio ni de límites de envío, y vuelve a la app por el mismo
+ * enlace app.nubi://login-callback que usaba antes el enlace mágico por
+ * email (ya retirado de esta pantalla).
  */
 @Composable
 fun PantallaLogin() {
-    var correo by remember { mutableStateOf("") }
-    var enlaceEnviado by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var entrandoConGoogle by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
@@ -467,47 +459,6 @@ fun PantallaLogin() {
             color = NubiTheme.colores.tintaSuave,
             textAlign = TextAlign.Center
         )
-
-        Spacer(Modifier.height(28.dp))
-        Text(
-            L10n.t("o con tu email"),
-            style = MaterialTheme.typography.bodySmall,
-            color = NubiTheme.colores.tintaTenue
-        )
-        Spacer(Modifier.height(8.dp))
-
-        if (enlaceEnviado) {
-            Text(
-                "${L10n.t("Te hemos enviado un enlace a")} $correo. ${L10n.t("Ábrelo desde el correo en este móvil para entrar.")}",
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center
-            )
-        } else {
-            OutlinedTextField(
-                value = correo,
-                onValueChange = { correo = it },
-                label = { Text(L10n.t("Tu email")) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(12.dp))
-            TextButton(
-                onClick = {
-                    ambito.launch {
-                        try {
-                            Supabase.client.auth.signInWith(OTP) { email = correo.trim() }
-                            enlaceEnviado = true
-                            error = null
-                        } catch (e: Exception) {
-                            error = "${L10n.t("No se pudo enviar el enlace:")} ${e.message}"
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(L10n.t("Enviarme un enlace"))
-            }
-        }
 
         error?.let {
             Spacer(Modifier.height(8.dp))
