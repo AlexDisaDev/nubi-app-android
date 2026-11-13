@@ -616,16 +616,16 @@ private fun ContenidoAlta(
     onSemanasCambiar: (Int) -> Unit
 ) {
     val colores = NubiTheme.colores
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 L10n.t("Conozcamos a tu bebé"),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp),
                 color = colores.tinta
             )
             Text(
                 L10n.t("Con su edad, Nubi personaliza las estimaciones de sueño."),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
                 color = colores.tintaSuave
             )
         }
@@ -658,36 +658,12 @@ private fun ContenidoAlta(
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icono(IconoNubi.CALENDARIO, tint = colores.indigo, tamano = 15.dp)
+                        Icono(IconoNubi.CALENDARIO, tint = colores.indigo, tamano = 16.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             nacimiento?.let { formatoFecha.format(it) } ?: L10n.t("Seleccionar fecha"),
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (nacimiento == null) colores.tintaTenue else colores.tinta
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = colores.separador)
-
-                // Opcional a propósito: si no se pone, Nubi simplemente
-                // espera al primer registro real para predecir, como
-                // siempre — por eso no entra en "datosValidos".
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    EtiquetaCampoAlta(L10n.t("Hora en que despertó hoy (opcional)"))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onAbrirSelectorHora)
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 15.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
                         )
                     }
                 }
@@ -697,7 +673,7 @@ private fun ContenidoAlta(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 L10n.t("¿Nació antes de tiempo?"),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
                 color = colores.tinta
             )
 
@@ -721,7 +697,7 @@ private fun ContenidoAlta(
                         )
                         Text(
                             L10n.nSemanas(semanasPrematuro),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
                             color = colores.tinta
                         )
                     }
@@ -733,6 +709,62 @@ private fun ContenidoAlta(
                         Box(Modifier.width(1.dp).height(20.dp).background(colores.separador))
                         BotonStepperAlta("+") { if (semanasPrematuro < 16) onSemanasCambiar(semanasPrematuro + 1) }
                     }
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Hora en que despertó hoy (opcional): tarjeta propia con el sol,
+        // en vez de ser una fila más dentro de la tarjeta de arriba — ocupa
+        // el espacio que deja libre el resto de la pantalla, para que no se
+        // vea vacía, con el mismo protagonismo visual que tenía el antiguo
+        // paso 2 (sin ser ya un paso aparte).
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radio),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BadgeIcono(
+                        IconoNubi.SOL,
+                        colorFondo = colores.mantequilla,
+                        colorIcono = colores.tinta,
+                        tamano = 52.dp,
+                        tamanoIcono = 24.dp
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            L10n.t("Hora en que despertó hoy (opcional)").uppercase(L10n.localeJava),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colores.tintaSuave
+                        )
+                        Text(
+                            L10n.t("Con este dato, Nubi coloca el sol en el reloj y calcula las siestas de hoy desde el primer día."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaSuave
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50))
+                        .background(colores.lienzoAlto)
+                        .clickable(onClick = onAbrirSelectorHora)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 17.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                        color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
+                    )
                 }
             }
         }
