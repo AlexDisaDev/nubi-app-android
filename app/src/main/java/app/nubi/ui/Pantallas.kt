@@ -648,8 +648,10 @@ fun PantallaHoy(
             // lados y 8pt arriba / 4pt abajo — ese margen vertical de más
             // (32dp extra) era buena parte de por qué esta pantalla
             // necesitaba scroll y la de iOS no. Se iguala aquí.
+            // top subido de 8 a 20: el saludo quedaba demasiado pegado a la
+            // barra de estado.
             .padding(horizontal = NubiGeometria.margen)
-            .padding(top = 8.dp, bottom = 4.dp)
+            .padding(top = 20.dp, bottom = 4.dp)
     ) {
         // Cabecera: saludo, nombre, edad, y dos accesos rápidos. El de
         // sol/luna alterna el modo día/noche ahí mismo (ya no se elige
