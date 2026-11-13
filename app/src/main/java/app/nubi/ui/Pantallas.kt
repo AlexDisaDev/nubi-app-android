@@ -1371,8 +1371,10 @@ private fun BotonAccion(
         Spacer(Modifier.width(8.dp))
         Text(
             texto,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 21.sp),
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
