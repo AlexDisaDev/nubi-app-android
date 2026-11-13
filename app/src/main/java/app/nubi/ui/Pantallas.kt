@@ -77,7 +77,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.nubi.R
 import app.nubi.data.Bebe
 import app.nubi.data.FotosNubi
@@ -1810,12 +1812,18 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                 }
                 Spacer(Modifier.height(12.dp))
             }
+            // Mismo texto y mismo estilo que iOS (botoneraRegistro en
+            // VistaLinea.swift): 13 en negrita y tinta principal. El aviso de
+            // Premium (cuenta sin premium) conserva su estilo discreto.
             Text(
-                // Mismo texto que iOS (botoneraRegistro en VistaLinea.swift).
                 if (premium) L10n.t("¿Se te olvidó? Toca y elige la hora")
                 else L10n.t("Apuntar a otra hora es parte de Nubi Premium."),
                 style = MaterialTheme.typography.bodySmall,
-                color = colores.tintaTenue
+                color = if (premium) colores.tinta else colores.tintaTenue,
+                fontSize = if (premium) 13.sp else TextUnit.Unspecified,
+                fontWeight = if (premium) FontWeight.Bold else null,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
