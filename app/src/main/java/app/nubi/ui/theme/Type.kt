@@ -2,42 +2,41 @@ package app.nubi.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import app.nubi.R
 
 /**
- * Tipografía.
- *
- * En iOS, Theme.swift usa dos familias del sistema de Apple:
- *   - display → .serif   (New York)
- *   - cuerpo  → .rounded (SF Rounded)
- *
- * Ninguna de las dos existe en Android, y no hay equivalente exacto. De
- * momento se usan las familias del sistema (Serif y la por defecto) para no
- * bloquear el porte de las pantallas.
- *
- * PENDIENTE (decisión de diseño, ver README): elegir dos fuentes reales y
- * empaquetarlas. Para el aire redondeado de SF Rounded, las candidatas
- * habituales son Nunito, Quicksand o Varela Round; para la serif, Lora o
- * Source Serif. Hasta entonces, el aspecto no será idéntico al de iOS
- * aunque los colores sí lo sean.
+ * Tipografía: Roboto Condensed en toda la app (misma familia que iOS y la
+ * web), con Regular 400 como peso por defecto. Los `.ttf` están en
+ * res/font/ con un peso estático por archivo (Android no interpola fuentes
+ * variables en tiempo real igual que una fuente estática), así que la
+ * familia declara cada peso con su propio archivo.
  */
-// Sin `private`: PantallaPaywall.kt ya no usa su propia fuente (antes
-// RobotoCondensedFamily) y referencia estas dos directamente, igual que
-// Paywall.swift en iOS usa Theme.display/Theme.cuerpo en vez de una fuente
-// aparte.
-val Display = FontFamily.Serif
-val Cuerpo = FontFamily.Default
+val RobotoCondensed = FontFamily(
+    Font(R.font.roboto_condensed_regular, FontWeight.Normal),
+    Font(R.font.roboto_condensed_medium, FontWeight.Medium),
+    Font(R.font.roboto_condensed_semibold, FontWeight.SemiBold),
+    Font(R.font.roboto_condensed_bold, FontWeight.Bold)
+)
+
+// Sin `private`: PantallaPaywall.kt y otras pantallas referencian estas dos
+// directamente, igual que Paywall.swift en iOS usa Theme.display/Theme.cuerpo.
+// Antes eran familias distintas (serif / redondeada del sistema); ahora las
+// dos son Roboto Condensed para unificar la tipografía con iOS y la web.
+val Display = RobotoCondensed
+val Cuerpo = RobotoCondensed
 
 val NubiTipografia = Typography(
-    // Titulares: la serif, como el display de iOS
-    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 34.sp),
-    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 28.sp),
-    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 24.sp),
-    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 28.sp),
-    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 24.sp),
-    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Medium, fontSize = 20.sp),
+    // Titulares: Roboto Condensed Regular 400, igual que Theme.display en iOS
+    displayLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 34.sp),
+    displayMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 28.sp),
+    displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 24.sp),
+    headlineLarge = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 28.sp),
+    headlineMedium = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 24.sp),
+    headlineSmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Normal, fontSize = 20.sp),
 
     // Texto corriente: la redondeada
     titleLarge = TextStyle(fontFamily = Cuerpo, fontWeight = FontWeight.SemiBold, fontSize = 20.sp),
