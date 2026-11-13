@@ -410,6 +410,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Fotos (máx 2)" to mapOf("en" to "Photos (max 2)", "it" to "Foto (max 2)", "fr" to "Photos (max 2)"),
     "Hacer foto" to mapOf("en" to "Take photo", "it" to "Scatta foto", "fr" to "Prendre une photo"),
     "Elegir foto" to mapOf("en" to "Choose photo", "it" to "Scegli foto", "fr" to "Choisir une photo"),
+    "Seleccionar foto" to mapOf("en" to "Select photo", "it" to "Seleziona foto", "fr" to "Sélectionner une photo"),
     "Máximo 2 fotos alcanzado" to mapOf("en" to "Maximum of 2 photos reached", "it" to "Raggiunto il massimo di 2 foto", "fr" to "Maximum de 2 photos atteint"),
     "¿Le gustó?" to mapOf("en" to "Did they like it?", "it" to "Gli è piaciuto?", "fr" to "A-t-il aimé ?"),
     "Le gustó" to mapOf("en" to "Liked it", "it" to "Piaciuto", "fr" to "Aimé"),

@@ -15,15 +15,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -77,9 +81,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import app.nubi.R
 import app.nubi.data.Bebe
 import app.nubi.data.FotosNubi
@@ -314,8 +321,9 @@ private fun SelectorFotoBebe(
 /**
  * Foto del bebé junto a su nombre en la cabecera de Hoy (ver fotoBebeCabecera
  * en VistaInicio.swift de iOS). Sin foto guardada, muestra su inicial en vez
- * de dejar un hueco vacío. Tocarla la cambia al momento (abre la galería y
- * guarda directamente), sin pasar por Ajustes.
+ * de dejar un hueco vacío. Tocarla abre la foto en grande, con un botón
+ * "Seleccionar foto" debajo que abre la galería y guarda directamente, sin
+ * pasar por Ajustes.
  */
 @Composable
 private fun FotoBebeCabecera(base64: String?, nombre: String, onFotoSeleccionada: (String) -> Unit) {
@@ -327,14 +335,15 @@ private fun FotoBebeCabecera(base64: String?, nombre: String, onFotoSeleccionada
         }
     }
     val bitmap = remember(base64) { base64?.let(FotosNubi::decodificarPerfil) }
+    var mostrarVisor by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .size(50.dp)
             .clip(CircleShape)
-            .clickable {
-                lanzadorGaleria.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            }
+            // Tocarla abre la foto en grande (VisorFotoBebe); el botón
+            // "Seleccionar foto" de ahí abajo es el que abre la galería.
+            .clickable { mostrarVisor = true }
             .border(1.dp, colores.tinta.copy(alpha = 0.08f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
@@ -355,6 +364,112 @@ private fun FotoBebeCabecera(base64: String?, nombre: String, onFotoSeleccionada
                     style = MaterialTheme.typography.titleMedium,
                     color = colores.indigo
                 )
+            }
+        }
+    }
+
+    if (mostrarVisor) {
+        VisorFotoBebe(
+            bitmap = bitmap,
+            nombre = nombre,
+            alCerrar = { mostrarVisor = false },
+            alSeleccionar = {
+                lanzadorGaleria.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        )
+    }
+}
+
+/**
+ * Foto del bebé en grande, a pantalla completa, con el botón "Seleccionar
+ * foto" debajo (ver VisorFotoBebe en VistaInicio.swift de iOS). Sin foto
+ * guardada enseña la inicial en grande, igual que el círculo pequeño. Al
+ * elegir otra, FotoBebeCabecera la guarda y el visor se redibuja con ella.
+ */
+@Composable
+private fun VisorFotoBebe(
+    bitmap: android.graphics.Bitmap?,
+    nombre: String,
+    alCerrar: () -> Unit,
+    alSeleccionar: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    Dialog(
+        onDismissRequest = alCerrar,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = NubiGeometria.margen)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.18f))
+                            .clickable(onClick = alCerrar),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icono(IconoNubi.EQUIS, tint = Color.White, tamano = 16.dp)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(NubiGeometria.radio))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .clip(CircleShape)
+                                .background(colores.lila.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                nombre.trim().take(1).uppercase().ifEmpty { "?" },
+                                style = MaterialTheme.typography.displayLarge.copy(fontSize = 96.sp),
+                                color = colores.indigo
+                            )
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = alSeleccionar,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colores.lila,
+                        contentColor = colores.tinta
+                    ),
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 15.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        L10n.t("Seleccionar foto"),
+                        style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -543,7 +658,7 @@ fun PantallaHoy(
             Column(Modifier.weight(1f)) {
                 Text(
                     saludoSegunHora(),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                     color = colores.tintaSuave
                 )
                 Spacer(Modifier.height(2.dp))
@@ -560,8 +675,8 @@ fun PantallaHoy(
                         Text(bebe.nombre, style = MaterialTheme.typography.displaySmall)
                         Text(
                             textoEdadDetallada(bebe),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colores.tintaSuave
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+                            color = colores.tintaTenue
                         )
                     }
                 }
@@ -576,8 +691,8 @@ fun PantallaHoy(
                     if (oscuro) IconoNubi.SOL else IconoNubi.LUNA,
                     colorFondo = if (oscuro) colores.tinta.copy(alpha = 0.15f) else colores.lila.copy(alpha = 0.25f),
                     colorIcono = if (oscuro) colores.mantequilla else colores.indigo,
-                    tamano = 44.dp,
-                    tamanoIcono = 20.dp
+                    tamano = 38.dp,
+                    tamanoIcono = 18.dp
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -586,8 +701,8 @@ fun PantallaHoy(
                     IconoNubi.CONTROLES,
                     colorFondo = colores.lienzoAlto,
                     colorIcono = colores.tintaSuave,
-                    tamano = 44.dp,
-                    tamanoIcono = 18.dp
+                    tamano = 38.dp,
+                    tamanoIcono = 17.dp
                 )
             }
         }
@@ -601,7 +716,7 @@ fun PantallaHoy(
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(Modifier.padding(18.dp)) {
+            Column(Modifier.padding(NubiGeometria.margen)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -611,7 +726,7 @@ fun PantallaHoy(
                         if (suenoEnCurso?.tipo == TipoRegistro.SIESTA) L10n.t("Siesta").uppercase()
                         else if (suenoEnCurso?.tipo == TipoRegistro.NOCHE) L10n.t("Sueño nocturno").uppercase()
                         else L10n.t("Sueño").uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp, letterSpacing = 1.4.sp),
                         color = colores.tintaTenue
                     )
                     if (suenoEnCurso != null) {
@@ -624,7 +739,7 @@ fun PantallaHoy(
                         )
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
                 if (suenoEnCurso != null) {
                     Text(
@@ -636,7 +751,7 @@ fun PantallaHoy(
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave
                     )
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(12.dp))
                     if (suenoEnCurso.tipo == TipoRegistro.NOCHE) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             BotonAccion(
@@ -678,7 +793,7 @@ fun PantallaHoy(
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaTenue
                     )
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth()) {
                         BotonAccion(
                             texto = L10n.t("Siesta"),
@@ -754,26 +869,28 @@ fun PantallaHoy(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BadgeIcono(
                         iconoDeEtapa(etapa.id),
                         colorFondo = colorDeEtapa(etapa.color, colores),
                         colorIcono = colores.tinta,
-                        tamano = 40.dp,
-                        tamanoIcono = 18.dp
+                        tamano = 32.dp,
+                        tamanoIcono = 15.dp
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(etapa.titulo, style = MaterialTheme.typography.bodyLarge)
+                        Text(etapa.titulo, style = estiloTituloEtapaHoy, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             L10n.t("Toca para ver consejos"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
+                            style = estiloSubtituloEtapaHoy,
+                            color = colores.tintaSuave,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+                    Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
                 }
             }
         }
@@ -1016,17 +1133,18 @@ private fun FilaResumenHoy(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(titulo, style = MaterialTheme.typography.bodyLarge)
-                Text(subtitulo, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
+                Text(titulo, style = estiloTituloFilaHoy, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitulo, style = estiloSubtituloFilaHoy, color = colores.tintaTenue, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            Spacer(Modifier.width(8.dp))
             if (bloqueado) {
-                BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave)
+                BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave, tamano = DIAMETRO_BADGE_HOY, tamanoIcono = ICONO_BADGE_HOY)
             } else {
-                BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta)
+                BadgeIcono(icono, colorFondo = colorBadge, colorIcono = colores.tinta, tamano = DIAMETRO_BADGE_HOY, tamanoIcono = ICONO_BADGE_HOY)
             }
         }
     }
@@ -1050,24 +1168,30 @@ private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             BadgeIcono(
                 if (prediccion.tipo == TipoPrediccion.NOCHE) IconoNubi.LUNA else IconoNubi.RELOJ,
                 colorFondo = colorCategoria,
-                colorIcono = colores.tinta
+                colorIcono = colores.tinta,
+                tamano = 36.dp,
+                tamanoIcono = 17.dp
             )
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     textoPrediccion(prediccion, yaEnVentana, pasada),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = estiloTituloFilaHoy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     subtituloPrediccion(prediccion, ahora, yaEnVentana, pasada),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaTenue
+                    style = estiloSubtituloFilaHoy,
+                    color = colores.tintaTenue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -1089,20 +1213,22 @@ private fun TarjetaPrediccionBloqueada(onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave)
+            BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave, tamano = 36.dp, tamanoIcono = 17.dp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(L10n.t("Próxima ventana de sueño"), style = MaterialTheme.typography.bodyLarge)
+                Text(L10n.t("Próxima ventana de sueño"), style = estiloTituloFilaHoy, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     L10n.t("Nubi ya sabe cuándo toca — desbloquéalo con Premium"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaTenue
+                    style = estiloSubtituloFilaHoy,
+                    color = colores.tintaTenue,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 12.dp)
         }
     }
 }
@@ -1159,31 +1285,36 @@ private fun FilaUltimaToma(
             .graphicsLayer(alpha = if (bloqueado) 0.5f else 1f)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
                     if (bloqueado) L10n.t("Alimentación") else (ultimo?.let { "${L10n.t("Última toma")} · ${hace(it.inicio)}" } ?: L10n.t("Alimentación")),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = estiloTituloFilaHoy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     if (bloqueado) L10n.t("Parte de Nubi Premium") else (ultimo?.let { subtituloRegistro(it) } ?: L10n.t("Sin registrar todavía")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaTenue
+                    style = estiloSubtituloFilaHoy,
+                    color = colores.tintaTenue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
             if (bloqueado) {
                 BadgeIcono(
                     IconoNubi.CANDADO,
                     colorFondo = colores.lienzoAlto,
                     colorIcono = colores.tintaSuave,
+                    tamano = DIAMETRO_BADGE_HOY,
+                    tamanoIcono = ICONO_BADGE_HOY,
                     modifier = Modifier.clickable(onClick = onBiberon)
                 )
             } else {
-                // Círculo del mismo tamaño que biberón/pecho (40dp, el que ya
-                // trae BadgeIcono por defecto), con el icono del reloj más
+                // Círculo del mismo tamaño que biberón/pecho (38dp, como en iOS), con el icono del reloj más
                 // grande dentro (22dp), y en blanco/negro invertido según el
                 // tema — igual que iOS: en tema día, fondo negro con el
                 // reloj en blanco; en tema noche, al revés.
@@ -1191,21 +1322,26 @@ private fun FilaUltimaToma(
                     IconoNubi.RELOJ,
                     colorFondo = if (oscuro) Color.White else Color.Black,
                     colorIcono = if (oscuro) Color.Black else Color.White,
+                    tamano = DIAMETRO_BADGE_HOY,
                     tamanoIcono = 22.dp,
                     modifier = Modifier.clickable(onClick = onReloj)
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 BadgeIcono(
                     IconoNubi.BIBERON,
                     colorFondo = colores.mantequilla,
                     colorIcono = colores.tinta,
+                    tamano = DIAMETRO_BADGE_HOY,
+                    tamanoIcono = ICONO_BADGE_HOY,
                     modifier = Modifier.clickable(onClick = onBiberon)
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 BadgeIcono(
                     IconoNubi.CORAZON,
                     colorFondo = colores.melocoton,
                     colorIcono = colores.tinta,
+                    tamano = DIAMETRO_BADGE_HOY,
+                    tamanoIcono = ICONO_BADGE_HOY,
                     modifier = Modifier.clickable(onClick = onPecho)
                 )
             }
@@ -1228,17 +1364,33 @@ private fun BotonAccion(
             contentColor = NubiTheme.colores.tinta
         ),
         shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
         modifier = modifier
     ) {
-        Icono(icono, tint = NubiTheme.colores.tinta, tamano = 16.dp)
-        Spacer(Modifier.width(6.dp))
+        Icono(icono, tint = NubiTheme.colores.tinta, tamano = 17.dp)
+        Spacer(Modifier.width(8.dp))
         Text(
             texto,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
             textAlign = TextAlign.Center
         )
     }
 }
+
+// Medidas de la pestaña Hoy, copiadas de VistaInicio.swift para que Android
+// quede con las mismas proporciones que iOS: filas con relleno 12, círculos
+// de 38, título 12 semibold y subtítulo 10 (etapa/regalo: 13 y 11).
+private val DIAMETRO_BADGE_HOY = 38.dp
+private val ICONO_BADGE_HOY = 17.dp
+
+private val estiloTituloFilaHoy
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+private val estiloSubtituloFilaHoy
+    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
+private val estiloTituloEtapaHoy
+    @Composable get() = MaterialTheme.typography.bodyLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+private val estiloSubtituloEtapaHoy
+    @Composable get() = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp)
 
 private fun saludoSegunHora(): String {
     val hora = LocalTime.now().hour
@@ -2288,7 +2440,7 @@ private fun TarjetaRegalarNubi() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -2297,20 +2449,23 @@ private fun TarjetaRegalarNubi() {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(32.dp).clip(CircleShape)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     L10n.t("Regala Nubi"),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = estiloTituloEtapaHoy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     L10n.t("Un regalo perfecto para otra familia con bebé"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaSuave
+                    style = estiloSubtituloEtapaHoy,
+                    color = colores.tintaSuave,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
         }
     }
 }
@@ -2335,7 +2490,7 @@ private fun TarjetaInstagramNubi() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -2343,20 +2498,23 @@ private fun TarjetaInstagramNubi() {
                 contentDescription = null,
                 modifier = Modifier.size(32.dp)
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     L10n.t("Aprende a usar Nubi"),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = estiloTituloEtapaHoy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     L10n.t("Síguenos en Instagram"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaSuave
+                    style = estiloSubtituloEtapaHoy,
+                    color = colores.tintaSuave,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 16.dp)
+            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
         }
     }
 }
