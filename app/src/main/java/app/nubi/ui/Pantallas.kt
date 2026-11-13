@@ -71,7 +71,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -84,7 +83,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -480,30 +478,28 @@ private fun VisorFotoBebe(
 }
 
 /**
- * Alta del bebé en 2 pasos (nombre + fecha + prematuridad; hora de
- * despertar), sin scroll: todo el contenido tiene que caber siempre en la
- * pantalla, igual que el VistaAlta de iOS (NubiApp.swift) del que viene
- * esta versión — mismos textos, misma estructura, mismo criterio de quitar
- * la foto opcional y la tarjeta informativa para que quepa sin desplazar.
- * La foto del bebé sigue disponible más adelante desde Ajustes (HojaBebe).
+ * Alta del bebé en una sola pantalla (nombre, fecha de nacimiento,
+ * prematuridad y hora de despertar), sin scroll: todo el contenido tiene
+ * que caber siempre en la pantalla, igual que el VistaAlta de iOS
+ * (NubiApp.swift) del que viene esta versión — mismos textos, misma
+ * estructura. La foto del bebé sigue disponible más adelante desde
+ * Ajustes (HojaBebe).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaNuevoBebe(alGuardar: () -> Unit) {
-    var paso by remember { mutableIntStateOf(1) }
-
-    // Paso 1 — nombre, fecha de nacimiento, prematuridad.
     var nombre by remember { mutableStateOf("") }
     var nacimiento by remember { mutableStateOf<Instant?>(null) }
     var prematuro by remember { mutableStateOf(false) }
     var semanasPrematuro by remember { mutableIntStateOf(0) }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
 
-    // Paso 2 — hora en que se despertó hoy (opcional).
+    // Hora en que despertó hoy (opcional).
     var horaDespertar by remember { mutableStateOf<Instant?>(null) }
     var mostrarSelectorHora by remember { mutableStateOf(false) }
 
-    val paso1Valido = nombre.isNotBlank() && nacimiento != null
+    // La hora de despertar es opcional y no entra en esta validación.
+    val datosValidos = nombre.isNotBlank() && nacimiento != null
 
     fun crearBebe() {
         val miId = Supabase.client.auth.currentUserOrNull()?.id
@@ -537,42 +533,26 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             .padding(horizontal = NubiGeometria.margen)
             .padding(top = 10.dp, bottom = 12.dp)
     ) {
-        CabeceraPasoAlta(paso = paso, onVolver = { paso = 1 })
-
-        Spacer(Modifier.height(18.dp))
-
         Column(modifier = Modifier.weight(1f)) {
-            if (paso == 1) {
-                ContenidoPaso1Alta(
-                    nombre = nombre,
-                    onNombreCambiar = { nombre = it },
-                    nacimiento = nacimiento,
-                    onAbrirSelectorFecha = { mostrarSelectorFecha = true },
-                    prematuro = prematuro,
-                    onPrematuroCambiar = { prematuro = it },
-                    semanasPrematuro = semanasPrematuro,
-                    onSemanasCambiar = { semanasPrematuro = it }
-                )
-            } else {
-                ContenidoPaso2Alta(
-                    horaDespertar = horaDespertar,
-                    onAbrirSelectorHora = { mostrarSelectorHora = true },
-                    onNoLoSe = { horaDespertar = null }
-                )
-            }
+            ContenidoAlta(
+                nombre = nombre,
+                onNombreCambiar = { nombre = it },
+                nacimiento = nacimiento,
+                onAbrirSelectorFecha = { mostrarSelectorFecha = true },
+                horaDespertar = horaDespertar,
+                onAbrirSelectorHora = { mostrarSelectorHora = true },
+                prematuro = prematuro,
+                onPrematuroCambiar = { prematuro = it },
+                semanasPrematuro = semanasPrematuro,
+                onSemanasCambiar = { semanasPrematuro = it }
+            )
         }
 
         Spacer(Modifier.height(12.dp))
 
         Button(
-            onClick = {
-                if (paso == 1) {
-                    if (paso1Valido) paso = 2
-                } else {
-                    crearBebe()
-                }
-            },
-            enabled = paso == 2 || paso1Valido,
+            onClick = { if (datosValidos) crearBebe() },
+            enabled = datosValidos,
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -618,71 +598,18 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
 }
 
 // ---------------------------------------------------------------------
-// Piezas del alta en 2 pasos.
+// Piezas del alta (pantalla única).
 // ---------------------------------------------------------------------
 
-/** Volver (solo en el paso 2) + pastilla "Paso X de 2" + barra de progreso. */
+/** Nombre, fecha de nacimiento, hora de despertar (opcional) y prematuridad. */
 @Composable
-private fun CabeceraPasoAlta(paso: Int, onVolver: () -> Unit) {
-    val colores = NubiTheme.colores
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(colores.superficie)
-                    .clickable(enabled = paso == 2, onClick = onVolver),
-                contentAlignment = Alignment.Center
-            ) {
-                if (paso == 2) {
-                    Icono(
-                        IconoNubi.CHEVRON, tint = colores.tintaSuave, tamano = 15.dp,
-                        modifier = Modifier.rotate(180f)
-                    )
-                }
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            Text(
-                L10n.paso(paso, de = 2),
-                style = MaterialTheme.typography.labelMedium,
-                color = colores.tintaSuave,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(colores.superficie)
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            // Mismo ancho que el botón de volver, para que la pastilla quede
-            // centrada de verdad.
-            Spacer(Modifier.size(30.dp))
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (i in 1..2) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(if (i <= paso) colores.menta else colores.separador)
-                )
-            }
-        }
-    }
-}
-
-/** Paso 1: nombre, fecha de nacimiento y prematuridad. */
-@Composable
-private fun ContenidoPaso1Alta(
+private fun ContenidoAlta(
     nombre: String,
     onNombreCambiar: (String) -> Unit,
     nacimiento: Instant?,
     onAbrirSelectorFecha: () -> Unit,
+    horaDespertar: Instant?,
+    onAbrirSelectorHora: () -> Unit,
     prematuro: Boolean,
     onPrematuroCambiar: (Boolean) -> Unit,
     semanasPrematuro: Int,
@@ -740,6 +667,30 @@ private fun ContenidoPaso1Alta(
                         )
                     }
                 }
+
+                HorizontalDivider(color = colores.separador)
+
+                // Opcional a propósito: si no se pone, Nubi simplemente
+                // espera al primer registro real para predecir, como
+                // siempre — por eso no entra en "datosValidos".
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    EtiquetaCampoAlta(L10n.t("Hora en que despertó hoy (opcional)"))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onAbrirSelectorHora)
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 15.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
+                        )
+                    }
+                }
             }
         }
 
@@ -788,77 +739,8 @@ private fun ContenidoPaso1Alta(
     }
 }
 
-/** Paso 2: hora en que se despertó hoy (opcional, se puede omitir). */
-@Composable
-private fun ContenidoPaso2Alta(
-    horaDespertar: Instant?,
-    onAbrirSelectorHora: () -> Unit,
-    onNoLoSe: () -> Unit
-) {
-    val colores = NubiTheme.colores
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                L10n.t("¿A qué hora despertó hoy?"),
-                style = MaterialTheme.typography.headlineSmall,
-                color = colores.tinta
-            )
-            Text(
-                L10n.t("Con este dato, Nubi coloca el sol en el reloj y calcula las siestas de hoy desde el primer día."),
-                style = MaterialTheme.typography.bodySmall,
-                color = colores.tintaSuave
-            )
-        }
-
-        Card(
-            shape = RoundedCornerShape(NubiGeometria.radio),
-            colors = CardDefaults.cardColors(containerColor = colores.superficie),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(18.dp).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                BadgeIcono(
-                    IconoNubi.SOL, colorFondo = colores.mantequilla, colorIcono = colores.tinta,
-                    tamano = 42.dp, tamanoIcono = 20.dp
-                )
-                Text(
-                    L10n.t("Hora de despertar").uppercase(L10n.localeJava),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colores.tintaSuave
-                )
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(colores.lienzoAlto)
-                        .clickable(onClick = onAbrirSelectorHora)
-                        .padding(horizontal = 16.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 15.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
-                    )
-                }
-            }
-        }
-
-        Text(
-            L10n.t("No lo sé ahora"),
-            style = MaterialTheme.typography.bodySmall.copy(textDecoration = TextDecoration.Underline),
-            color = colores.tintaSuave,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onNoLoSe)
-        )
-    }
-}
-
-/** Toggle No/Sí — mismo patrón visual que SelectorSegmentado (HojasRegistro.kt). */
+/** Toggle No/Sí — mismo patrón visual que SelectorSegmentado (HojasRegistro.kt), con el
+ *  color de selección igual al del botón "Continuar" (MaterialTheme.colorScheme.primary). */
 @Composable
 private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit) {
     val colores = NubiTheme.colores
@@ -871,11 +753,13 @@ private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit) 
     ) {
         listOf(false to L10n.t("No"), true to L10n.t("Sí")).forEach { (valor, etiqueta) ->
             val seleccionado = siSeleccionado == valor
+            // Mismo color que el botón "Continuar" (MaterialTheme.colorScheme.primary),
+            // no colores.superficie: antes salía verde/menta en vez del morado de la app.
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(50))
-                    .background(if (seleccionado) colores.superficie else Color.Transparent)
+                    .background(if (seleccionado) MaterialTheme.colorScheme.primary else Color.Transparent)
                     .clickable { onCambiar(valor) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
@@ -883,7 +767,7 @@ private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit) 
                 Text(
                     etiqueta,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (seleccionado) colores.tinta else colores.tintaTenue
+                    color = if (seleccionado) MaterialTheme.colorScheme.onPrimary else colores.tintaTenue
                 )
             }
         }

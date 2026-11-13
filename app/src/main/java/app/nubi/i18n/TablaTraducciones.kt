@@ -920,8 +920,8 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
         "fr" to "Continuez à anticiper chaque sieste sans interruption : ne perdez pas ce que vous avez accompli avec Nubi Premium."
     ),
 
-    // Alta del bebé en 2 pasos (PantallaNuevoBebe) — mismos textos que el
-    // nuevo VistaAlta de iOS, de ahí que vivan aquí y no arriba: ese bloque
+    // Alta del bebé en una sola pantalla (PantallaNuevoBebe) — mismos textos
+    // que el VistaAlta de iOS, de ahí que vivan aquí y no arriba: ese bloque
     // es textos que SÍ existen en Traducciones.swift, y estos acaban de
     // añadirse en los dos sitios a la vez.
     "Conozcamos a tu bebé" to mapOf("en" to "Let's meet your baby", "it" to "Conosciamo il tuo bebè", "fr" to "Faisons connaissance avec votre bébé"),
@@ -932,7 +932,7 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     "¿Nació antes de tiempo?" to mapOf("en" to "Born premature?", "it" to "Nato prematuro?", "fr" to "Né prématurément ?"),
     "No" to mapOf("en" to "No", "it" to "No", "fr" to "Non"),
     "Sí" to mapOf("en" to "Yes", "it" to "Sì", "fr" to "Oui"),
+    "Hora en que despertó hoy (opcional)" to mapOf("en" to "Time they woke up (optional)", "it" to "Ora della sveglia (facoltativo)", "fr" to "Heure du réveil (facultatif)"),
     "Seleccionar hora" to mapOf("en" to "Select time", "it" to "Seleziona ora", "fr" to "Sélectionner l'heure"),
-    "No lo sé ahora" to mapOf("en" to "I don't know yet", "it" to "Non lo so ora", "fr" to "Je ne sais pas encore"),
     "Continuar" to mapOf("en" to "Continue", "it" to "Continua", "fr" to "Continuer"),
 )
