@@ -42,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,6 +67,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.nubi.data.Compartir
+import app.nubi.data.EventoNombre
+import app.nubi.data.EventosFunnel
 import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.i18n.L10n
@@ -387,7 +390,24 @@ private fun BotonGoogle(entrando: Boolean, onClick: () -> Unit) {
 fun PantallaLogin() {
     var error by remember { mutableStateOf<String?>(null) }
     var entrandoConGoogle by remember { mutableStateOf(false) }
+    // Se marca true justo cuando signInWith(Google) termina bien, para que
+    // el DisposableEffect de abajo sepa distinguir "salió tras completar el
+    // login" de "salió sin completarlo" (auth_abandoned) cuando esta
+    // pantalla desaparece — pasa a ContenidoApp en cuanto sessionStatus
+    // cambia a Authenticated (ver PantallaRaiz).
+    var huboExito by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        EventosFunnel.registrar(EventoNombre.AUTH_SCREEN_VIEWED)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!huboExito) {
+                EventosFunnel.registrar(EventoNombre.AUTH_ABANDONED)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -440,6 +460,7 @@ fun PantallaLogin() {
             onClick = {
                 ambito.launch {
                     entrandoConGoogle = true
+                    EventosFunnel.registrar(EventoNombre.GOOGLE_TAPPED)
                     try {
                         // Sin "hl" la pantalla de consentimiento de Google se
                         // abre en el idioma del navegador/sistema, no en el
@@ -449,8 +470,14 @@ fun PantallaLogin() {
                             queryParams["hl"] = L10n.idiomaEfectivo.rawValue
                         }
                         error = null
+                        huboExito = true
+                        EventosFunnel.registrar(EventoNombre.AUTH_COMPLETED)
                     } catch (e: Exception) {
                         error = "${L10n.t("No se pudo entrar con Google:")} ${e.message}"
+                        EventosFunnel.registrar(
+                            EventoNombre.AUTH_FAILED,
+                            mapOf("proveedor" to "google", "motivo" to (e.message ?: "desconocido"))
+                        )
                     }
                     entrandoConGoogle = false
                 }

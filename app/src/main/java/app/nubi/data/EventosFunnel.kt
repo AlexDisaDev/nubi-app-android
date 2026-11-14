@@ -23,6 +23,16 @@ object EventoNombre {
     const val TRIAL_CONFIRMADO = "trial_confirmado"
     const val COMPRA_FALLIDA = "compra_fallida"
     const val RESTAURAR_COMPRA_PULSADO = "restaurar_compra_pulsado"
+
+    // Embudo de la pantalla de acceso (PantallaLogin). Android solo tiene
+    // botón de Google (no de Apple), así que aquí nunca se registra un
+    // equivalente a "apple_tapped" — ese nombre solo lo usa iOS, pero sigue
+    // siendo el mismo contrato de tabla (ver EventoNombre.swift).
+    const val AUTH_SCREEN_VIEWED = "auth_screen_viewed"
+    const val GOOGLE_TAPPED = "google_tapped"
+    const val AUTH_COMPLETED = "auth_completed"
+    const val AUTH_FAILED = "auth_failed"
+    const val AUTH_ABANDONED = "auth_abandoned"
 }
 
 /**
