@@ -331,7 +331,16 @@ data class Perfil(
     @SerialName("premium_hasta") val premiumHasta: Fecha? = null,
     @SerialName("premium_fuente") val premiumFuente: String? = null,
     @SerialName("fecha_corte_prueba") val fechaCortePrueba: Fecha,
-    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now()
+    @SerialName("actualizado_en") val actualizadoEn: Fecha = Instant.now(),
+    // Consentimiento de newsletter (ofertas, novedades) — ver migración
+    // agregar_consentimiento_newsletter. Con default false: un JSON local
+    // guardado antes de esta columna (caché en disco de una versión
+    // anterior de la app) se sigue leyendo bien, en vez de romper la
+    // deserialización entera de Perfil.
+    @SerialName("acepta_newsletter") val aceptaNewsletter: Boolean = false,
+    // true en cuanto se le ha preguntado alguna vez (acepte o no) — para
+    // no volver a preguntarle. Ver migración agregar_newsletter_preguntado.
+    @SerialName("newsletter_preguntado") val newsletterPreguntado: Boolean = false
 ) {
     /** Mismo cálculo que la función puede_registrar() de Supabase. */
     fun puedeUsarApp(ahora: Instant = Instant.now()): Boolean {

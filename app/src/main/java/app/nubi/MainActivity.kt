@@ -217,6 +217,16 @@ fun ContenidoApp() {
     // compartido…" hasta que el bebé y sus registros están en el móvil.
     var cargandoCompartido by remember { mutableStateOf(false) }
 
+    // Aviso único de newsletter para usuarios ya existentes (los nuevos ya
+    // responden esto en PantallaNuevoBebe, así que newsletter_preguntado les
+    // queda en true desde el alta y nunca llegan a ver este diálogo). Se
+    // pide solo cuando ya hay bebé y perfil, y no hay una invitación de por
+    // medio (esa tiene prioridad y este diálogo puede esperar a la próxima
+    // sincronización/apertura de la app).
+    val mostrarPreguntaNewsletter = datos.bebe != null &&
+        datos.perfil?.newsletterPreguntado == false &&
+        invitacionPendiente == null
+
     // Permiso de notificaciones (obligatorio desde Android 13): se pide una
     // vez al entrar, para que los avisos de medicina y citas puedan sonar.
     // Antes de Android 13 las apps ya tienen el permiso concedido de serie.
@@ -356,6 +366,29 @@ fun ContenidoApp() {
                     enabled = !aceptandoInvitacion,
                     onClick = { Compartir.descartarInvitacionPendiente() }
                 ) { Text(L10n.t("Ahora no")) }
+            }
+        )
+    }
+
+    if (mostrarPreguntaNewsletter) {
+        AlertDialog(
+            // Sin onDismissRequest con efecto: descartar (tocar fuera, atrás)
+            // cuenta como "no, gracias" — igual que cerrar cualquier otro
+            // aviso de permiso opcional, y así no insiste en cada apertura.
+            onDismissRequest = { Repositorio.actualizarNewsletter(false) },
+            title = { Text(L10n.t("¿Quieres recibir nuestra newsletter?")) },
+            text = {
+                Text(L10n.t("Te avisamos por email de ofertas como el Black Friday, consejos y novedades de Nubi. Puedes darte de baja cuando quieras desde Ajustes."))
+            },
+            confirmButton = {
+                TextButton(onClick = { Repositorio.actualizarNewsletter(true) }) {
+                    Text(L10n.t("Sí, quiero recibirla"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { Repositorio.actualizarNewsletter(false) }) {
+                    Text(L10n.t("No, gracias"))
+                }
             }
         )
     }

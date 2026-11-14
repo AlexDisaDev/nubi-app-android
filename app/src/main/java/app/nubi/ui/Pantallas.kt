@@ -454,6 +454,8 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     var prematuro by remember { mutableStateOf(false) }
     var semanasPrematuro by remember { mutableIntStateOf(0) }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
+    // Newsletter: opcional, false por defecto — ver ContenidoAlta.
+    var aceptaNewsletter by remember { mutableStateOf(false) }
 
     // Hora en que despertó hoy (opcional).
     var horaDespertar by remember { mutableStateOf<Instant?>(null) }
@@ -485,6 +487,10 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             val instanteHoy = LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
             Repositorio.registrarDespertarManual(instanteHoy)
         }
+        // Se llama siempre (true o false): el usuario ya ha visto la
+        // pregunta aquí, así que newsletter_preguntado queda en true y no
+        // se le volverá a preguntar con el aviso de usuarios existentes.
+        Repositorio.actualizarNewsletter(aceptaNewsletter)
         alGuardar()
     }
 
@@ -511,7 +517,9 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
                 prematuro = prematuro,
                 onPrematuroCambiar = { prematuro = it },
                 semanasPrematuro = semanasPrematuro,
-                onSemanasCambiar = { semanasPrematuro = it }
+                onSemanasCambiar = { semanasPrematuro = it },
+                aceptaNewsletter = aceptaNewsletter,
+                onAceptaNewsletterCambiar = { aceptaNewsletter = it }
             )
         }
 
@@ -580,7 +588,9 @@ private fun ContenidoAlta(
     prematuro: Boolean,
     onPrematuroCambiar: (Boolean) -> Unit,
     semanasPrematuro: Int,
-    onSemanasCambiar: (Int) -> Unit
+    onSemanasCambiar: (Int) -> Unit,
+    aceptaNewsletter: Boolean,
+    onAceptaNewsletterCambiar: (Boolean) -> Unit
 ) {
     val colores = NubiTheme.colores
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -739,6 +749,27 @@ private fun ContenidoAlta(
                         style = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp),
                         color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
                     )
+                }
+
+                // Consentimiento de newsletter: opcional, por defecto false
+                // (RGPD/LSSI-CE — no puede ir premarcado ni confundirse con
+                // aceptar los términos de arriba). Fila dentro de esta misma
+                // tarjeta en vez de una tarjeta aparte: esta pantalla no
+                // tiene scroll propio, así que añadir otra tarjeta entera
+                // arriesgaría recortar contenido en pantallas pequeñas.
+                HorizontalDivider(color = colores.separador)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        L10n.t("Recibir newsletter por email"),
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                        color = colores.tintaSuave,
+                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    )
+                    Switch(checked = aceptaNewsletter, onCheckedChange = onAceptaNewsletterCambiar)
                 }
             }
         }
@@ -2538,6 +2569,39 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 FilaEnlace(IconoNubi.CALENDARIO, colores.cielo, L10n.t("Términos de uso")) {
                     abrirUrl(contexto, "https://appnubi.netlify.app/terminos")
                 }
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+
+        // Newsletter: mismo consentimiento que en el alta, pero editable en
+        // cualquier momento — RGPD/LSSI-CE exige que darse de baja sea igual
+        // de fácil que darse de alta.
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        L10n.t("Recibir newsletter por email"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Switch(
+                        checked = perfil?.aceptaNewsletter ?: false,
+                        onCheckedChange = { Repositorio.actualizarNewsletter(it) }
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    L10n.t("Ofertas, consejos y novedades de Nubi en tu correo. Puedes darte de baja cuando quieras."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.tintaSuave
+                )
             }
         }
         Spacer(Modifier.height(14.dp))

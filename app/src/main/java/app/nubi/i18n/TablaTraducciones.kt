@@ -32,6 +32,22 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Empezar" to mapOf("en" to "Start", "it" to "Inizia", "fr" to "Commencer"),
     "Guardar" to mapOf("en" to "Save", "it" to "Salva", "fr" to "Enregistrer"),
     "Cancelar" to mapOf("en" to "Cancel", "it" to "Annulla", "fr" to "Annuler"),
+    // Consentimiento de newsletter (RGPD/LSSI-CE): toggle en el alta del
+    // bebé y en Ajustes, más el aviso único para usuarios ya existentes.
+    "Recibir newsletter por email" to mapOf("en" to "Receive email newsletter", "it" to "Ricevi la newsletter via email", "fr" to "Recevoir la newsletter par email"),
+    "Ofertas, consejos y novedades de Nubi en tu correo. Puedes darte de baja cuando quieras." to mapOf(
+        "en" to "Nubi offers, tips and news in your inbox. You can unsubscribe at any time.",
+        "it" to "Offerte, consigli e novità di Nubi nella tua casella. Puoi annullare l'iscrizione in qualsiasi momento.",
+        "fr" to "Offres, conseils et nouveautés de Nubi dans votre boîte mail. Vous pouvez vous désinscrire à tout moment."
+    ),
+    "¿Quieres recibir nuestra newsletter?" to mapOf("en" to "Would you like to receive our newsletter?", "it" to "Vuoi ricevere la nostra newsletter?", "fr" to "Souhaitez-vous recevoir notre newsletter ?"),
+    "Te avisamos por email de ofertas como el Black Friday, consejos y novedades de Nubi. Puedes darte de baja cuando quieras desde Ajustes." to mapOf(
+        "en" to "We'll email you about offers like Black Friday, tips and Nubi news. You can unsubscribe at any time from Settings.",
+        "it" to "Ti avviseremo via email di offerte come il Black Friday, consigli e novità di Nubi. Puoi annullare l'iscrizione in qualsiasi momento da Impostazioni.",
+        "fr" to "Nous vous informerons par email des offres comme le Black Friday, de conseils et des nouveautés de Nubi. Vous pouvez vous désinscrire à tout moment depuis les Réglages."
+    ),
+    "Sí, quiero recibirla" to mapOf("en" to "Yes, I'd like to receive it", "it" to "Sì, voglio riceverla", "fr" to "Oui, je souhaite la recevoir"),
+    "No, gracias" to mapOf("en" to "No, thanks", "it" to "No, grazie", "fr" to "Non, merci"),
     "Aviso de comida" to mapOf("en" to "Feeding reminder", "it" to "Promemoria pappa", "fr" to "Rappel de repas"),
     "Avisar cuando toque comer" to mapOf("en" to "Remind me when it's time to eat", "it" to "Avvisami quando è ora di mangiare", "fr" to "Me prévenir quand c'est l'heure de manger"),
     "Un aviso cuando pase el tiempo que marques desde la última toma" to mapOf(

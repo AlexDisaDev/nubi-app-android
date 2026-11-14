@@ -6,12 +6,15 @@ import app.nubi.i18n.L10n
 import app.nubi.notificaciones.AvisosNubi
 import app.nubi.notificaciones.NotificadorPrueba
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -301,6 +304,36 @@ object Repositorio {
         ambito.launch {
             local.modificar { it.copy(avisoComidaActivo = activo, avisoComidaIntervaloMin = intervaloMin) }
             avisarDeComida(contexto)
+        }
+    }
+
+    /**
+     * Consentimiento (RGPD/LSSICE) para recibir newsletters por email —
+     * independiente de aceptar los Términos de uso, y editable en
+     * cualquier momento desde Ajustes (la primera vez se pregunta en el
+     * alta del bebé para cuentas nuevas, o con el diálogo de
+     * mostrarPreguntaNewsletter en ContenidoApp, MainActivity.kt, una sola
+     * vez para cuentas ya existentes). Es un dato de cuenta (perfiles), no
+     * de bebé, así que va directo al RPC actualizar_newsletter en vez de
+     * por el camino offline de bebé/registros — ese RPC pone también
+     * newsletter_preguntado a true, así que no hace falta otra llamada.
+     *
+     * Optimista: el cambio se ve en la UI al instante; si la llamada de
+     * red falla, la próxima sincronización trae de vuelta el valor real
+     * del servidor.
+     */
+    fun actualizarNewsletter(acepta: Boolean) {
+        val perfilActual = local.datos.value.perfil ?: return
+        ambito.launch {
+            local.modificar {
+                it.copy(perfil = perfilActual.copy(aceptaNewsletter = acepta, newsletterPreguntado = true))
+            }
+            runCatching {
+                Supabase.client.postgrest.rpc(
+                    "actualizar_newsletter",
+                    buildJsonObject { put("p_acepta", acepta) }
+                )
+            }
         }
     }
 
