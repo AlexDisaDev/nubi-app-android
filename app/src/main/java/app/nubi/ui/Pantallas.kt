@@ -584,16 +584,17 @@ private fun ContenidoAlta(
 ) {
     val colores = NubiTheme.colores
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        // Logo suelto (sin el nombre) centrado arriba, solo para que la
-        // pantalla no empiece en seco con el título — a propósito más
-        // pequeño que en PantallaLogin: este paso ya va justo de alto (no
-        // tiene scroll, ver el Column(weight(1f)) del llamador), así que no
-        // puede comerse el hueco que necesita el resto en pantallas pequeñas.
+        // Logo suelto (sin el nombre) centrado arriba, del mismo tamaño que
+        // tenía en el login (96dp): da presencia arriba y baja el resto para
+        // que la pantalla se vea más compacta. Este paso no tiene scroll (ver
+        // el Column(weight(1f)) del llamador), así que no conviene subirlo
+        // más: tiene que seguir cabiendo el bloque de semanas de "¿Nació
+        // antes de tiempo? → Sí" en pantallas pequeñas.
         Image(
             painter = painterResource(R.drawable.nubi_logo_mark),
             contentDescription = null,
             modifier = Modifier
-                .size(64.dp)
+                .size(96.dp)
                 .align(Alignment.CenterHorizontally)
         )
 
@@ -729,7 +730,7 @@ private fun ContenidoAlta(
                             color = colores.tintaSuave
                         )
                         Text(
-                            L10n.t("Con este dato, Nubi coloca el sol en el reloj y calcula las siestas de hoy desde el primer día."),
+                            L10n.t("Así podremos calcular sus siestas desde hoy"),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                             color = colores.tintaSuave
                         )
