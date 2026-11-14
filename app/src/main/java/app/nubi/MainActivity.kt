@@ -68,7 +68,6 @@ import app.nubi.data.Repositorio
 import app.nubi.data.Supabase
 import app.nubi.i18n.L10n
 import app.nubi.ui.Navegacion
-import app.nubi.ui.PantallaBienvenida
 import app.nubi.ui.PantallaCargandoCompartido
 import app.nubi.ui.PantallaNuevoBebe
 import app.nubi.ui.theme.NubiGeometria
@@ -200,7 +199,6 @@ fun ContenidoApp() {
     val datos by Repositorio.local.datos.collectAsState()
     val cargando by Repositorio.local.cargando.collectAsState()
     val primeraSincronizacionHecha by Repositorio.primeraSincronizacionHecha.collectAsState()
-    var bienvenidaVista by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
 
     // Invitación por enlace (nubi://unirme?token=...) pendiente de aceptar
@@ -247,9 +245,9 @@ fun ContenidoApp() {
                 CircularProgressIndicator()
             }
 
-        datos.bebe == null && !bienvenidaVista ->
-            PantallaBienvenida(alContinuar = { bienvenidaVista = true })
-
+        // Sin pantalla de bienvenida/código de regalo intermedia: va directo
+        // al alta del bebé, igual que iOS (VistaAlta se abre directamente).
+        // Canjear un código sigue disponible desde Ajustes en todo momento.
         datos.bebe == null ->
             PantallaNuevoBebe(alGuardar = { })
 

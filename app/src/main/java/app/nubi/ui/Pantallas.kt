@@ -189,46 +189,6 @@ fun BloqueCanjearCodigo(
 }
 
 // =====================================================================
-// Primera entrada: canjear código o saltar
-// =====================================================================
-@Composable
-fun PantallaBienvenida(alContinuar: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(NubiGeometria.margen),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Nubi", style = MaterialTheme.typography.displayMedium)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            L10n.t("Si te han regalado un código, puedes canjearlo ahora."),
-            style = MaterialTheme.typography.bodyMedium,
-            color = NubiTheme.colores.tintaSuave
-        )
-        Spacer(Modifier.height(24.dp))
-
-        BloqueCanjearCodigo(alCanjear = alContinuar)
-
-        Spacer(Modifier.height(16.dp))
-        TextButton(
-            onClick = alContinuar,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(L10n.t("Saltar"))
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            L10n.t("Tienes 7 días de prueba. Siempre puedes canjear un código más tarde desde Ajustes."),
-            style = MaterialTheme.typography.bodySmall,
-            color = NubiTheme.colores.tintaTenue,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-// =====================================================================
 // Alta del bebé — sin esto no hay nada que mostrar
 // =====================================================================
 
