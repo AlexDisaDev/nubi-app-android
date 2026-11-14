@@ -32,6 +32,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Empezar" to mapOf("en" to "Start", "it" to "Inizia", "fr" to "Commencer"),
     "Guardar" to mapOf("en" to "Save", "it" to "Salva", "fr" to "Enregistrer"),
     "Cancelar" to mapOf("en" to "Cancel", "it" to "Annulla", "fr" to "Annuler"),
+    "¿Qué parte quieres editar?" to mapOf("en" to "Which part do you want to edit?", "it" to "Quale parte vuoi modificare?", "fr" to "Quelle partie voulez-vous modifier ?"),
     // Consentimiento de newsletter (RGPD/LSSI-CE): toggle en el alta del
     // bebé y en Ajustes, más el aviso único para usuarios ya existentes.
     "Recibir newsletter por email" to mapOf("en" to "Receive email newsletter", "it" to "Ricevi la newsletter via email", "fr" to "Recevoir la newsletter par email"),

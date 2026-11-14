@@ -1762,6 +1762,9 @@ fun PantallaDia(
     // comparte aquí para la flecha de "día anterior" y para editar un
     // registro desde la lista, que sin premium tampoco se puede.
     var mostrarBloqueo by remember { mutableStateOf(false) }
+    // Toma de pecho con cambio de lado cuyo lápiz se ha tocado: hay que
+    // elegir qué lado editar.
+    var tomaAEditar by remember { mutableStateOf<List<Registro>?>(null) }
 
     // Todo lo que pertenece a este día: los sueños se recortan por si
     // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
@@ -1873,21 +1876,35 @@ fun PantallaDia(
                 color = colores.tintaTenue
             )
         } else {
-            listaCompleta.forEachIndexed { indice, registro ->
-                FilaTimeline(
-                    registro = registro,
-                    diaMostrado = diaSeleccionado,
-                    esUltimo = indice == listaCompleta.lastIndex,
-                    onEditar = {
-                        // Sin premium la lista se ve entera, pero es de solo
-                        // lectura: editar cualquier registro abre el paywall.
-                        if (premium) registroEditando = registro else mostrarBloqueo = true
-                    },
-                    onBorrar = { Repositorio.borrarRegistro(registro.id) }
-                )
+            val filas = agruparTomasPecho(listaCompleta)
+            filas.forEachIndexed { indice, grupo ->
+                val registro = grupo.last()
+                if (grupo.size > 1) {
+                    FilaTomaPechoCombinada(
+                        tramos = grupo,
+                        diaMostrado = diaSeleccionado,
+                        ahora = ahoraDia,
+                        esUltimo = indice == filas.lastIndex,
+                        onEditar = { if (premium) tomaAEditar = grupo else mostrarBloqueo = true },
+                        // Borra la toma entera: los dos lados.
+                        onBorrar = { grupo.forEach { Repositorio.borrarRegistro(it.id) } }
+                    )
+                } else {
+                    FilaTimeline(
+                        registro = registro,
+                        diaMostrado = diaSeleccionado,
+                        esUltimo = indice == filas.lastIndex,
+                        onEditar = {
+                            // Sin premium la lista se ve entera, pero es de solo
+                            // lectura: editar cualquier registro abre el paywall.
+                            if (premium) registroEditando = registro else mostrarBloqueo = true
+                        },
+                        onBorrar = { Repositorio.borrarRegistro(registro.id) }
+                    )
+                }
 
                 // Entre dos sueños seguidos, cuánto tiempo pasó despierto.
-                val siguiente = listaCompleta.getOrNull(indice + 1)
+                val siguiente = filas.getOrNull(indice + 1)?.first()
                 if (registro.tipo.esSueno && registro.fin != null &&
                     siguiente != null && siguiente.tipo.esSueno
                 ) {
@@ -1907,6 +1924,30 @@ fun PantallaDia(
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+
+    tomaAEditar?.let { tramos ->
+        AlertDialog(
+            onDismissRequest = { tomaAEditar = null },
+            title = { Text(L10n.t("¿Qué parte quieres editar?")) },
+            text = {
+                Column {
+                    tramos.forEach { tramo ->
+                        TextButton(onClick = {
+                            tomaAEditar = null
+                            registroEditando = tramo
+                        }) {
+                            val lado = if (tramo.lado == LadoPecho.DERECHA) L10n.t("Pecho derecho") else L10n.t("Pecho izquierdo")
+                            Text("$lado · ${formatoHoraCorta.format(tramo.inicio)}")
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { tomaAEditar = null }) { Text(L10n.t("Cancelar")) }
+            }
+        )
     }
 
     // La hoja de edición: la misma hoja de siempre para ese tipo, pero
@@ -1983,7 +2024,11 @@ private fun ChipsResumenDelDia(eventosDelDia: List<Registro>) {
     val unidadesUsadas = biberones.mapNotNull { it.unidadBiberon }.distinct()
     val unidadResumen = unidadesUsadas.singleOrNull() ?: UnidadBiberon.ML
 
-    val tomasPecho = eventosDelDia.count { it.tipo == TipoRegistro.PECHO }
+    // Una toma con cambio de lado son dos registros por dentro, pero es una
+    // sola toma (ver esContinuacionPecho): no se cuentan los tramos que solo
+    // continúan otro.
+    val pechos = eventosDelDia.filter { it.tipo == TipoRegistro.PECHO }
+    val tomasPecho = pechos.count { r -> pechos.none { esContinuacionPecho(r, it) } }
     val panales = eventosDelDia.filter { it.tipo == TipoRegistro.PANAL }
 
     val hayAlgo = totalBiberonMl > 0.0 || tomasPecho > 0 || panales.isNotEmpty()
@@ -2354,6 +2399,132 @@ private fun FilaTimeline(
         }
         // El lápiz deja claro, sin tener que explicarlo en un texto aparte,
         // que el registro se puede tocar para editarlo (igual que en iOS).
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onEditar),
+            contentAlignment = Alignment.Center
+        ) {
+            Icono(IconoNubi.LAPIZ, tint = colores.tintaSuave, tamano = 16.dp)
+        }
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onBorrar),
+            contentAlignment = Alignment.Center
+        ) {
+            Icono(IconoNubi.EQUIS, tint = colores.tintaSuave, tamano = 16.dp)
+        }
+    }
+}
+
+/**
+ * Una toma de pecho con cambio de lado (flechas de Hoy en iOS →
+ * Almacen.cambiarPecho()) son varios registros por dentro, uno por lado: el
+ * anterior se cierra y el siguiente se abre en el mismo instante (el cierre
+ * puede quedar hasta 60 s por delante, por el mínimo de 1 minuto por tramo).
+ * Así se reconocen los tramos de una misma toma — misma regla que
+ * LineaVertical.esContinuacion en iOS.
+ */
+private fun esContinuacionPecho(siguiente: Registro, anterior: Registro): Boolean {
+    if (anterior.tipo != TipoRegistro.PECHO || siguiente.tipo != TipoRegistro.PECHO) return false
+    val ladoAnterior = anterior.lado ?: return false
+    val ladoSiguiente = siguiente.lado ?: return false
+    if (ladoAnterior == ladoSiguiente) return false
+    val fin = anterior.fin ?: return false
+    return kotlin.math.abs(Duration.between(fin, siguiente.inicio).seconds) <= 61
+}
+
+/** La lista del día en filas: cada registro suelto en la suya, y los tramos
+ *  de una misma toma de pecho con cambio de lado juntos en una sola. */
+private fun agruparTomasPecho(lista: List<Registro>): List<List<Registro>> {
+    val usados = mutableSetOf<String>()
+    val filas = mutableListOf<List<Registro>>()
+    for (r in lista) {
+        if (r.id in usados) continue
+        usados.add(r.id)
+        val grupo = mutableListOf(r)
+        while (true) {
+            val siguiente = lista.firstOrNull { it.id !in usados && esContinuacionPecho(it, grupo.last()) } ?: break
+            usados.add(siguiente.id)
+            grupo.add(siguiente)
+        }
+        filas.add(grupo)
+    }
+    return filas
+}
+
+/** Fila única para una toma de pecho con cambio de lado: de la hora de inicio
+ *  a la de fin de toda la toma, y debajo los minutos de cada lado. */
+@Composable
+private fun FilaTomaPechoCombinada(
+    tramos: List<Registro>,
+    diaMostrado: LocalDate,
+    ahora: Instant,
+    esUltimo: Boolean,
+    onEditar: () -> Unit,
+    onBorrar: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    val primero = tramos.first()
+    val ultimo = tramos.last()
+    val enCurso = ultimo.fin == null
+    val finTotal = ultimo.fin ?: ahora
+    val minutosTotal = Duration.between(primero.inicio, finTotal).toMinutes()
+    fun letra(r: Registro) = if (r.lado == LadoPecho.DERECHA) L10n.t("D") else L10n.t("I")
+    val titulo = L10n.t("Pecho") + " " + tramos.joinToString(" → ") { letra(it) }
+    val horas = if (enCurso) {
+        "${L10n.t("Desde las")} ${formatoHoraCorta.format(primero.inicio)}"
+    } else {
+        "${formatoHoraCorta.format(primero.inicio)} – ${formatoHoraCorta.format(finTotal)}"
+    }
+    val porLado = tramos.joinToString(" · ") { t ->
+        "${letra(t)} ${textoDuracion(Duration.between(t.inicio, t.fin ?: ahora).toMinutes())}"
+    }
+    val notas = tramos.map { it.nota }.filter { it.isNotBlank() }
+
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onEditar)) {
+        Box(
+            modifier = Modifier.width(40.dp).height(if (esUltimo) 40.dp else 64.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (!esUltimo) {
+                Box(
+                    Modifier
+                        .padding(top = 40.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colores.separador)
+                )
+            }
+            BadgeIcono(
+                iconoDeTipo(TipoRegistro.PECHO),
+                colorFondo = colorDeTipo(TipoRegistro.PECHO, colores),
+                colorIcono = tinteIconoDeTipo(TipoRegistro.PECHO, porDefecto = colores.tinta),
+                tamano = 40.dp,
+                tamanoIcono = 18.dp
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(titulo, style = MaterialTheme.typography.bodyLarge)
+                if (primero.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado) {
+                    Spacer(Modifier.width(8.dp))
+                    ChipTexto("noche anterior")
+                }
+                Spacer(Modifier.width(8.dp))
+                ChipTexto(if (enCurso) L10n.t("en curso") else textoDuracion(minutosTotal))
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(horas, style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+            Text(porLado, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
+            notas.forEach { nota ->
+                Text(nota, style = MaterialTheme.typography.bodySmall, color = colores.tintaTenue)
+            }
+        }
         Box(
             modifier = Modifier
                 .size(36.dp)
