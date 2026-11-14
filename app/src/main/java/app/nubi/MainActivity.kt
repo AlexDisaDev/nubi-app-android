@@ -15,7 +15,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -112,7 +111,9 @@ class MainActivity : ComponentActivity() {
             val oscuro = when (datos.tema) {
                 "claro" -> false
                 "oscuro" -> true
-                else -> isSystemInDarkTheme()
+                // Sin elección explícita (instalación nueva, o nunca tocó el
+                // sol/luna): modo noche por defecto, también en iOS.
+                else -> true
             }
 
             NubiTheme(oscuro = oscuro) {

@@ -7,7 +7,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -144,7 +143,8 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val oscuroActual = when (datos.tema) {
         "claro" -> false
         "oscuro" -> true
-        else -> isSystemInDarkTheme()
+        // Igual que MainActivity: modo noche por defecto.
+        else -> true
     }
 
     val titulo = when {
