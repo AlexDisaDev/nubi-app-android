@@ -452,7 +452,6 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Eliminar esta comida" to mapOf("en" to "Delete this meal", "it" to "Elimina questo pasto", "fr" to "Supprimer ce repas"),
     "Nueva comida" to mapOf("en" to "New meal", "it" to "Nuovo pasto", "fr" to "Nouveau repas"),
     "Editar comida" to mapOf("en" to "Edit meal", "it" to "Modifica pasto", "fr" to "Modifier le repas"),
-    "Generados matemáticamente. Sin descargas ni anuncios." to mapOf("en" to "Generated mathematically. No downloads, no ads.", "it" to "Generati matematicamente. Senza download né pubblicità.", "fr" to "Générés mathématiquement. Sans téléchargements ni publicités."),
     "Tipo de sonido" to mapOf("en" to "Sound type", "it" to "Tipo di suono", "fr" to "Type de son"),
     "Temporizador" to mapOf("en" to "Timer", "it" to "Timer", "fr" to "Minuteur"),
     "¿Cuál elegir?" to mapOf("en" to "Which to choose?", "it" to "Quale scegliere?", "fr" to "Lequel choisir ?"),

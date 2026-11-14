@@ -118,12 +118,6 @@ fun PantallaSonidos() {
             .padding(NubiGeometria.margen)
     ) {
         Text(L10n.t("Sonidos"), style = MaterialTheme.typography.headlineLarge, color = colores.tinta)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            L10n.t("Generados matemáticamente. Sin descargas ni anuncios."),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colores.tintaSuave
-        )
         Spacer(Modifier.height(22.dp))
 
         EtiquetaSeccionSonidos(L10n.t("Tipo de sonido"))
