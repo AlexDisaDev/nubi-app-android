@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -616,16 +617,16 @@ private fun ContenidoAlta(
     onSemanasCambiar: (Int) -> Unit
 ) {
     val colores = NubiTheme.colores
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 L10n.t("Conozcamos a tu bebé"),
-                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp),
+                style = MaterialTheme.typography.headlineSmall.copy(fontSize = 25.sp),
                 color = colores.tinta
             )
             Text(
                 L10n.t("Con su edad, Nubi personaliza las estimaciones de sueño."),
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 15.sp),
                 color = colores.tintaSuave
             )
         }
@@ -635,7 +636,7 @@ private fun ContenidoAlta(
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     EtiquetaCampoAlta(L10n.t("Nombre o apodo"))
                     OutlinedTextField(
@@ -643,6 +644,7 @@ private fun ContenidoAlta(
                         onValueChange = onNombreCambiar,
                         placeholder = { Text(L10n.t("Ej. Leo")) },
                         singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -658,11 +660,11 @@ private fun ContenidoAlta(
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icono(IconoNubi.CALENDARIO, tint = colores.indigo, tamano = 16.dp)
+                        Icono(IconoNubi.CALENDARIO, tint = colores.indigo, tamano = 18.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(
                             nacimiento?.let { formatoFecha.format(it) } ?: L10n.t("Seleccionar fecha"),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp),
                             color = if (nacimiento == null) colores.tintaTenue else colores.tinta
                         )
                     }
@@ -670,10 +672,16 @@ private fun ContenidoAlta(
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Hueco flexible repartido en dos puntos (aquí y antes de la tarjeta
+        // del sol) en vez de uno solo: así el espacio libre se reparte por
+        // toda la pantalla en vez de dejar un único bloque vacío, y se
+        // adapta tanto a pantallas altas como a las más pequeñas.
+        Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 L10n.t("¿Nació antes de tiempo?"),
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 17.sp),
                 color = colores.tinta
             )
 
@@ -685,7 +693,7 @@ private fun ContenidoAlta(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(NubiGeometria.radioChico))
                         .background(colores.superficie)
-                        .padding(12.dp),
+                        .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -697,7 +705,7 @@ private fun ContenidoAlta(
                         )
                         Text(
                             L10n.nSemanas(semanasPrematuro),
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 19.sp),
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 21.sp),
                             color = colores.tinta
                         )
                     }
@@ -713,7 +721,7 @@ private fun ContenidoAlta(
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
 
         // Hora en que despertó hoy (opcional): tarjeta propia con el sol,
         // en vez de ser una fila más dentro de la tarjeta de arriba — ocupa
@@ -725,14 +733,14 @@ private fun ContenidoAlta(
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BadgeIcono(
                         IconoNubi.SOL,
                         colorFondo = colores.mantequilla,
                         colorIcono = colores.tinta,
-                        tamano = 52.dp,
-                        tamanoIcono = 24.dp
+                        tamano = 58.dp,
+                        tamanoIcono = 26.dp
                     )
                     Spacer(Modifier.width(16.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -743,7 +751,7 @@ private fun ContenidoAlta(
                         )
                         Text(
                             L10n.t("Con este dato, Nubi coloca el sol en el reloj y calcula las siestas de hoy desde el primer día."),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                             color = colores.tintaSuave
                         )
                     }
@@ -755,14 +763,14 @@ private fun ContenidoAlta(
                         .clip(RoundedCornerShape(50))
                         .background(colores.lienzoAlto)
                         .clickable(onClick = onAbrirSelectorHora)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 17.dp)
+                    Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 18.dp)
                     Spacer(Modifier.width(8.dp))
                     Text(
                         horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp),
                         color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
                     )
                 }
@@ -793,12 +801,12 @@ private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit) 
                     .clip(RoundedCornerShape(50))
                     .background(if (seleccionado) MaterialTheme.colorScheme.primary else Color.Transparent)
                     .clickable { onCambiar(valor) }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 13.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     etiqueta,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     color = if (seleccionado) MaterialTheme.colorScheme.onPrimary else colores.tintaTenue
                 )
             }
