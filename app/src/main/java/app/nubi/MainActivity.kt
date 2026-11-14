@@ -233,6 +233,8 @@ fun ContenidoApp() {
         ?.let { !java.time.Instant.now().isBefore(it.plus(java.time.Duration.ofDays(7))) } == true
     val mostrarPreguntaNewsletter = datos.bebe != null &&
         datos.perfil?.newsletterPreguntado == false &&
+        // Si ya la recibe (p. ej. la activó en Ajustes), nunca se pregunta.
+        datos.perfil?.aceptaNewsletter == false &&
         invitacionPendiente == null &&
         (cuentaCon7Dias || Premium.activo(datos.perfil, datos.premiumCompartido))
 
