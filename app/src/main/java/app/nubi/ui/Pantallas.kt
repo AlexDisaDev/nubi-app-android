@@ -1171,9 +1171,14 @@ fun PantallaHoy(
         }
 
         // Regalar Nubi: mismo sitio que en iOS (VistaInicio.swift), al final
-        // del scroll de Hoy, siempre visible.
+        // del scroll de Hoy. "Regala Nubi" solo sale cuando la cuenta cumple
+        // 7 días (perfiles.creado_en) o si ya tiene premium; antes, solo la
+        // de Instagram.
+        val datosHoy by Repositorio.local.datos.collectAsState()
+        val cuentaCon7Dias = datosHoy.perfil?.creadoEn
+            ?.let { !Instant.now().isBefore(it.plus(Duration.ofDays(7))) } == true
         Spacer(Modifier.height(12.dp))
-        TarjetaDinamicaRegalarInstagram()
+        TarjetaDinamicaRegalarInstagram(mostrarRegalar = premium || cuentaCon7Dias)
         // Sin Spacer final: igual que iOS, el relleno del Scaffold (la barra
         // de pestañas de abajo) ya da el margen inferior que hace falta, y
         // quitar este Spacer de 24dp era el ahorro de altura más grande de
@@ -3146,7 +3151,11 @@ private fun TarjetaInstagramNubi() {
  * VistaInicio.swift.
  */
 @Composable
-private fun TarjetaDinamicaRegalarInstagram() {
+private fun TarjetaDinamicaRegalarInstagram(mostrarRegalar: Boolean = true) {
+    if (!mostrarRegalar) {
+        TarjetaInstagramNubi()
+        return
+    }
     val estadoPagina = rememberPagerState(pageCount = { 2 })
 
     LaunchedEffect(estadoPagina) {
