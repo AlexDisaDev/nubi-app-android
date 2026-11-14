@@ -148,7 +148,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Coche" to mapOf("en" to "Car", "it" to "Auto", "fr" to "Voiture"),
     "tu bebé" to mapOf("en" to "your baby", "it" to "il tuo bambino", "fr" to "votre bébé"),
     "¡Bienvenido a Nubi! 🌙" to mapOf("en" to "Welcome to Nubi! 🌙", "it" to "Benvenuto su Nubi! 🌙", "fr" to "Bienvenue sur Nubi ! 🌙"),
-    "Así podremos calcular sus siestas desde hoy" to mapOf("en" to "This lets us work out their naps from today", "it" to "Così potremo calcolare i suoi sonnellini da oggi", "fr" to "Ainsi, nous pourrons calculer ses siestes dès aujourd'hui"),
+    "Así podremos calcular sus siestas" to mapOf("en" to "This lets us work out their naps", "it" to "Così potremo calcolare i suoi sonnellini", "fr" to "Ainsi, nous pourrons calculer ses siestes"),
     "Tus datos se guardan en tu iPhone y en tu iCloud privado. Puedes compartirlos con tu pareja si lo deseas." to mapOf("en" to "Your data stays on your iPhone and in your private iCloud. You can share it with your partner if you want.", "it" to "I tuoi dati restano sul tuo iPhone e nel tuo iCloud privato. Puoi condividerli con il tuo partner se vuoi.", "fr" to "Vos données restent sur votre iPhone et dans votre iCloud privé. Vous pouvez les partager avec votre partenaire si vous le souhaitez."),
     "Ventana de sueño" to mapOf("en" to "Sleep window", "it" to "Finestra di sonno", "fr" to "Fenêtre de sommeil"),
     "Hoy el día se ha quedado corto: puede que le cueste dormirse." to mapOf("en" to "Today's day came out short, so settling down may take longer.", "it" to "Oggi la giornata è venuta corta: potrebbe fare fatica ad addormentarsi.", "fr" to "La journée est courte aujourd'hui : l'endormissement peut être plus difficile."),
@@ -959,7 +959,8 @@ internal val tablaTraduccionesExtra: Map<String, Map<String, String>> = mapOf(
     "¿Nació antes de tiempo?" to mapOf("en" to "Born premature?", "it" to "Nato prematuro?", "fr" to "Né prématurément ?"),
     "No" to mapOf("en" to "No", "it" to "No", "fr" to "Non"),
     "Sí" to mapOf("en" to "Yes", "it" to "Sì", "fr" to "Oui"),
-    "Hora en que despertó hoy (opcional)" to mapOf("en" to "Time they woke up (optional)", "it" to "Ora della sveglia (facoltativo)", "fr" to "Heure du réveil (facultatif)"),
+    "Hora en que se despertó hoy" to mapOf("en" to "Time they woke up today", "it" to "Ora in cui si è svegliato oggi", "fr" to "Heure de réveil aujourd'hui"),
+    "Opcional" to mapOf("en" to "Optional", "it" to "Facoltativo", "fr" to "Facultatif"),
     "Seleccionar hora" to mapOf("en" to "Select time", "it" to "Seleziona ora", "fr" to "Sélectionner l'heure"),
     "Continuar" to mapOf("en" to "Continue", "it" to "Continua", "fr" to "Continuer"),
 )

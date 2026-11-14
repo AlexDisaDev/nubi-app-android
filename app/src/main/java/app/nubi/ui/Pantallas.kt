@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -500,7 +501,11 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             .padding(horizontal = NubiGeometria.margen)
             .padding(top = 10.dp, bottom = 12.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        // Todo pegado arriba y "Continuar" justo debajo de la última tarjeta
+        // (no al fondo de la pantalla): así cae en la zona que se alcanza
+        // cómodamente con el pulgar. El hueco libre queda abajo. Igual que
+        // VistaAlta en iOS.
+        Column {
             ContenidoAlta(
                 nombre = nombre,
                 onNombreCambiar = { nombre = it },
@@ -515,7 +520,7 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(20.dp))
 
         Button(
             onClick = { if (datosValidos) crearBebe() },
@@ -525,6 +530,8 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
         ) {
             Text(L10n.t("Continuar"))
         }
+
+        Spacer(Modifier.weight(1f))
     }
 
     if (mostrarSelectorFecha) {
@@ -583,13 +590,10 @@ private fun ContenidoAlta(
     onSemanasCambiar: (Int) -> Unit
 ) {
     val colores = NubiTheme.colores
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        // Logo suelto (sin el nombre) centrado arriba, del mismo tamaño que
-        // tenía en el login (96dp): da presencia arriba y baja el resto para
-        // que la pantalla se vea más compacta. Este paso no tiene scroll (ver
-        // el Column(weight(1f)) del llamador), así que no conviene subirlo
-        // más: tiene que seguir cabiendo el bloque de semanas de "¿Nació
-        // antes de tiempo? → Sí" en pantallas pequeñas.
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Logo suelto (sin el nombre) centrado arriba, 96dp. Este paso no
+        // tiene scroll: todo va seguido, sin huecos flexibles, para que quepa
+        // entero en pantallas pequeñas.
         Image(
             painter = painterResource(R.drawable.nubi_logo_mark),
             contentDescription = null,
@@ -652,62 +656,63 @@ private fun ContenidoAlta(
             }
         }
 
-        // Hueco flexible repartido en dos puntos (aquí y antes de la tarjeta
-        // del sol) en vez de uno solo: así el espacio libre se reparte por
-        // toda la pantalla en vez de dejar un único bloque vacío, y se
-        // adapta tanto a pantallas altas como a las más pequeñas.
-        Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
+        // "¿Nació antes de tiempo?" pegado a la tarjeta de la fecha. Al elegir
+        // "Sí", el contador de semanas aparece en la MISMA fila, a la derecha
+        // del No/Sí (que se estrecha), en vez de abrir un bloque debajo: así
+        // la altura no cambia y ni la tarjeta del sol ni "Continuar" se
+        // mueven. Igual que VistaAlta en iOS.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    L10n.t("¿Nació antes de tiempo?"),
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 17.sp),
+                    color = colores.tinta,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                if (prematuro) {
+                    Text(
+                        L10n.t("Semanas de prematuridad").uppercase(L10n.localeJava),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colores.tintaSuave,
+                        maxLines = 1
+                    )
+                }
+            }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                L10n.t("¿Nació antes de tiempo?"),
-                style = MaterialTheme.typography.labelLarge.copy(fontSize = 17.sp),
-                color = colores.tinta
-            )
-
-            SegmentoSiNo(siSeleccionado = prematuro, onCambiar = onPrematuroCambiar)
-
-            if (prematuro) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.superficie)
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            L10n.t("Semanas de prematuridad").uppercase(L10n.localeJava),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colores.tintaSuave
-                        )
-                        Text(
-                            L10n.nSemanas(semanasPrematuro),
-                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 21.sp),
-                            color = colores.tinta
-                        )
-                    }
+            Row(
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SegmentoSiNo(
+                    siSeleccionado = prematuro,
+                    onCambiar = onPrematuroCambiar,
+                    modifier = Modifier.weight(1f)
+                )
+                if (prematuro) {
                     Row(
-                        modifier = Modifier.clip(RoundedCornerShape(50)).background(colores.lienzoAlto),
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(colores.superficie),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         BotonStepperAlta("−") { if (semanasPrematuro > 0) onSemanasCambiar(semanasPrematuro - 1) }
-                        Box(Modifier.width(1.dp).height(20.dp).background(colores.separador))
+                        Text(
+                            semanasPrematuro.toString(),
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 21.sp),
+                            color = colores.tinta,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.widthIn(min = 30.dp)
+                        )
                         BotonStepperAlta("+") { if (semanasPrematuro < 16) onSemanasCambiar(semanasPrematuro + 1) }
                     }
                 }
             }
         }
 
-        Spacer(Modifier.weight(1f).heightIn(min = 6.dp))
-
-        // Hora en que despertó hoy (opcional): tarjeta propia con el sol,
-        // en vez de ser una fila más dentro de la tarjeta de arriba — ocupa
-        // el espacio que deja libre el resto de la pantalla, para que no se
-        // vea vacía, con el mismo protagonismo visual que tenía el antiguo
-        // paso 2 (sin ser ya un paso aparte).
+        // Hora en que se despertó hoy (opcional): tarjeta propia con el sol.
         Card(
             shape = RoundedCornerShape(NubiGeometria.radio),
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
@@ -719,21 +724,22 @@ private fun ContenidoAlta(
                         IconoNubi.SOL,
                         colorFondo = colores.mantequilla,
                         colorIcono = colores.tinta,
-                        tamano = 58.dp,
-                        tamanoIcono = 26.dp
+                        tamano = 52.dp,
+                        tamanoIcono = 24.dp
                     )
                     Spacer(Modifier.width(16.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            L10n.t("Hora en que despertó hoy (opcional)").uppercase(L10n.localeJava),
+                            L10n.t("Hora en que se despertó hoy").uppercase(L10n.localeJava),
                             style = MaterialTheme.typography.labelSmall,
                             color = colores.tintaSuave
                         )
                         Text(
-                            L10n.t("Así podremos calcular sus siestas desde hoy"),
+                            L10n.t("Así podremos calcular sus siestas"),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                             color = colores.tintaSuave
                         )
+                        ChipTexto(L10n.t("Opcional"))
                     }
                 }
 
@@ -762,10 +768,10 @@ private fun ContenidoAlta(
 /** Toggle No/Sí — mismo patrón visual que SelectorSegmentado (HojasRegistro.kt), con el
  *  color de selección igual al del botón "Continuar" (MaterialTheme.colorScheme.primary). */
 @Composable
-private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit) {
+private fun SegmentoSiNo(siSeleccionado: Boolean, onCambiar: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colores = NubiTheme.colores
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(50))
             .background(colores.lienzoAlto)
