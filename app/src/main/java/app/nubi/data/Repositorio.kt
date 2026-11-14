@@ -335,6 +335,14 @@ object Repositorio {
                 it.copy(perfil = perfilActual.copy(aceptaNewsletter = acepta, newsletterPreguntado = true))
             }
             runCatching {
+                // awaitInitialization() antes de leer el token: igual que en
+                // Compras.verificarCompra (ver su comentario largo) —
+                // currentAccessTokenOrNull() puede devolver un token todavía
+                // sin terminar de cargar mientras el plugin Auth restaura la
+                // sesión persistida, y eso llegaba al edge function como un
+                // Authorization: Bearer casi vacío (sesion_invalida en los
+                // logs del function, en vez de fallar aquí con claridad).
+                Supabase.client.auth.awaitInitialization()
                 val accessToken = Supabase.client.auth.currentAccessTokenOrNull()
                     ?: throw IllegalStateException("Sin sesión de Supabase")
                 Supabase.client.functions.invoke("sincronizar-newsletter-brevo") {
