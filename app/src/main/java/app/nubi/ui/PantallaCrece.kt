@@ -44,14 +44,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.nubi.data.Bebe
 import app.nubi.data.Medida
 import app.nubi.data.Repositorio
@@ -89,6 +92,22 @@ private enum class Magnitud(val titulo: String, val unidad: String, val icono: I
         ALTURA -> m.alturaCm
         PERIMETRO -> m.perimetroCm
     }
+}
+
+/** Mismo patrón que EtiquetaSeccion en el resto de pantallas (PantallaSalud.kt
+ *  y compañía) y que EtiquetaSeccion en Componentes.swift de iOS: mayúsculas
+ *  con tracking, en vez del texto normal que llevaba esta pantalla — era una
+ *  de las cosas que hacían que "Evolución de peso" e "Historial" se vieran
+ *  más apagados aquí que en iOS. */
+@Composable
+private fun EtiquetaSeccionCrece(texto: String, modifier: Modifier = Modifier) {
+    Text(
+        texto.uppercase(L10n.localeJava),
+        style = MaterialTheme.typography.labelSmall,
+        color = NubiTheme.colores.tintaTenue,
+        letterSpacing = 0.5.sp,
+        modifier = modifier
+    )
 }
 
 private fun colorDeMagnitud(m: Magnitud, c: NubiColores): Color = when (m) {
@@ -339,10 +358,8 @@ private fun TarjetaEvolucion(magnitud: Magnitud, serie: List<PuntoSerie>, colore
     ) {
         Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
+                EtiquetaSeccionCrece(
                     "${L10n.t("Evolución de")} ${L10n.t(magnitud.titulo).lowercase()}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colores.tintaTenue,
                     modifier = Modifier.weight(1f)
                 )
                 if (serie.size >= 2) {
@@ -351,13 +368,17 @@ private fun TarjetaEvolucion(magnitud: Magnitud, serie: List<PuntoSerie>, colore
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(colorDeMagnitud(magnitud, colores))
+                            // Translúcida con texto índigo, como la Pastilla
+                            // de iOS (Componentes.swift) — un relleno sólido
+                            // del color de la magnitud se veía más plano.
+                            .background(colorDeMagnitud(magnitud, colores).copy(alpha = 0.20f))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             "$signo${formatoNumero(delta, magnitud.decimales)} ${magnitud.unidad}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colores.tinta
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = colores.indigo
                         )
                     }
                 }
@@ -366,9 +387,10 @@ private fun TarjetaEvolucion(magnitud: Magnitud, serie: List<PuntoSerie>, colore
             GraficaLinea(
                 puntos = serie,
                 color = colores.indigo,
+                colorFondo = colores.superficie,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(140.dp)
             )
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -379,40 +401,81 @@ private fun TarjetaEvolucion(magnitud: Magnitud, serie: List<PuntoSerie>, colore
     }
 }
 
+/**
+ * Puerto de GraficaLinea (Componentes.swift, iOS): curva suave (Bézier
+ * cúbica con tangentes horizontales en el punto medio de cada tramo, no
+ * segmentos rectos), área bajo la curva con degradado, y puntos "huecos"
+ * (círculo del color de la tarjeta con un aro de color alrededor) en vez
+ * de puntos sólidos — así las dos apps dibujan la misma gráfica.
+ */
 @Composable
-private fun GraficaLinea(puntos: List<PuntoSerie>, color: Color, modifier: Modifier = Modifier) {
+private fun GraficaLinea(puntos: List<PuntoSerie>, color: Color, colorFondo: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
+        if (puntos.isEmpty()) return@Canvas
+
         if (puntos.size == 1) {
-            drawCircle(color, radius = size.minDimension * 0.04f, center = Offset(size.width / 2f, size.height / 2f))
+            val centro = Offset(size.width / 2f, size.height / 2f)
+            drawCircle(colorFondo, radius = 4.5.dp.toPx(), center = centro)
+            drawCircle(color, radius = 4.5.dp.toPx(), center = centro, style = Stroke(width = 2.4.dp.toPx()))
             return@Canvas
         }
-        if (puntos.size < 2) return@Canvas
 
+        // Igual que en iOS: un margen vertical del 18% del rango (mínimo
+        // 0.4) para que la curva nunca toque el borde superior/inferior.
         val valores = puntos.map { it.valor }
         val minV = valores.min()
         val maxV = valores.max()
-        val rango = (maxV - minV).takeIf { it > 0.0001 } ?: 1.0
-        val relleno = size.height * 0.12f
-        val alturaUtil = size.height - relleno * 2
-        val anchoPaso = if (puntos.size > 1) size.width / (puntos.size - 1).toFloat() else 0f
+        val margenV = maxOf((maxV - minV) * 0.18, 0.4)
+        val rangoMin = minV - margenV
+        val rango = (maxV + margenV - rangoMin).takeIf { it > 0.0001 } ?: 1.0
+
+        val margenX = 6.dp.toPx()
+        val margenY = 8.dp.toPx()
+        val anchoUtil = size.width - margenX * 2
+        val altoUtil = size.height - margenY * 2
 
         fun puntoEn(i: Int): Offset {
-            val fy = ((puntos[i].valor - minV) / rango).toFloat()
-            val y = size.height - relleno - fy * alturaUtil
-            return Offset(anchoPaso * i, y)
+            val x = margenX + anchoUtil * i / (puntos.size - 1).toFloat()
+            val fy = ((puntos[i].valor - rangoMin) / rango).toFloat()
+            val y = size.height - margenY - fy * altoUtil
+            return Offset(x, y)
         }
 
-        val camino = Path().apply {
-            moveTo(puntoEn(0).x, puntoEn(0).y)
-            for (i in 1 until puntos.size) lineTo(puntoEn(i).x, puntoEn(i).y)
+        val coords = puntos.indices.map(::puntoEn)
+
+        val curva = Path().apply {
+            moveTo(coords[0].x, coords[0].y)
+            for (i in 1 until coords.size) {
+                val a = coords[i - 1]
+                val b = coords[i]
+                val mx = (a.x + b.x) / 2f
+                cubicTo(mx, a.y, mx, b.y, b.x, b.y)
+            }
+        }
+
+        val area = Path().apply {
+            addPath(curva)
+            lineTo(coords.last().x, size.height)
+            lineTo(coords.first().x, size.height)
+            close()
         }
         drawPath(
-            camino,
-            color,
-            style = Stroke(width = size.minDimension * 0.05f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            area,
+            brush = Brush.verticalGradient(
+                listOf(color.copy(alpha = 0.22f), color.copy(alpha = 0.02f))
+            )
         )
-        for (i in puntos.indices) {
-            drawCircle(color, radius = size.minDimension * 0.045f, center = puntoEn(i))
+
+        drawPath(
+            curva,
+            color = color,
+            style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+
+        val radioPunto = 4.5.dp.toPx()
+        for (p in coords) {
+            drawCircle(colorFondo, radius = radioPunto, center = p)
+            drawCircle(color, radius = radioPunto, center = p, style = Stroke(width = 2.4.dp.toPx()))
         }
     }
 }
@@ -426,7 +489,7 @@ private fun TarjetaHistorial(medidas: List<Medida>, onEditar: (Medida) -> Unit) 
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(18.dp)) {
-            Text(L10n.t("Historial"), style = MaterialTheme.typography.labelMedium, color = colores.tintaTenue)
+            EtiquetaSeccionCrece(L10n.t("Historial"))
             Spacer(Modifier.height(10.dp))
             medidas.forEachIndexed { indice, m ->
                 Row(
