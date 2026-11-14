@@ -32,6 +32,10 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Empezar" to mapOf("en" to "Start", "it" to "Inizia", "fr" to "Commencer"),
     "Guardar" to mapOf("en" to "Save", "it" to "Salva", "fr" to "Enregistrer"),
     "Cancelar" to mapOf("en" to "Cancel", "it" to "Annulla", "fr" to "Annuler"),
+    "Nubi ya ha calculado su próxima siesta." to mapOf("en" to "Nubi has already worked out their next nap.", "it" to "Nubi ha già calcolato il suo prossimo sonnellino.", "fr" to "Nubi a déjà calculé sa prochaine sieste."),
+    "Nubi ya ha calculado su hora de dormir." to mapOf("en" to "Nubi has already worked out their bedtime.", "it" to "Nubi ha già calcolato l'ora della nanna.", "fr" to "Nubi a déjà calculé son heure de coucher."),
+    "Desbloquéala con" to mapOf("en" to "Unlock it with", "it" to "Sbloccala con", "fr" to "Débloquez-la avec"),
+    "Desbloquéala con Nubi Premium" to mapOf("en" to "Unlock it with Nubi Premium", "it" to "Sbloccala con Nubi Premium", "fr" to "Débloquez-la avec Nubi Premium"),
     "¿Qué parte quieres editar?" to mapOf("en" to "Which part do you want to edit?", "it" to "Quale parte vuoi modificare?", "fr" to "Quelle partie voulez-vous modifier ?"),
     // Consentimiento de newsletter (RGPD/LSSI-CE): toggle en el alta del
     // bebé y en Ajustes, más el aviso único para usuarios ya existentes.

@@ -776,6 +776,20 @@ private fun textoPruebaDe(detalles: ProductDetails, planId: String): String? {
     return "${duracionTexto(fases.first().billingPeriod)} ${L10n.t("gratis")}"
 }
 
+/**
+ * "7 días gratis" si alguno de los planes trae prueba gratis para esta
+ * cuenta (Play solo devuelve las ofertas a las que tiene derecho), o null.
+ * Para fuera del paywall (la tarjeta de predicción bloqueada de Hoy): la
+ * duración sale siempre del producto real, nunca escrita a mano.
+ */
+internal fun textoPruebaDisponible(): String? {
+    val detalles = Compras.detalles ?: return null
+    return detalles.subscriptionOfferDetails.orEmpty()
+        .map { it.basePlanId }
+        .distinct()
+        .firstNotNullOfOrNull { textoPruebaDe(detalles, it) }
+}
+
 /** El precio que se cobra cuando acaba la prueba, ya formateado. */
 private fun precioFinalDe(detalles: ProductDetails, planId: String): String? {
     val faseFinal = detalles.subscriptionOfferDetails

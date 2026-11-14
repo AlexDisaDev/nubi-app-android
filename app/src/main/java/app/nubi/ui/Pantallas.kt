@@ -72,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -485,6 +486,22 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             val horaLocal = hora.atZone(zonaLocal).toLocalTime()
             val instanteHoy = LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
             Repositorio.registrarDespertarManual(instanteHoy)
+            // Y la noche de la que se despertó, como un sueño nocturno real
+            // de 00:00 a esa hora (igual que iOS): sin esto el reloj de Día
+            // no pintaba la banda morada, no se sumaban esas horas de sueño
+            // y Hoy decía que no había ningún sueño registrado. Solo si la
+            // hora ya ha pasado (no se anota un sueño en el futuro).
+            val medianoche = LocalDate.now(zonaLocal).atStartOfDay(zonaLocal).toInstant()
+            if (!instanteHoy.isAfter(Instant.now()) && Duration.between(medianoche, instanteHoy).seconds >= 60) {
+                Repositorio.guardarRegistro(
+                    Registro(
+                        bebeId = nuevoBebe.id,
+                        tipo = TipoRegistro.NOCHE,
+                        inicio = medianoche,
+                        fin = instanteHoy
+                    )
+                )
+            }
         }
         alGuardar()
     }
@@ -1079,7 +1096,7 @@ fun PantallaHoy(
             if (premium) {
                 TarjetaPrediccion(prediccion = p, ahora = ahora)
             } else {
-                TarjetaPrediccionBloqueada { mostrarBloqueo = true }
+                TarjetaPrediccionBloqueada(p) { mostrarBloqueo = true }
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -1463,30 +1480,59 @@ private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
  * entera", solo que con un dibujo tapando el número).
  */
 @Composable
-private fun TarjetaPrediccionBloqueada(onClick: () -> Unit) {
+private fun TarjetaPrediccionBloqueada(prediccion: PrediccionDia, onClick: () -> Unit) {
     val colores = NubiTheme.colores
+    val esNoche = prediccion.tipo == TipoPrediccion.NOCHE
+    val colorCategoria = if (esNoche) colores.lila else colores.indigo
+    // Lo difuminado NO es la hora real, sino un relleno con la misma forma:
+    // Modifier.blur no hace nada antes de Android 12, y ahí se leería la
+    // predicción tal cual.
+    val relleno = if (esNoche) "${L10n.t("Sueño nocturno")} · ••:••"
+    else "${L10n.t("Próxima siesta")} · ••:•• – ••:••"
+    val titular = if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir.")
+    else L10n.t("Nubi ya ha calculado su próxima siesta.")
+    val llamada = textoPruebaDisponible()?.let { "${L10n.t("Desbloquéala con")} $it" }
+        ?: L10n.t("Desbloquéala con Nubi Premium")
+
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lienzoAlto, colorIcono = colores.tintaSuave, tamano = 36.dp, tamanoIcono = 17.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(L10n.t("Próxima ventana de sueño"), style = estiloTituloFilaHoy, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    L10n.t("Nubi ya sabe cuándo toca — desbloquéalo con Premium"),
-                    style = estiloSubtituloFilaHoy,
-                    color = colores.tintaTenue,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f).blur(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BadgeIcono(
+                        if (esNoche) IconoNubi.LUNA else IconoNubi.RELOJ,
+                        colorFondo = colorCategoria,
+                        colorIcono = colores.tinta,
+                        tamano = 36.dp,
+                        tamanoIcono = 17.dp
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(relleno, style = estiloTituloFilaHoy, maxLines = 1)
+                        Text(
+                            L10n.t("Ajustado a su ritmo real"),
+                            style = estiloSubtituloFilaHoy,
+                            color = colores.tintaTenue,
+                            maxLines = 1
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 32.dp, tamanoIcono = 15.dp)
             }
-            Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 12.dp)
+            Spacer(Modifier.height(10.dp))
+            Text(titular, style = estiloTituloFilaHoy.copy(fontSize = 16.sp), color = colores.tinta)
+            Text(
+                llamada,
+                style = estiloSubtituloFilaHoy.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                color = colores.indigo
+            )
         }
     }
 }
