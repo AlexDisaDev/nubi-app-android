@@ -402,6 +402,13 @@ fun PantallaLogin() {
     // pantalla justo después.
     var yaRegistradoAbandono by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
+    // Si llegó un enlace de invitación antes de iniciar sesión (p. ej. el
+    // destinatario no tenía la cuenta abierta todavía), Compartir.recibirEnlace
+    // ya guardó el token — pero el diálogo para aceptarlo solo se muestra
+    // dentro de ContenidoApp(), que no se monta sin sesión. Sin este aviso,
+    // la persona ve una pantalla de login genérica y no entiende por qué
+    // está aquí ni qué hacer a continuación.
+    val invitacionPendiente by Compartir.invitacionPendiente.collectAsState()
 
     LaunchedEffect(Unit) {
         EventosFunnel.registrar(EventoNombre.AUTH_SCREEN_VIEWED)
@@ -467,6 +474,29 @@ fun PantallaLogin() {
             color = NubiTheme.colores.tintaSuave,
             textAlign = TextAlign.Center
         )
+
+        if (invitacionPendiente != null) {
+            Spacer(Modifier.height(20.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = NubiTheme.colores.lila.copy(alpha = 0.3f)),
+                shape = RoundedCornerShape(NubiGeometria.radio),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        L10n.t("Te han invitado a un bebé"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = NubiTheme.colores.tinta
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        L10n.t("Inicia sesión para unirte y empezar a ver sus datos."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NubiTheme.colores.tintaSuave
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(28.dp))
 
