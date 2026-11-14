@@ -3,6 +3,7 @@ package app.nubi.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +21,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -104,14 +111,16 @@ fun PantallaBienvenidaAlta(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 20.dp, bottom = 12.dp),
+                .padding(top = 12.dp, bottom = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            // Más apretada cuando hay que elegir la hora de dormir, para que
+            // quepa entera sin scroll.
+            verticalArrangement = Arrangement.spacedBy(if (despertar == null) 12.dp else 16.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.nubi_logo_mark),
                 contentDescription = null,
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(if (despertar == null) 84.dp else 120.dp)
             )
             Text(
                 L10n.nubiConociendo(bebe.nombre),
@@ -223,13 +232,13 @@ private fun ContenidoDormido(
     val colores = NubiTheme.colores
     Text(
         L10n.yaDurmiendo(bebe.nombre),
-        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
         color = colores.tinta,
         textAlign = TextAlign.Center
     )
 
-    TarjetaBienvenida {
-        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 52.dp, tamanoIcono = 24.dp)
+    TarjetaBienvenida(compacta = true) {
+        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 40.dp, tamanoIcono = 20.dp)
         Text(
             L10n.t("Marca su sueño nocturno"),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -243,13 +252,41 @@ private fun ContenidoDormido(
         )
     }
 
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Una sola fila: la pregunta y, a la derecha, la hora en una cápsula que
+    // al tocarla abre el selector — la rueda en línea ocupaba media pantalla
+    // y obligaba a hacer scroll.
+    var mostrarSelector by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(NubiGeometria.radio))
+            .background(colores.superficie)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
             L10n.t("¿A qué hora se durmió tu bebé?"),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = colores.tinta
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+            color = colores.tinta,
+            modifier = Modifier.weight(1f)
         )
-        RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = onHora, onMinutoCambiar = onMinuto)
+        Spacer(Modifier.width(10.dp))
+        Text(
+            "%02d:%02d".format(hora, minuto),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = colores.tinta,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(colores.lila.copy(alpha = 0.25f))
+                .clickable { mostrarSelector = true }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+    }
+    if (mostrarSelector) {
+        SelectorHoraDormido(hora, minuto, onCerrar = { mostrarSelector = false }) { h, m ->
+            onHora(h)
+            onMinuto(m)
+        }
     }
 
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -266,6 +303,23 @@ private fun ContenidoDormido(
             color = colores.tintaSuave
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectorHoraDormido(hora: Int, minuto: Int, onCerrar: () -> Unit, onElegir: (Int, Int) -> Unit) {
+    val estado = rememberTimePickerState(initialHour = hora, initialMinute = minuto, is24Hour = true)
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        confirmButton = {
+            TextButton(onClick = {
+                onElegir(estado.hour, estado.minute)
+                onCerrar()
+            }) { Text(L10n.t("Aceptar")) }
+        },
+        dismissButton = { TextButton(onClick = onCerrar) { Text(L10n.t("Cancelar")) } },
+        text = { TimePicker(state = estado) }
+    )
 }
 
 @Composable
@@ -310,7 +364,7 @@ private fun TarjetaAprendiendo(nombre: String, conDespertar: Boolean) {
 }
 
 @Composable
-private fun TarjetaBienvenida(contenido: @Composable () -> Unit) {
+private fun TarjetaBienvenida(compacta: Boolean = false, contenido: @Composable () -> Unit) {
     val colores = NubiTheme.colores
     val forma = RoundedCornerShape(NubiGeometria.radio + 6.dp)
     Column(
@@ -319,9 +373,9 @@ private fun TarjetaBienvenida(contenido: @Composable () -> Unit) {
             .clip(forma)
             .background(colores.superficie)
             .border(1.dp, colores.lila.copy(alpha = 0.25f), forma)
-            .padding(vertical = 22.dp, horizontal = 16.dp),
+            .padding(vertical = if (compacta) 14.dp else 22.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(if (compacta) 6.dp else 12.dp)
     ) {
         contenido()
     }
