@@ -1080,6 +1080,12 @@ fun PantallaHoy(
         FilaUltimaToma(
             ultimoBiberon = ultimoBiberon,
             ultimoPecho = ultimoPecho,
+            // Toma de pecho en marcha (ver Repositorio.empezarToma): la fila
+            // cambia a "en curso" con las flechas para cambiar de pecho y el
+            // check para terminar — igual que tarjetaAlimentacion en iOS.
+            tomaEnCurso = if (premium) Repositorio.tomaEnCurso(registros, bebe.id) else null,
+            onCambiarPecho = { Repositorio.cambiarPecho(bebe.id) },
+            onTerminarToma = { Repositorio.terminarToma(bebe.id) },
             bloqueado = !premium,
             oscuro = oscuro,
             onReloj = { if (premium) mostrarHojaAvisoComida = true else mostrarBloqueo = true },
@@ -1513,6 +1519,9 @@ private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: B
 private fun FilaUltimaToma(
     ultimoBiberon: Registro?,
     ultimoPecho: Registro?,
+    tomaEnCurso: Registro? = null,
+    onCambiarPecho: () -> Unit = {},
+    onTerminarToma: () -> Unit = {},
     bloqueado: Boolean = false,
     oscuro: Boolean = false,
     onReloj: () -> Unit = {},
@@ -1521,6 +1530,11 @@ private fun FilaUltimaToma(
 ) {
     val colores = NubiTheme.colores
     val ultimo = listOfNotNull(ultimoBiberon, ultimoPecho).maxByOrNull { it.inicio }
+
+    if (tomaEnCurso != null && !bloqueado) {
+        FilaTomaEnCurso(tomaEnCurso, onCambiarPecho, onTerminarToma)
+        return
+    }
 
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
@@ -1590,6 +1604,96 @@ private fun FilaUltimaToma(
                     modifier = Modifier.clickable(onClick = onPecho)
                 )
             }
+        }
+    }
+}
+
+/** La fila de alimentación de Hoy mientras se da el pecho: lado y minutos
+ *  en marcha, las flechas para cambiar al otro pecho y el check para
+ *  terminar — igual que tarjetaAlimentacion / bloqueCambioPecho en iOS. */
+@Composable
+private fun FilaTomaEnCurso(
+    toma: Registro,
+    onCambiarPecho: () -> Unit,
+    onTerminarToma: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    // Para que los minutos avancen solos mientras la pantalla está abierta.
+    var ahora by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(toma.id) {
+        while (true) {
+            ahora = Instant.now()
+            delay(30_000)
+        }
+    }
+    val lado = toma.lado
+    val titulo = if (lado == LadoPecho.DERECHA) L10n.t("Pecho D") else L10n.t("Pecho I")
+    val minutos = java.time.Duration.between(toma.inicio, ahora).toMinutes()
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "$titulo · ${L10n.t("en curso")}",
+                    style = estiloTituloFilaHoy,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "${if (minutos < 1) "1 min" else textoDuracion(minutos)} · ${L10n.t("desde")} ${formatoHoraCorta.format(toma.inicio)}",
+                    style = estiloSubtituloFilaHoy,
+                    color = colores.tintaTenue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.width(6.dp))
+            // Flechas de cambio de pecho: el corazón del lado actual en
+            // fuerte, el otro apagado (bloqueCambioPecho en iOS).
+            Row(
+                modifier = Modifier
+                    .height(DIAMETRO_BADGE_HOY)
+                    .clip(RoundedCornerShape(50))
+                    .background(colores.melocoton.copy(alpha = 0.55f))
+                    .border(1.dp, colores.tinta.copy(alpha = 0.08f), RoundedCornerShape(50))
+                    .clickable(onClick = onCambiarPecho)
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icono(
+                    IconoNubi.CORAZON,
+                    tint = if (lado == LadoPecho.IZQUIERDA) colores.tinta else colores.tinta.copy(alpha = 0.25f),
+                    tamano = 14.dp
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "⇄",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = colores.tinta.copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.width(6.dp))
+                Icono(
+                    IconoNubi.CORAZON,
+                    tint = if (lado == LadoPecho.DERECHA) colores.tinta else colores.tinta.copy(alpha = 0.25f),
+                    tamano = 14.dp
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            BadgeIcono(
+                IconoNubi.CHECK,
+                colorFondo = colores.menta,
+                colorIcono = colores.tinta,
+                tamano = DIAMETRO_BADGE_HOY,
+                tamanoIcono = 16.dp,
+                modifier = Modifier.clickable(onClick = onTerminarToma)
+            )
         }
     }
 }

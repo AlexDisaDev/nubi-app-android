@@ -105,26 +105,18 @@ fun HojaPecho(bebeId: String, onCerrar: () -> Unit) {
             Spacer(Modifier.height(18.dp))
 
             FilaLadoPecho(titulo = L10n.t("Pecho izquierdo"), subtitulo = L10n.t("Pecho I")) {
-                Repositorio.guardarRegistro(
-                    Registro(
-                        bebeId = bebeId,
-                        tipo = TipoRegistro.PECHO,
-                        inicio = Instant.now(),
-                        lado = LadoPecho.IZQUIERDA
-                    )
-                )
+                // Empieza la toma en directo (queda "en curso" en Hoy, con
+                // las flechas para cambiar de pecho y el check para terminar)
+                // — igual que MenuPecho → Almacen.empezarToma en iOS.
+                Repositorio.empezarToma(bebeId, LadoPecho.IZQUIERDA)
                 onCerrar()
             }
             Spacer(Modifier.height(10.dp))
             FilaLadoPecho(titulo = L10n.t("Pecho derecho"), subtitulo = L10n.t("Pecho D")) {
-                Repositorio.guardarRegistro(
-                    Registro(
-                        bebeId = bebeId,
-                        tipo = TipoRegistro.PECHO,
-                        inicio = Instant.now(),
-                        lado = LadoPecho.DERECHA
-                    )
-                )
+                // Empieza la toma en directo (queda "en curso" en Hoy, con
+                // las flechas para cambiar de pecho y el check para terminar)
+                // — igual que MenuPecho → Almacen.empezarToma en iOS.
+                Repositorio.empezarToma(bebeId, LadoPecho.DERECHA)
                 onCerrar()
             }
         }
@@ -984,6 +976,39 @@ private fun BloqueDuracion(
     }
 }
 
+/** "Duración de la toma" al anotar un pecho pasado: minutos de 1 en 1, de
+ *  1 a 90 — igual que el contador de HojaHora en iOS. */
+@Composable
+private fun ContadorMinutosToma(minutos: Int, onCambiar: (Int) -> Unit) {
+    val colores = NubiTheme.colores
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radio),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            EtiquetaSeccionHoja(L10n.t("Duración de la toma"))
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BotonCirculoBiberon(masOMenos = false, colores = colores) {
+                    if (minutos > 1) onCambiar(minutos - 1)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(minutos.toString(), style = MaterialTheme.typography.displayMedium, color = colores.tinta)
+                    Text("min", style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave)
+                }
+                BotonCirculoBiberon(masOMenos = true, colores = colores) {
+                    if (minutos < 90) onCambiar(minutos + 1)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ContadorDuracion(etiqueta: String, valor: Int, minimo: Int, maximo: Int, onCambiar: (Int) -> Unit) {
     val colores = NubiTheme.colores
@@ -1430,6 +1455,19 @@ fun HojaPechoHora(
     var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
     val titulo = if (lado == LadoPecho.IZQUIERDA) L10n.t("Pecho izquierdo") else L10n.t("Pecho derecho")
 
+    // Duración, igual que iOS: al anotar una toma pasada desde Día, un
+    // contador de minutos (10 por defecto, de 1 en 1 hasta 90 —
+    // HojaHora/registrarTomaPasada); al editar una toma ya terminada,
+    // horas y minutos (HojaEditarRegistro). Una toma en curso no tiene
+    // duración que editar: se termina con el check de Hoy.
+    val enCurso = editando && registro?.fin == null
+    var minutosNueva by remember { mutableIntStateOf(10) }
+    val duracionOriginal = remember {
+        registro?.let { r -> r.fin?.let { java.time.Duration.between(r.inicio, it).toMinutes().toInt() } } ?: 0
+    }
+    var horasEdicion by remember { mutableIntStateOf(duracionOriginal / 60) }
+    var minutosEdicion by remember { mutableIntStateOf(duracionOriginal % 60) }
+
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
         Column(
             modifier = Modifier
@@ -1443,18 +1481,35 @@ fun HojaPechoHora(
                 CabeceraHojaEditar(IconoNubi.CORAZON, colores.melocoton, titulo)
                 Spacer(Modifier.height(14.dp))
                 TarjetaHoraInicioEditar(hora, minuto, { hora = it }, { minuto = it })
+                if (!enCurso) {
+                    Spacer(Modifier.height(14.dp))
+                    BloqueDuracion(
+                        horas = horasEdicion,
+                        minutos = minutosEdicion,
+                        onHorasCambiar = { horasEdicion = it },
+                        onMinutosCambiar = { minutosEdicion = it }
+                    )
+                }
             } else {
                 CabeceraHoja(IconoNubi.CORAZON, colores.melocoton, titulo, L10n.t("Elige la hora del registro"))
                 Spacer(Modifier.height(18.dp))
                 RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+                Spacer(Modifier.height(14.dp))
+                ContadorMinutosToma(minutosNueva) { minutosNueva = it }
             }
 
             Spacer(Modifier.height(18.dp))
             Button(
                 onClick = {
-                    val inicio = instanteDe(diaBase, hora, minuto)
+                    var inicio = instanteDe(diaBase, hora, minuto)
+                    if (!editando && inicio.isAfter(Instant.now())) inicio = Instant.now()
+                    val fin = when {
+                        enCurso -> null
+                        editando -> inicio.plusSeconds(maxOf(60L, (horasEdicion * 60L + minutosEdicion) * 60L))
+                        else -> inicio.plusSeconds(maxOf(1, minutosNueva) * 60L)
+                    }
                     val base = registro ?: Registro(bebeId = bebeId, tipo = TipoRegistro.PECHO, inicio = inicio)
-                    Repositorio.guardarRegistro(base.copy(inicio = inicio, lado = lado))
+                    Repositorio.guardarRegistro(base.copy(inicio = inicio, fin = fin, lado = lado))
                     onCerrar()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colores.melocoton, contentColor = colores.tinta),

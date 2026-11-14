@@ -435,6 +435,83 @@ object Repositorio {
         }
     }
 
+    // -----------------------------------------------------------------
+    // Toma de pecho en directo (botón de pecho de Hoy) — igual que
+    // Almacen.empezarToma / terminarToma / cambiarPecho en iOS: la toma
+    // queda abierta (fin = null) mientras dura, y al cambiar de lado se
+    // cierra el tramo actual y se abre otro del otro pecho en el mismo
+    // instante. En Día esos tramos se ven como una sola toma (ver
+    // agruparTomasPecho en Pantallas.kt).
+    // -----------------------------------------------------------------
+
+    /** Más de esto abierta no se considera "en curso": son las tomas
+     *  antiguas de Android, que se guardaban sin hora de fin. */
+    private val MAXIMO_TOMA_ABIERTA = java.time.Duration.ofHours(3)
+
+    /** La toma de pecho abierta ahora mismo para ese bebé, si la hay. */
+    fun tomaEnCurso(registros: List<Registro>, bebeId: String, ahora: Instant = Instant.now()): Registro? =
+        registros
+            .filter {
+                it.bebeId == bebeId && it.tipo == TipoRegistro.PECHO && it.fin == null &&
+                    !it.inicio.isAfter(ahora) &&
+                    java.time.Duration.between(it.inicio, ahora) <= MAXIMO_TOMA_ABIERTA
+            }
+            .maxByOrNull { it.inicio }
+
+    /** Mínimo de 1 minuto por tramo, como en iOS. */
+    private fun finDeTramo(r: Registro, ahora: Instant): Instant =
+        maxOf(ahora, r.inicio.plusSeconds(60))
+
+    fun empezarToma(bebeId: String, lado: LadoPecho) = modificarRegistrosDeToma { registros, ahora ->
+        val cerrados = registros.map { r ->
+            when {
+                r.bebeId != bebeId || r.fin != null -> r
+                // Igual que iOS: empezar a dar el pecho cierra una siesta en
+                // curso (no el sueño nocturno).
+                r.tipo == TipoRegistro.SIESTA -> r.copy(fin = maxOf(ahora, r.inicio.plusSeconds(60)))
+                r.id == tomaEnCurso(registros, bebeId, ahora)?.id -> r.copy(fin = finDeTramo(r, ahora))
+                else -> r
+            }
+        }
+        cerrados + Registro(bebeId = bebeId, tipo = TipoRegistro.PECHO, inicio = ahora, lado = lado)
+    }
+
+    fun terminarToma(bebeId: String) = modificarRegistrosDeToma { registros, ahora ->
+        val actual = tomaEnCurso(registros, bebeId, ahora) ?: return@modificarRegistrosDeToma registros
+        registros.map { if (it.id == actual.id) it.copy(fin = finDeTramo(it, ahora)) else it }
+    }
+
+    fun cambiarPecho(bebeId: String) = modificarRegistrosDeToma { registros, ahora ->
+        val actual = tomaEnCurso(registros, bebeId, ahora) ?: return@modificarRegistrosDeToma registros
+        val ladoActual = actual.lado ?: return@modificarRegistrosDeToma registros
+        val nuevoLado = if (ladoActual == LadoPecho.IZQUIERDA) LadoPecho.DERECHA else LadoPecho.IZQUIERDA
+        // El tramo nuevo empieza en "ahora", no en el fin del anterior
+        // (que puede quedar hasta 60 s por delante) — igual que iOS.
+        registros.map { if (it.id == actual.id) it.copy(fin = finDeTramo(it, ahora)) else it } +
+            Registro(bebeId = bebeId, tipo = TipoRegistro.PECHO, inicio = ahora, lado = nuevoLado)
+    }
+
+    /** Aplica de una vez (un solo modificar) los cambios de una toma y marca
+     *  como pendientes de subir solo los registros nuevos o cambiados. */
+    private fun modificarRegistrosDeToma(cambio: (List<Registro>, Instant) -> List<Registro>) {
+        ambito.launch {
+            val ahora = Instant.now()
+            var tocados: List<Registro> = emptyList()
+            local.modificar { d ->
+                val nuevos = cambio(d.registros, ahora)
+                tocados = nuevos.filter { n -> d.registros.none { it == n } }
+                    .map { it.copy(actualizadoEn = ahora) }
+                val idsTocados = tocados.map { it.id }.toSet()
+                d.copy(registros = d.registros.filterNot { it.id in idsTocados } + tocados)
+            }
+            if (tocados.isEmpty()) return@launch
+            tocados.forEach { local.marcarPendiente(Tablas.REGISTROS, it.id) }
+            sincronizador.sincronizar()
+            avisarDeSueno(contexto)
+            avisarDeComida(contexto)
+        }
+    }
+
     fun borrarRegistro(id: String) {
         ambito.launch {
             local.modificar { d -> d.copy(registros = d.registros.filterNot { it.id == id }) }
