@@ -464,19 +464,43 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     // La hora de despertar es opcional y no entra en esta validación.
     val datosValidos = nombre.isNotBlank() && nacimiento != null
 
-    fun crearBebe() {
+    // En vez de crear el bebé nada más pulsar "Continuar", se enseña antes
+    // la pantalla de bienvenida (PantallaBienvenidaAlta): su próxima siesta,
+    // o marcar su sueño nocturno. Su propio "Continuar" es el que lo crea.
+    var mostrarBienvenida by remember { mutableStateOf(false) }
+
+    /** La hora de despertar elegida, en el día de hoy. */
+    fun despertarDeHoy(): Instant? = horaDespertar?.let { hora ->
+        val horaLocal = hora.atZone(zonaLocal).toLocalTime()
+        LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
+    }
+
+    fun bebeNuevo(miId: String) = Bebe(
+        usuarioId = miId,
+        nombre = nombre.trim().ifBlank { L10n.t("Mi bebé") },
+        fechaNacimiento = nacimiento ?: Instant.now(),
+        semanasPrematuro = if (prematuro) semanasPrematuro else 0
+    )
+
+    fun crearBebe(horaDormido: Instant? = null) {
         val miId = Supabase.client.auth.currentUserOrNull()?.id
             // No debería pasar nunca (esta pantalla solo se ve con sesión
             // iniciada), pero mejor no guardar un bebé que luego nunca
             // podría subirse a Supabase.
             ?: return
-        val nuevoBebe = Bebe(
-            usuarioId = miId,
-            nombre = nombre.trim().ifBlank { L10n.t("Mi bebé") },
-            fechaNacimiento = nacimiento ?: Instant.now(),
-            semanasPrematuro = if (prematuro) semanasPrematuro else 0
-        )
+        val nuevoBebe = bebeNuevo(miId)
         Repositorio.guardarBebe(nuevoBebe)
+        // Sin hora de despertar: la pantalla de bienvenida preguntó a qué
+        // hora se durmió, y se empieza ya su sueño nocturno (en curso).
+        if (horaDespertar == null && horaDormido != null) {
+            Repositorio.guardarRegistro(
+                Registro(
+                    bebeId = nuevoBebe.id,
+                    tipo = TipoRegistro.NOCHE,
+                    inicio = minOf(horaDormido, Instant.now())
+                )
+            )
+        }
         // Si el usuario indicó la hora en que se despertó hoy, se guarda
         // aparte de los registros (Repositorio.registrarDespertarManual,
         // igual que el despertarManual de iOS): así Nubi ya puede estimar
@@ -504,6 +528,14 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             }
         }
         alGuardar()
+    }
+
+    if (mostrarBienvenida) {
+        PantallaBienvenidaAlta(
+            bebe = bebeNuevo(Supabase.client.auth.currentUserOrNull()?.id ?: ""),
+            despertar = despertarDeHoy()
+        ) { horaDormido -> crearBebe(horaDormido) }
+        return
     }
 
     Column(
@@ -540,7 +572,7 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
         Spacer(Modifier.height(20.dp))
 
         Button(
-            onClick = { if (datosValidos) crearBebe() },
+            onClick = { if (datosValidos) mostrarBienvenida = true },
             enabled = datosValidos,
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             modifier = Modifier.fillMaxWidth()
@@ -1100,6 +1132,16 @@ fun PantallaHoy(
             }
             Spacer(Modifier.height(12.dp))
         }
+        // Mientras duerme la noche el motor no da predicción (espera al
+        // despertar), pero sin premium se enseña ya la tarjeta difuminada:
+        // Nubi la calculará cuando despierte. Igual que iOS.
+        if (prediccion == null && !premium && suenoEnCurso?.tipo == TipoRegistro.NOCHE) {
+            TarjetaPrediccionBloqueada(
+                null,
+                titularFijo = L10n.calcularaCuandoDespierte(bebe.nombre)
+            ) { mostrarBloqueo = true }
+            Spacer(Modifier.height(12.dp))
+        }
 
         FilaUltimaToma(
             ultimoBiberon = ultimoBiberon,
@@ -1485,16 +1527,22 @@ private fun TarjetaPrediccion(prediccion: PrediccionDia, ahora: Instant) {
  * entera", solo que con un dibujo tapando el número).
  */
 @Composable
-private fun TarjetaPrediccionBloqueada(prediccion: PrediccionDia, onClick: () -> Unit) {
+private fun TarjetaPrediccionBloqueada(
+    prediccion: PrediccionDia?,
+    // Sin predicción todavía (duerme su primera noche): se enseña igual,
+    // como próxima siesta, con este titular.
+    titularFijo: String? = null,
+    onClick: () -> Unit
+) {
     val colores = NubiTheme.colores
-    val esNoche = prediccion.tipo == TipoPrediccion.NOCHE
+    val esNoche = prediccion?.tipo == TipoPrediccion.NOCHE
     val colorCategoria = if (esNoche) colores.lila else colores.indigo
     // Lo difuminado NO es la hora real, sino un relleno con la misma forma:
     // Modifier.blur no hace nada antes de Android 12, y ahí se leería la
     // predicción tal cual.
     val relleno = if (esNoche) "${L10n.t("Sueño nocturno")} · ••:••"
     else "${L10n.t("Próxima siesta")} · ••:•• – ••:••"
-    val titular = if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir.")
+    val titular = titularFijo ?: if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir.")
     else L10n.t("Nubi ya ha calculado su próxima siesta.")
     val llamada = textoPruebaDisponible()?.let { "${L10n.t("Desbloquéala con")} $it" }
         ?: L10n.t("Desbloquéala con Nubi Premium")

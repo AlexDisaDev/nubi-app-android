@@ -220,6 +220,52 @@ object L10n {
         }
     }
 
+    // ---- Pantalla de bienvenida tras el alta (PantallaBienvenidaAlta) ----
+
+    fun nubiConociendo(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Nubi is getting to know $nombre"
+        IdiomaNubi.ITALIANO -> "Nubi sta conoscendo $nombre"
+        IdiomaNubi.FRANCES -> "Nubi apprend à connaître $nombre"
+        else -> "Nubi está conociendo a $nombre"
+    }
+
+    fun yaDurmiendo(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Is $nombre already asleep?"
+        IdiomaNubi.ITALIANO -> "$nombre sta già dormendo?"
+        IdiomaNubi.FRANCES -> "$nombre dort déjà ?"
+        else -> "¿$nombre ya está durmiendo?"
+    }
+
+    fun aprendiendoRitmo(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Learning $nombre's rhythm"
+        IdiomaNubi.ITALIANO -> "Imparando il ritmo di $nombre"
+        IdiomaNubi.FRANCES -> "J'apprends le rythme de $nombre"
+        else -> "Aprendiendo el ritmo de $nombre"
+    }
+
+    fun calculadaConEdad(edad: String, hora: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Worked out from their age ($edad) and the time they woke up today: $hora."
+        IdiomaNubi.ITALIANO -> "Calcolata in base alla sua età ($edad) e all'ora in cui si è svegliato oggi: $hora."
+        IdiomaNubi.FRANCES -> "Calculée selon son âge ($edad) et l'heure de son réveil aujourd'hui : $hora."
+        else -> "Calculada con su edad ($edad) y la hora en que se despertó hoy: $hora."
+    }
+
+    /** "en 1 h 15 min" */
+    fun enDuracion(duracion: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "in $duracion"
+        IdiomaNubi.ITALIANO -> "tra $duracion"
+        IdiomaNubi.FRANCES -> "dans $duracion"
+        else -> "en $duracion"
+    }
+
+    /** Tarjeta difuminada de Hoy mientras duerme la primera noche. */
+    fun calcularaCuandoDespierte(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Nubi will work out their next nap when $nombre wakes up."
+        IdiomaNubi.ITALIANO -> "Nubi calcolerà il suo prossimo sonnellino quando $nombre si sveglierà."
+        IdiomaNubi.FRANCES -> "Nubi calculera sa prochaine sieste quand $nombre se réveillera."
+        else -> "Nubi calculará su próxima siesta cuando $nombre despierte."
+    }
+
     /** Letra pequeña de abajo cuando hay prueba gratis. */
     fun condicionesConPrueba(prueba: String, precio: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES ->

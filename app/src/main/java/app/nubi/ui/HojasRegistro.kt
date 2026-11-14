@@ -795,7 +795,7 @@ fun TarjetaHoraInicioEditar(hora: Int, minuto: Int, onHoraCambiar: (Int) -> Unit
 // columnas (horas y minutos) y una cápsula central fija detrás.
 // ---------------------------------------------------------------------
 @Composable
-private fun RuedaHoraMinuto(
+internal fun RuedaHoraMinuto(
     hora: Int,
     minuto: Int,
     onHoraCambiar: (Int) -> Unit,
