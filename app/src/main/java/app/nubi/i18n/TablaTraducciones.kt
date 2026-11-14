@@ -40,11 +40,10 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
         "it" to "Offerte, consigli e novità di Nubi nella tua casella. Puoi annullare l'iscrizione in qualsiasi momento.",
         "fr" to "Offres, conseils et nouveautés de Nubi dans votre boîte mail. Vous pouvez vous désinscrire à tout moment."
     ),
-    "¿Quieres recibir nuestra newsletter?" to mapOf("en" to "Would you like to receive our newsletter?", "it" to "Vuoi ricevere la nostra newsletter?", "fr" to "Souhaitez-vous recevoir notre newsletter ?"),
-    "Te avisamos por email de ofertas como el Black Friday, consejos y novedades de Nubi. Puedes darte de baja cuando quieras desde Ajustes." to mapOf(
-        "en" to "We'll email you about offers like Black Friday, tips and Nubi news. You can unsubscribe at any time from Settings.",
-        "it" to "Ti avviseremo via email di offerte come il Black Friday, consigli e novità di Nubi. Puoi annullare l'iscrizione in qualsiasi momento da Impostazioni.",
-        "fr" to "Nous vous informerons par email des offres comme le Black Friday, de conseils et des nouveautés de Nubi. Vous pouvez vous désinscrire à tout moment depuis les Réglages."
+    "Quiero recibir ofertas, descuentos y promociones especiales por email." to mapOf(
+        "en" to "I want to receive offers, discounts and special promotions by email.",
+        "it" to "Voglio ricevere offerte, sconti e promozioni speciali via email.",
+        "fr" to "Je souhaite recevoir des offres, des réductions et des promotions spéciales par email."
     ),
     "Sí, quiero recibirla" to mapOf("en" to "Yes, I'd like to receive it", "it" to "Sì, voglio riceverla", "fr" to "Oui, je souhaite la recevoir"),
     "No, gracias" to mapOf("en" to "No, thanks", "it" to "No, grazie", "fr" to "Non, merci"),

@@ -376,10 +376,11 @@ fun ContenidoApp() {
             // cuenta como "no, gracias" — igual que cerrar cualquier otro
             // aviso de permiso opcional, y así no insiste en cada apertura.
             onDismissRequest = { Repositorio.actualizarNewsletter(false) },
-            title = { Text(L10n.t("¿Quieres recibir nuestra newsletter?")) },
-            text = {
-                Text(L10n.t("Te avisamos por email de ofertas como el Black Friday, consejos y novedades de Nubi. Puedes darte de baja cuando quieras desde Ajustes."))
-            },
+            // El propio texto de consentimiento como title (más grande que
+            // el text de un AlertDialog) en vez de un título corto + cuerpo
+            // en letra pequeña: así se lee grande y es lo único que dice el
+            // aviso, sin la mención a Black Friday/consejos de antes.
+            title = { Text(L10n.t("Quiero recibir ofertas, descuentos y promociones especiales por email.")) },
             confirmButton = {
                 TextButton(onClick = { Repositorio.actualizarNewsletter(true) }) {
                     Text(L10n.t("Sí, quiero recibirla"))
