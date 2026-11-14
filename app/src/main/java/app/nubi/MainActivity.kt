@@ -251,6 +251,21 @@ fun ContenidoApp() {
                 CircularProgressIndicator()
             }
 
+        // Quien llega aquí recién logueado con una invitación pendiente NO
+        // debe ver el formulario de alta: antes se enseñaba PantallaNuevoBebe
+        // de fondo con el diálogo de "Te han invitado" flotando encima, y si
+        // ese diálogo se descartaba (atrás, tocar fuera, o incluso solo el
+        // frame que tarda en aparecer) la persona se quedaba mirando un
+        // formulario para darse de alta su propio bebé, que no viene a
+        // cuento cuando lo que va a hacer es unirse al de otra cuenta. Si
+        // decide "Ahora no", invitacionPendiente pasa a null y esta rama
+        // deja paso a PantallaNuevoBebe de verdad, como con cualquier cuenta
+        // nueva sin invitación.
+        datos.bebe == null && invitacionPendiente != null ->
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+
         // Sin pantalla de bienvenida/código de regalo intermedia: va directo
         // al alta del bebé, igual que iOS (VistaAlta se abre directamente).
         // Canjear un código sigue disponible desde Ajustes en todo momento.
