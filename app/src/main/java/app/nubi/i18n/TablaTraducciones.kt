@@ -12,6 +12,17 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Tranquilo: tus datos no se van a borrar. Siguen guardados en tu iPhone y en tu iCloud privado tal y como estaban." to mapOf("en" to "Don't worry: your data won't be deleted. It's still saved on your iPhone and in your private iCloud, just as it was.", "it" to "Tranquillo: i tuoi dati non verranno cancellati. Restano salvati sul tuo iPhone e nel tuo iCloud privato, esattamente come prima.", "fr" to "Pas d'inquiétude : vos données ne seront pas supprimées. Elles restent enregistrées sur votre iPhone et dans votre iCloud privé, exactement comme avant."),
     "Continuar con Google" to mapOf("en" to "Continue with Google", "it" to "Continua con Google", "fr" to "Continuer avec Google"),
     "Al continuar aceptas nuestros términos y la política de privacidad de Nubi." to mapOf("en" to "By continuing you accept Nubi's terms and privacy policy.", "it" to "Continuando accetti i termini e l'informativa sulla privacy di Nubi.", "fr" to "En continuant, vous acceptez les conditions d'utilisation et la politique de confidentialité de Nubi."),
+    // Pantalla de login de Android (Google como único método): estas entradas
+    // faltaban en el puerto desde Traducciones.swift, así que se quedaban
+    // siempre en español aunque el idioma efectivo fuera otro — el botón
+    // "Continuar con Google" sí tenía su entrada y por eso era el único que
+    // cambiaba de idioma correctamente.
+    "Empieza a entender mejor el día de tu bebé." to mapOf("en" to "Start understanding your baby's day better.", "it" to "Inizia a capire meglio la giornata del tuo bebè.", "fr" to "Commencez à mieux comprendre la journée de votre bébé."),
+    "Sueño, siestas, tomas y pañales en un solo lugar." to mapOf("en" to "Sleep, naps, feedings and diapers in one place.", "it" to "Sonno, pisolini, pasti e pannolini in un solo posto.", "fr" to "Sommeil, siestes, repas et couches au même endroit."),
+    "¿Ya usabas Nubi? Recuperaremos tus datos al continuar." to mapOf("en" to "Already used Nubi? We'll recover your data when you continue.", "it" to "Usavi già Nubi? Recupereremo i tuoi dati quando continui.", "fr" to "Vous utilisiez déjà Nubi ? Nous récupérerons vos données en continuant."),
+    "Al continuar, aceptas los" to mapOf("en" to "By continuing, you accept the", "it" to "Continuando, accetti i", "fr" to "En continuant, vous acceptez les"),
+    "y la" to mapOf("en" to "and the", "it" to "e l'", "fr" to "et la"),
+    "Creando…" to mapOf("en" to "Creating…", "it" to "Creazione…", "fr" to "Création…"),
     "Hoy" to mapOf("en" to "Today", "it" to "Oggi", "fr" to "Aujourd'hui"),
     "Día" to mapOf("en" to "Day", "it" to "Giorno", "fr" to "Jour"),
     "Crece" to mapOf("en" to "Growth", "it" to "Crescita", "fr" to "Croissance"),
