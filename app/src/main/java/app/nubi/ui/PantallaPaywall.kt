@@ -642,7 +642,7 @@ private fun TarjetaPlan(
 
     val faseFinal = fases.last()
     val textoPrecio = "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
-    val textoOferta = textoOfertaDe(detalles, planId, faseFinal.billingPeriod)
+    val textoOferta = textoOfertaDe(detalles, planId, faseFinal.billingPeriod, faseFinal.formattedPrice)
     val ahorro = ahorroPorcentaje(detalles, planId)
     // El anual lleva la cinta de "MEJOR PRECIO": es el que sale más barato
     // por mes de los tres, así que no es una etiqueta de adorno.
@@ -680,9 +680,8 @@ private fun TarjetaPlan(
                             color = colores.tinta,
                             fontWeight = FontWeight.SemiBold
                         )
-                        // "7 días gratis, luego X€/mes" si ese plan aún tiene
-                        // prueba; si no, el antiguo "Sale a X/mes" (y nada en
-                        // el mensual sin prueba, que ya se paga mes a mes).
+                        // "7 días gratis, luego 39,99 € al año" o "Un solo
+                        // pago al año" — ver textoOfertaDe.
                         if (textoOferta != null) {
                             Text(
                                 textoOferta,
@@ -712,10 +711,12 @@ private fun TarjetaPlan(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.sp * e,
                             letterSpacing = 1.2.sp,
-                            color = colores.tinta,
+                            // Morado oscuro fijo con letra blanca (en amarillo
+                            // casi no se leía), el mismo en modo noche.
+                            color = Color.White,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(colores.mantequilla)
+                                .background(Color(0xFF6E63A6))
                                 .padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
@@ -926,18 +927,18 @@ private fun precioPorMesFormateado(detalles: ProductDetails, planId: String, per
 }
 
 /**
- * Texto bajo el nombre del plan: "7 días gratis, luego 3,33 €/mes" si ese
- * plan todavía tiene prueba disponible; si no, el antiguo "Sale a X/mes"
- * (y nada en el mensual sin prueba, que ya se paga mes a mes). Igual que
- * `textoOferta` en Paywall.swift.
+ * Texto bajo el nombre del plan, siempre con el importe que se cobra de
+ * verdad y cada cuánto: "7 días gratis, luego 39,99 € al año" si ese plan
+ * aún tiene prueba; si no, "Un solo pago al año" / "Un solo pago cada 3
+ * meses" (y nada en el mensual). Antes decía "Sale a 3,33 €/mes", que
+ * parecía un cobro mensual cuando el anual y el trimestral se pagan de una
+ * vez. Igual que `textoOferta` en Paywall.swift.
  */
-private fun textoOfertaDe(detalles: ProductDetails, planId: String, periodo: String): String? {
+private fun textoOfertaDe(detalles: ProductDetails, planId: String, periodo: String, precio: String): String? {
+    val meses = mesesDe(periodo) ?: return null
     val prueba = textoPruebaDe(detalles, planId)
-    if (prueba != null) {
-        val porMes = precioPorMesFormateado(detalles, planId, periodo) ?: return null
-        return L10n.pruebaLuegoPorMes(prueba, porMes)
-    }
-    return precioMensualizadoTexto(detalles, planId, periodo)
+    if (prueba != null) return L10n.pruebaLuegoPrecio(prueba, precio, meses)
+    return if (meses > 1) L10n.unSoloPago(meses) else null
 }
 
 /**

@@ -340,7 +340,10 @@ data class Perfil(
     @SerialName("acepta_newsletter") val aceptaNewsletter: Boolean = false,
     // true en cuanto se le ha preguntado alguna vez (acepte o no) — para
     // no volver a preguntarle. Ver migración agregar_newsletter_preguntado.
-    @SerialName("newsletter_preguntado") val newsletterPreguntado: Boolean = false
+    @SerialName("newsletter_preguntado") val newsletterPreguntado: Boolean = false,
+    // Cuándo se creó la cuenta (Supabase). Nullable con default: un JSON
+    // local de una versión anterior sin esta columna se sigue leyendo.
+    @SerialName("creado_en") val creadoEn: Fecha? = null
 ) {
     /** Mismo cálculo que la función puede_registrar() de Supabase. */
     fun puedeUsarApp(ahora: Instant = Instant.now()): Boolean {

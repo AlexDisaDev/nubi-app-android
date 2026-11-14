@@ -180,6 +180,46 @@ object L10n {
         else -> "$prueba, luego $precioPorMes/mes"
     }
 
+    /** "al año", "cada 3 meses", "al mes"… — cada cuánto se cobra un plan. */
+    fun cadaPeriodo(meses: Int): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES ->
+            if (meses % 12 == 0) (if (meses == 12) "per year" else "every ${meses / 12} years")
+            else if (meses == 1) "per month" else "every $meses months"
+        IdiomaNubi.ITALIANO ->
+            if (meses % 12 == 0) (if (meses == 12) "all'anno" else "ogni ${meses / 12} anni")
+            else if (meses == 1) "al mese" else "ogni $meses mesi"
+        IdiomaNubi.FRANCES ->
+            if (meses % 12 == 0) (if (meses == 12) "par an" else "tous les ${meses / 12} ans")
+            else if (meses == 1) "par mois" else "tous les $meses mois"
+        else ->
+            if (meses % 12 == 0) (if (meses == 12) "al año" else "cada ${meses / 12} años")
+            else if (meses == 1) "al mes" else "cada $meses meses"
+    }
+
+    /** "7 días gratis, luego 39,99 € al año" — el importe que se cobra de
+     *  verdad y cada cuánto, nunca un "/mes" que haga pensar que el anual o
+     *  el trimestral se pagan mes a mes. Igual que en iOS. */
+    fun pruebaLuegoPrecio(prueba: String, precio: String, meses: Int): String {
+        val periodo = cadaPeriodo(meses)
+        return when (idiomaEfectivo) {
+            IdiomaNubi.INGLES -> "$prueba, then $precio $periodo"
+            IdiomaNubi.ITALIANO -> "$prueba, poi $precio $periodo"
+            IdiomaNubi.FRANCES -> "$prueba, puis $precio $periodo"
+            else -> "$prueba, luego $precio $periodo"
+        }
+    }
+
+    /** "Un solo pago al año" / "Un solo pago cada 3 meses". */
+    fun unSoloPago(meses: Int): String {
+        val periodo = cadaPeriodo(meses)
+        return when (idiomaEfectivo) {
+            IdiomaNubi.INGLES -> "One payment $periodo"
+            IdiomaNubi.ITALIANO -> "Un unico pagamento $periodo"
+            IdiomaNubi.FRANCES -> "Un seul paiement $periodo"
+            else -> "Un solo pago $periodo"
+        }
+    }
+
     /** Letra pequeña de abajo cuando hay prueba gratis. */
     fun condicionesConPrueba(prueba: String, precio: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES ->

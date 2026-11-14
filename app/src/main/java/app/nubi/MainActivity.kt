@@ -66,6 +66,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.nubi.data.Compartir
+import app.nubi.data.Premium
 import app.nubi.data.EventoNombre
 import app.nubi.data.EventosFunnel
 import app.nubi.data.Repositorio
@@ -224,9 +225,16 @@ fun ContenidoApp() {
     // cuando ya hay bebé y perfil, y no hay una invitación de por medio
     // (esa tiene prioridad y este diálogo puede esperar a la próxima
     // sincronización/apertura de la app).
+    //
+    // Y no desde el primer día: se pregunta cuando la cuenta cumple 7 días
+    // (perfiles.creado_en, el mismo dato en todos sus móviles), o antes si
+    // ya tiene premium. Igual que RaizVista en iOS.
+    val cuentaCon7Dias = datos.perfil?.creadoEn
+        ?.let { !java.time.Instant.now().isBefore(it.plus(java.time.Duration.ofDays(7))) } == true
     val mostrarPreguntaNewsletter = datos.bebe != null &&
         datos.perfil?.newsletterPreguntado == false &&
-        invitacionPendiente == null
+        invitacionPendiente == null &&
+        (cuentaCon7Dias || Premium.activo(datos.perfil, datos.premiumCompartido))
 
     // Permiso de notificaciones (obligatorio desde Android 13): se pide una
     // vez al entrar, para que los avisos de medicina y citas puedan sonar.
