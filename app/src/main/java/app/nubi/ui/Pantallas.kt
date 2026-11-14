@@ -584,6 +584,19 @@ private fun ContenidoAlta(
 ) {
     val colores = NubiTheme.colores
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        // Logo suelto (sin el nombre) centrado arriba, solo para que la
+        // pantalla no empiece en seco con el título — a propósito más
+        // pequeño que en PantallaLogin: este paso ya va justo de alto (no
+        // tiene scroll, ver el Column(weight(1f)) del llamador), así que no
+        // puede comerse el hueco que necesita el resto en pantallas pequeñas.
+        Image(
+            painter = painterResource(R.drawable.nubi_logo_mark),
+            contentDescription = null,
+            modifier = Modifier
+                .size(64.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 L10n.t("Conozcamos a tu bebé"),

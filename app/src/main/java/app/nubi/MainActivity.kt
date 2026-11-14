@@ -492,19 +492,13 @@ fun PantallaLogin() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Icono solo (ya sin fondo blanco) + "Nubi" como texto aparte, en la
-        // tipografía de titulares — igual que VistaLogin en iOS — en vez del
-        // logo-completo.png de antes, cuyo "NUBI" iba en otra fuente dibujada.
+        // Logo con el nombre "Nubi" ya integrado en el propio PNG
+        // (transparente) — en vez del icono suelto + Text("Nubi") de antes,
+        // que duplicaba el nombre con otra tipografía.
         Image(
-            painter = painterResource(R.drawable.nubi_logo_mark),
+            painter = painterResource(R.drawable.nubi_logo_splash),
             contentDescription = null,
-            modifier = Modifier.size(96.dp)
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            "Nubi",
-            style = MaterialTheme.typography.headlineSmall,
-            color = NubiTheme.colores.tinta
+            modifier = Modifier.width(160.dp)
         )
 
         Spacer(Modifier.height(24.dp))
