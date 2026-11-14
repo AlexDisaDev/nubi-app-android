@@ -6,7 +6,11 @@ import app.nubi.i18n.L10n
 import app.nubi.notificaciones.AvisosNubi
 import app.nubi.notificaciones.NotificadorPrueba
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.functions.functions
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -314,9 +318,11 @@ object Repositorio {
      * alta del bebé para cuentas nuevas, o con el diálogo de
      * mostrarPreguntaNewsletter en ContenidoApp, MainActivity.kt, una sola
      * vez para cuentas ya existentes). Es un dato de cuenta (perfiles), no
-     * de bebé, así que va directo al RPC actualizar_newsletter en vez de
-     * por el camino offline de bebé/registros — ese RPC pone también
-     * newsletter_preguntado a true, así que no hace falta otra llamada.
+     * de bebé, así que va directo al edge function sincronizar-newsletter-
+     * brevo en vez de por el camino offline de bebé/registros — esa
+     * function llama ella misma al RPC actualizar_newsletter (que pone
+     * también newsletter_preguntado a true) y, en el mismo paso, añade o
+     * quita el contacto de la lista de newsletter en Brevo.
      *
      * Optimista: el cambio se ve en la UI al instante; si la llamada de
      * red falla, la próxima sincronización trae de vuelta el valor real
@@ -329,10 +335,13 @@ object Repositorio {
                 it.copy(perfil = perfilActual.copy(aceptaNewsletter = acepta, newsletterPreguntado = true))
             }
             runCatching {
-                Supabase.client.postgrest.rpc(
-                    "actualizar_newsletter",
-                    buildJsonObject { put("p_acepta", acepta) }
-                )
+                val accessToken = Supabase.client.auth.currentAccessTokenOrNull()
+                    ?: throw IllegalStateException("Sin sesión de Supabase")
+                Supabase.client.functions.invoke("sincronizar-newsletter-brevo") {
+                    contentType(ContentType.Application.Json)
+                    bearerAuth(accessToken)
+                    setBody(buildJsonObject { put("acepta", acepta) }.toString())
+                }
             }
         }
     }
