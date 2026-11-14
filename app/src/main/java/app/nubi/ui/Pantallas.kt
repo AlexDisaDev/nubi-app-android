@@ -491,6 +491,12 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Pantalla fuera de Navegacion (todavía no hay bebé), así que
+            // nadie más le aparta la barra de estado ni la de navegación del
+            // sistema — sin esto, el título queda debajo del reloj/batería y
+            // el botón "Continuar" debajo de los botones de Android.
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = NubiGeometria.margen)
             .padding(top = 10.dp, bottom = 12.dp)
     ) {
