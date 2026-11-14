@@ -217,11 +217,11 @@ fun ContenidoApp() {
     // compartido…" hasta que el bebé y sus registros están en el móvil.
     var cargandoCompartido by remember { mutableStateOf(false) }
 
-    // Aviso único de newsletter para usuarios ya existentes (los nuevos ya
-    // responden esto en PantallaNuevoBebe, así que newsletter_preguntado les
-    // queda en true desde el alta y nunca llegan a ver este diálogo). Se
-    // pide solo cuando ya hay bebé y perfil, y no hay una invitación de por
-    // medio (esa tiene prioridad y este diálogo puede esperar a la próxima
+    // Aviso único de newsletter, para todo el mundo (usuarios nuevos y ya
+    // existentes): se pide aquí, en la pantalla principal, y no en el alta
+    // del bebé — así solo hay un sitio donde se pregunta. Se muestra solo
+    // cuando ya hay bebé y perfil, y no hay una invitación de por medio
+    // (esa tiene prioridad y este diálogo puede esperar a la próxima
     // sincronización/apertura de la app).
     val mostrarPreguntaNewsletter = datos.bebe != null &&
         datos.perfil?.newsletterPreguntado == false &&
