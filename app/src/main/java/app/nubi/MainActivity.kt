@@ -81,6 +81,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -396,15 +397,29 @@ fun PantallaLogin() {
     // pantalla desaparece — pasa a ContenidoApp en cuanto sessionStatus
     // cambia a Authenticated (ver PantallaRaiz).
     var huboExito by remember { mutableStateOf(false) }
+    // Evita registrar auth_abandoned dos veces para el mismo intento: una
+    // vez por el aviso de 60s sin avanzar, y otra vez al salir de la
+    // pantalla justo después.
+    var yaRegistradoAbandono by remember { mutableStateOf(false) }
     val ambito = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         EventosFunnel.registrar(EventoNombre.AUTH_SCREEN_VIEWED)
     }
+    // LaunchedEffect se cancela solo en cuanto este composable sale de
+    // composición (login completado o se cierra la pantalla), así que no
+    // hace falta cancelar el delay a mano.
+    LaunchedEffect(Unit) {
+        delay(60_000)
+        if (!huboExito && !yaRegistradoAbandono && !entrandoConGoogle) {
+            yaRegistradoAbandono = true
+            EventosFunnel.registrar(EventoNombre.AUTH_ABANDONED, mapOf("motivo" to "inactividad_60s"))
+        }
+    }
     DisposableEffect(Unit) {
         onDispose {
-            if (!huboExito) {
-                EventosFunnel.registrar(EventoNombre.AUTH_ABANDONED)
+            if (!huboExito && !yaRegistradoAbandono) {
+                EventosFunnel.registrar(EventoNombre.AUTH_ABANDONED, mapOf("motivo" to "salio_de_la_pantalla"))
             }
         }
     }
