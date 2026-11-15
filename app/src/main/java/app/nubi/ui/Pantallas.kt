@@ -2872,16 +2872,11 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
         TarjetaEstadoSuscripcion(perfil)
         Spacer(Modifier.height(14.dp))
 
-        TarjetaIdioma()
+        TarjetaMasDeNubi()
         Spacer(Modifier.height(14.dp))
 
-        // Mismo sitio que TarjetaCompartir en VistaAjustes.swift (justo
-        // debajo del idioma) — aquí por Supabase en vez de CKShare, ver
-        // TarjetaCompartir.kt.
-        bebe?.let {
-            TarjetaCompartir(bebeId = it.id, nombreBebe = it.nombre)
-            Spacer(Modifier.height(14.dp))
-        }
+        TarjetaIdioma()
+        Spacer(Modifier.height(14.dp))
 
         bebe?.let {
             Card(
@@ -2890,7 +2885,22 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text(L10n.t("Bebé"), style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            L10n.t("Bebé"),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedButton(
+                            onClick = { mostrarHojaBebe = true },
+                            shape = RoundedCornerShape(NubiGeometria.radioChico),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Icono(IconoNubi.LAPIZ, tint = colores.tinta, tamano = 14.dp)
+                            Spacer(Modifier.width(7.dp))
+                            Text(L10n.t("Editar datos"))
+                        }
+                    }
                     Spacer(Modifier.height(10.dp))
                     FilaDato(L10n.t("Nombre"), it.nombre)
                     HorizontalDivider(color = colores.separador)
@@ -2901,15 +2911,11 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                         HorizontalDivider(color = colores.separador)
                         FilaDato(L10n.t("Prematuridad"), "${it.semanasPrematuro} ${L10n.t("semanas")}")
                     }
+                    HorizontalDivider(color = colores.separador)
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
-                        onClick = { mostrarHojaBebe = true },
-                        shape = RoundedCornerShape(NubiGeometria.radioChico)
-                    ) {
-                        Icono(IconoNubi.LAPIZ, tint = colores.tinta, tamano = 14.dp)
-                        Spacer(Modifier.width(7.dp))
-                        Text(L10n.t("Editar datos"))
-                    }
+                    // "Compartir con tu pareja" dentro de la tarjeta del
+                    // bebé, debajo de la edad (igual que VistaAjustes.swift).
+                    TarjetaCompartir(bebeId = it.id, nombreBebe = it.nombre, conTarjeta = false)
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -3242,7 +3248,6 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     val datos by Repositorio.local.datos.collectAsState()
     val premiumActivo = Premium.activo(perfil, datos.premiumCompartido)
     var mostrarPaywall by remember { mutableStateOf(false) }
-    var mostrarHojaCanje by remember { mutableStateOf(false) }
 
     val titulo: String
     val subtitulo: String
@@ -3467,7 +3472,37 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Spacer(Modifier.height(10.dp))
             }
+        }
+    }
 
+    if (mostrarPaywall) {
+        HojaPremiumBloqueado { mostrarPaywall = false }
+    }
+}
+
+/**
+ * "Más de Nubi": Regalar Nubi, Aprende a usar Nubi (Instagram) y Canjear
+ * código, juntos en su propia tarjeta, fuera de la de Premium — no son parte
+ * de la suscripción. Igual que tarjetaMasDeNubi en VistaAjustes.swift.
+ */
+@Composable
+private fun TarjetaMasDeNubi() {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    var mostrarHojaCanje by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                L10n.t("Más de Nubi").uppercase(L10n.localeJava),
+                style = MaterialTheme.typography.labelMedium,
+                color = colores.tintaTenue
+            )
+            Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3529,9 +3564,7 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
 
             Spacer(Modifier.height(10.dp))
 
-            // Canjear código: fila compacta dentro de esta misma tarjeta,
-            // justo después de "Regalar Nubi" — igual que iOS, en vez de
-            // una tarjeta aparte en la pantalla.
+            // Canjear código de regalo.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3541,12 +3574,11 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BadgeIcono(
-                    IconoNubi.REGALO,
-                    colorFondo = colores.mantequilla,
-                    colorIcono = colores.tinta,
-                    tamano = 32.dp,
-                    tamanoIcono = 15.dp
+                Image(
+                    painter = painterResource(R.drawable.canjear_codigo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(32.dp)
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
@@ -3564,10 +3596,6 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
         }
-    }
-
-    if (mostrarPaywall) {
-        HojaPremiumBloqueado { mostrarPaywall = false }
     }
 
     if (mostrarHojaCanje) {

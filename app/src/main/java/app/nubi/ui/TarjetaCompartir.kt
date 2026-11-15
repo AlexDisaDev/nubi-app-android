@@ -58,7 +58,12 @@ import kotlinx.coroutines.launch
  * iPhone <-> Android sin cambiar este esquema.
  */
 @Composable
-fun TarjetaCompartir(bebeId: String, nombreBebe: String) {
+fun TarjetaCompartir(
+    bebeId: String,
+    nombreBebe: String,
+    /** false: sin la Card alrededor, para ir dentro de la tarjeta "Bebé" de Ajustes. */
+    conTarjeta: Boolean = true
+) {
     val colores = NubiTheme.colores
     val ambito = rememberCoroutineScope()
     var cargando by remember { mutableStateOf(true) }
@@ -79,12 +84,8 @@ fun TarjetaCompartir(bebeId: String, nombreBebe: String) {
         else -> L10n.t("Crea un enlace con la marca Nubi y compártelo por WhatsApp, Mail o donde quieras.")
     }
 
-    Card(
-        shape = RoundedCornerShape(NubiGeometria.radioChico),
-        colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp)) {
+    val contenido: @Composable () -> Unit = {
+        Column(if (conTarjeta) Modifier.padding(16.dp) else Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BadgeIcono(
                     IconoNubi.CORAZON,
@@ -147,6 +148,16 @@ fun TarjetaCompartir(bebeId: String, nombreBebe: String) {
                 }
             }
         }
+    }
+
+    if (conTarjeta) {
+        Card(
+            shape = RoundedCornerShape(NubiGeometria.radioChico),
+            colors = CardDefaults.cardColors(containerColor = colores.superficie),
+            modifier = Modifier.fillMaxWidth()
+        ) { contenido() }
+    } else {
+        contenido()
     }
 
     if (mostrarHoja) {

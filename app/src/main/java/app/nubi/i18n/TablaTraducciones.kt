@@ -32,6 +32,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Empezar" to mapOf("en" to "Start", "it" to "Inizia", "fr" to "Commencer"),
     "Guardar" to mapOf("en" to "Save", "it" to "Salva", "fr" to "Enregistrer"),
     "Cancelar" to mapOf("en" to "Cancel", "it" to "Annulla", "fr" to "Annuler"),
+    "Más de Nubi" to mapOf("en" to "More from Nubi", "it" to "Altro da Nubi", "fr" to "Plus de Nubi"),
     "Se durmió a las" to mapOf("en" to "Fell asleep at", "it" to "Si è addormentato alle", "fr" to "S'est endormi à"),
     "Mañana, al despertar, Nubi calculará su primera siesta." to mapOf("en" to "Tomorrow, when they wake up, Nubi will work out their first nap.", "it" to "Domani, al risveglio, Nubi calcolerà il suo primo sonnellino.", "fr" to "Demain, à son réveil, Nubi calculera sa première sieste."),
     "Si se despierta por la noche, lo anotas en un toque." to mapOf("en" to "If they wake up at night, log it in one tap.", "it" to "Se si sveglia di notte, lo registri con un tocco.", "fr" to "S'il se réveille la nuit, notez-le en un geste."),
