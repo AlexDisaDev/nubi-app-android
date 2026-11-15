@@ -1,5 +1,8 @@
 package app.nubi.ui
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.flow.MutableStateFlow
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -2947,19 +2950,26 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        Text(L10n.t("Ajustes"), style = MaterialTheme.typography.headlineMedium)
+        // Mantener pulsado el título vuelve a mostrar los botones de debug
+        // ocultos con "[Debug] Modo presentación" (solo en depuración).
+        LaunchedEffect(Unit) { ModoPresentacion.cargar(contexto) }
+        Text(
+            L10n.t("Ajustes"),
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = if (Premium.disponibleEnPruebas) {
+                Modifier.pointerInput(Unit) {
+                    detectTapGestures(onLongPress = { ModoPresentacion.fijar(contexto, false) })
+                }
+            } else Modifier
+        )
         Spacer(Modifier.height(18.dp))
 
         // El modo día/noche ya no se elige aquí: se alterna directamente
         // con el botón de sol/luna de la cabecera de Hoy.
 
+        // Orden (igual que iOS): Premium → Bebé (con Compartir) →
+        // Preferencias → Más de Nubi → Nubi → Cuenta → Debug.
         TarjetaEstadoSuscripcion(perfil)
-        Spacer(Modifier.height(14.dp))
-
-        TarjetaMasDeNubi()
-        Spacer(Modifier.height(14.dp))
-
-        TarjetaIdioma()
         Spacer(Modifier.height(14.dp))
 
         bebe?.let {
@@ -3005,6 +3015,12 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             Spacer(Modifier.height(14.dp))
         }
 
+        TarjetaPreferencias(perfil)
+        Spacer(Modifier.height(14.dp))
+
+        TarjetaMasDeNubi()
+        Spacer(Modifier.height(14.dp))
+
         Card(
             shape = RoundedCornerShape(NubiGeometria.radioChico),
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
@@ -3024,39 +3040,6 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 FilaEnlace(IconoNubi.CALENDARIO, colores.cielo, L10n.t("Términos de uso")) {
                     abrirUrl(contexto, "https://appnubi.netlify.app/terminos")
                 }
-            }
-        }
-        Spacer(Modifier.height(14.dp))
-
-        // Newsletter: mismo consentimiento que en el alta, pero editable en
-        // cualquier momento — RGPD/LSSI-CE exige que darse de baja sea igual
-        // de fácil que darse de alta.
-        Card(
-            shape = RoundedCornerShape(NubiGeometria.radioChico),
-            colors = CardDefaults.cardColors(containerColor = colores.superficie),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        L10n.t("Recibir newsletter por email"),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Switch(
-                        checked = perfil?.aceptaNewsletter ?: false,
-                        onCheckedChange = { Repositorio.actualizarNewsletter(it) }
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    L10n.t("Ofertas, consejos y novedades de Nubi en tu correo. Puedes darte de baja cuando quieras."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colores.tintaSuave
-                )
             }
         }
         Spacer(Modifier.height(14.dp))
@@ -3099,7 +3082,11 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 )
             }
         }
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(14.dp))
+
+        TarjetaDebug()
+
+        Spacer(Modifier.height(4.dp))
 
         // Mismo pie que VistaAjustes.swift, al final de toda la pantalla.
         Text(
@@ -3442,125 +3429,194 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 Spacer(Modifier.height(10.dp))
             }
 
-            // Interruptor SOLO en builds de depuración (Premium.kt):
-            // desaparece del todo en release, no hace falta esconderlo
-            // con más vueltas.
-            if (Premium.disponibleEnPruebas) {
-                val forzado by Premium.forzadoEnPruebas.collectAsState()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.lienzoAlto)
-                        .clickable { Premium.alternarPruebas() }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            L10n.t("[Debug] Simular Premium"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            L10n.t("Solo en esta build — no usa Play Billing"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                    }
-                    Switch(checked = forzado, onCheckedChange = { Premium.alternarPruebas() })
-                }
-                Spacer(Modifier.height(10.dp))
-
-                // Pinta el paywall como si hubiera prueba gratis aunque esta
-                // cuenta de Google ya la gastara (Premium.simularPruebaEnPruebas).
-                val simularPrueba by Premium.simularPruebaEnPruebas.collectAsState()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.lienzoAlto)
-                        .clickable { Premium.alternarSimularPrueba() }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "[Debug] Simular prueba gratis en el paywall",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            "Muestra \"Empezar 7 días gratis\" aunque la cuenta ya la usara",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                    }
-                    Switch(checked = simularPrueba, onCheckedChange = { Premium.alternarSimularPrueba() })
-                }
-                Spacer(Modifier.height(10.dp))
-
-                // Abre el paywall ("7 días de prueba gratis") aunque la cuenta
-                // ya tenga premium: la fila "Hazte Premium" de arriba solo sale
-                // sin premium, y con una compra de prueba de Play activa (o con
-                // "Simular Premium") desaparecía.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.lienzoAlto)
-                        .clickable { mostrarPaywall = true }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "[Debug] Ver paywall (7 días gratis)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            "Se abre aunque esta cuenta ya tenga premium",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-
-                // Mismo sitio y mismo propósito que el botón "[Debug] Probar
-                // aviso de prueba" en VistaAjustes.swift: dispara el aviso de
-                // "te quedan 3 días" ya mismo, con el copy real, para poder
-                // verlo tal cual lo vería alguien de verdad.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.lienzoAlto)
-                        .clickable { NotificadorPrueba.probarAhora(contexto) }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            L10n.t("[Debug] Probar aviso de prueba"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            L10n.t("Lanza la notificación de \"te quedan 3 días\" en 5 segundos"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-            }
         }
     }
 
     if (mostrarPaywall) {
         HojaPremiumBloqueado { mostrarPaywall = false }
+    }
+}
+
+/**
+ * Botones de depuración, en su propia tarjeta al final de Ajustes (igual que
+ * iOS). Solo en builds de depuración (Premium.disponibleEnPruebas); en
+ * release no existe. "Modo presentación" los oculta todos para enseñar la
+ * app a otras personas; se recuperan manteniendo pulsado el título "Ajustes".
+ */
+@Composable
+private fun TarjetaDebug() {
+    val colores = NubiTheme.colores
+    val contexto = LocalContext.current
+    var mostrarPaywall by remember { mutableStateOf(false) }
+    val presentacion by ModoPresentacion.activo.collectAsState()
+    if (!Premium.disponibleEnPruebas || presentacion) return
+
+    Card(
+        shape = RoundedCornerShape(NubiGeometria.radioChico),
+        colors = CardDefaults.cardColors(containerColor = colores.superficie),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { ModoPresentacion.fijar(contexto, true) }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "[Debug] Modo presentación",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Oculta todos los botones de debug para enseñar la app. Para recuperarlos, mantén pulsado el título \"Ajustes\"",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+                Switch(checked = false, onCheckedChange = { ModoPresentacion.fijar(contexto, true) })
+            }
+            Spacer(Modifier.height(10.dp))
+            val forzado by Premium.forzadoEnPruebas.collectAsState()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { Premium.alternarPruebas() }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        L10n.t("[Debug] Simular Premium"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        L10n.t("Solo en esta build — no usa Play Billing"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+                Switch(checked = forzado, onCheckedChange = { Premium.alternarPruebas() })
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // Pinta el paywall como si hubiera prueba gratis aunque esta
+            // cuenta de Google ya la gastara (Premium.simularPruebaEnPruebas).
+            val simularPrueba by Premium.simularPruebaEnPruebas.collectAsState()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { Premium.alternarSimularPrueba() }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "[Debug] Simular prueba gratis en el paywall",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Muestra \"Empezar 7 días gratis\" aunque la cuenta ya la usara",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+                Switch(checked = simularPrueba, onCheckedChange = { Premium.alternarSimularPrueba() })
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // Abre el paywall ("7 días de prueba gratis") aunque la cuenta
+            // ya tenga premium: la fila "Hazte Premium" de arriba solo sale
+            // sin premium, y con una compra de prueba de Play activa (o con
+            // "Simular Premium") desaparecía.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { mostrarPaywall = true }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "[Debug] Ver paywall (7 días gratis)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Se abre aunque esta cuenta ya tenga premium",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // Mismo sitio y mismo propósito que el botón "[Debug] Probar
+            // aviso de prueba" en VistaAjustes.swift: dispara el aviso de
+            // "te quedan 3 días" ya mismo, con el copy real, para poder
+            // verlo tal cual lo vería alguien de verdad.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { NotificadorPrueba.probarAhora(contexto) }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        L10n.t("[Debug] Probar aviso de prueba"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        L10n.t("Lanza la notificación de \"te quedan 3 días\" en 5 segundos"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+                }
+    }
+
+    if (mostrarPaywall) {
+        HojaPremiumBloqueado { mostrarPaywall = false }
+    }
+}
+
+/** Estado del "[Debug] Modo presentación" (ver TarjetaDebug). Se guarda en
+ *  SharedPreferences para que siga oculto al reabrir la app. */
+private object ModoPresentacion {
+    private const val PREFS = "nubi_debug"
+    private const val CLAVE = "modo_presentacion"
+    val activo = MutableStateFlow(false)
+    private var cargado = false
+
+    fun cargar(contexto: android.content.Context) {
+        if (cargado) return
+        cargado = true
+        activo.value = contexto.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+            .getBoolean(CLAVE, false)
+    }
+
+    fun fijar(contexto: android.content.Context, valor: Boolean) {
+        activo.value = valor
+        contexto.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean(CLAVE, valor).apply()
     }
 }
 
@@ -3586,14 +3642,12 @@ private fun TarjetaMasDeNubi() {
                 style = MaterialTheme.typography.labelMedium,
                 color = colores.tintaTenue
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                    .background(colores.lienzoAlto)
                     .clickable { abrirUrl(contexto, "https://appnubi.netlify.app/regalar") }
-                    .padding(12.dp),
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // La misma imagen del regalo que la tarjeta "Regala Nubi" de
@@ -3616,17 +3670,15 @@ private fun TarjetaMasDeNubi() {
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
 
-            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = colores.separador)
 
             // "Aprende a usar Nubi" (Instagram): antes era una tarjeta al final
             // de Hoy, que con ella ya no cabía sin scroll. Igual que iOS.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                    .background(colores.lienzoAlto)
                     .clickable { abrirUrl(contexto, "https://www.instagram.com/nubibaby.app?rpxt=MThpcjViYzY3Y3J3") }
-                    .padding(12.dp),
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
@@ -3646,16 +3698,14 @@ private fun TarjetaMasDeNubi() {
                 Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
             }
 
-            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = colores.separador)
 
             // Canjear código de regalo.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                    .background(colores.lienzoAlto)
                     .clickable { mostrarHojaCanje = true }
-                    .padding(12.dp),
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
@@ -3724,7 +3774,7 @@ private fun HojaCanjearCodigo(alCerrar: () -> Unit) {
  * teléfono (L10n.idiomaEfectivo); los otros cuatro fuerzan ese idioma.
  */
 @Composable
-private fun TarjetaIdioma() {
+private fun TarjetaPreferencias(perfil: Perfil?) {
     val colores = NubiTheme.colores
     var abierto by remember { mutableStateOf(false) }
 
@@ -3734,7 +3784,7 @@ private fun TarjetaIdioma() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(L10n.t("Idioma"), style = MaterialTheme.typography.titleMedium)
+            Text(L10n.t("Preferencias"), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
 
             Box {
@@ -3787,6 +3837,36 @@ private fun TarjetaIdioma() {
                 L10n.t("Elige tu idioma"),
                 style = MaterialTheme.typography.bodySmall,
                 color = colores.tintaTenue
+            )
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = colores.separador)
+            Spacer(Modifier.height(12.dp))
+
+            // Newsletter: mismo consentimiento que en el alta, pero editable
+            // en cualquier momento — RGPD/LSSI-CE exige que darse de baja sea
+            // igual de fácil que darse de alta.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    L10n.t("Recibir newsletter por email"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = perfil?.aceptaNewsletter ?: false,
+                    onCheckedChange = { Repositorio.actualizarNewsletter(it) }
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L10n.t("Ofertas, consejos y novedades de Nubi en tu correo. Puedes darte de baja cuando quieras."),
+                style = MaterialTheme.typography.bodySmall,
+                color = colores.tintaSuave
             )
         }
     }

@@ -161,6 +161,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Cuando se despierte, lo anotas en un toque" to mapOf("en" to "When they wake up, log it in one tap", "it" to "Quando si sveglia, lo annoti con un tocco", "fr" to "À son réveil, notez-le en un geste"),
     "A esta edad su ritmo aún es irregular, Nubi irá aprendiendo" to mapOf("en" to "At this age their rhythm is still irregular, Nubi will keep learning", "it" to "A questa età il ritmo è ancora irregolare, Nubi continuerà a imparare", "fr" to "À cet âge, son rythme est encore irrégulier, Nubi va continuer d'apprendre"),
     "Volver" to mapOf("en" to "Back", "it" to "Indietro", "fr" to "Retour"),
+    "Preferencias" to mapOf("en" to "Preferences", "it" to "Preferenze", "fr" to "Préférences"),
     "Buen momento para una siesta" to mapOf("en" to "Good time for a nap", "it" to "Buon momento per un pisolino", "fr" to "Bon moment pour une sieste"),
     "Cuando quieras, anota su sueño" to mapOf("en" to "Log their sleep whenever you like", "it" to "Quando vuoi, annota il suo sonno", "fr" to "Notez son sommeil quand vous voulez"),
     "Estimada · anota sus siestas para afinarla" to mapOf("en" to "Estimated · log naps to fine-tune it", "it" to "Stimata · annota i pisolini per affinarla", "fr" to "Estimée · notez ses siestes pour l'affiner"),
