@@ -1591,21 +1591,30 @@ private fun TarjetaPrediccionBloqueada(
     }
 }
 
+/** Nunca un mensaje negativo (igual que iOS): si la ventana acaba de pasar
+ *  se invita a la siesta; si pasó hace más, el motor ya ha saltado a la
+ *  siguiente ventana (PrediccionDia.estimada). */
 private fun textoPrediccion(p: PrediccionDia, yaEnVentana: Boolean, pasada: Boolean): String = when (p.tipo) {
     TipoPrediccion.SIESTA -> when {
         yaEnVentana -> "${L10n.t("Buena ventana ahora")} · ${L10n.t("hasta")} ${formatoHora.format(p.hasta)}"
-        pasada -> L10n.t("Se ha pasado la ventana ideal")
+        pasada -> L10n.t("Buen momento para una siesta")
         else -> "${L10n.t("Próxima siesta")} · ${formatoHora.format(p.desde)} – ${formatoHora.format(p.hasta)}"
     }
     TipoPrediccion.NOCHE ->
         if (yaEnVentana || pasada) L10n.t("Es hora de dormir 🌙")
-        else "${L10n.t("Sueño nocturno")} · ${formatoHora.format(p.desde)}"
+        else "${L10n.suenoNocturnoDe(p.nombreBebe)} · ${formatoHora.format(p.desde)}"
 }
 
-private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: Boolean, pasada: Boolean): String =
-    when (p.tipo) {
-        TipoPrediccion.SIESTA ->
-            L10n.t(if (p.ajustadaPorHistorial) L10n.t("Ajustado a su ritmo real") else L10n.t("Basado en su edad"))
+private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: Boolean, pasada: Boolean): String {
+    if (p.estimada && !(p.tipo == TipoPrediccion.NOCHE && (yaEnVentana || pasada))) {
+        return L10n.t("Estimada · anota sus siestas para afinarla")
+    }
+    return when (p.tipo) {
+        TipoPrediccion.SIESTA -> when {
+            pasada -> L10n.t("Cuando quieras, anota su sueño")
+            p.ajustadaPorHistorial -> L10n.t("Ajustado a su ritmo real")
+            else -> L10n.t("Basado en su edad")
+        }
         TipoPrediccion.NOCHE -> {
             if (yaEnVentana || pasada) {
                 L10n.t("Última ventana del día")
@@ -1616,6 +1625,7 @@ private fun subtituloPrediccion(p: PrediccionDia, ahora: Instant, yaEnVentana: B
             }
         }
     }
+}
 
 /** Un solo bloque de "Última toma" — como tarjetaAlimentacion en iOS: no
  *  hay una fila por tipo, sino una única línea con la toma más reciente

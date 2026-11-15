@@ -229,7 +229,7 @@ private fun ContenidoPrediccion(bebe: Bebe, despertar: Instant, ahora: Instant) 
             val cuando = when {
                 p.desde.isAfter(ahora) -> L10n.enDuracion(duracionCorta(Duration.between(ahora, p.desde).toMinutes()))
                 !p.hasta.isBefore(ahora) -> L10n.t("Buena ventana ahora")
-                else -> L10n.t("Se ha pasado la ventana ideal")
+                else -> L10n.t("Buen momento para una siesta")
             }
             Text(
                 cuando,

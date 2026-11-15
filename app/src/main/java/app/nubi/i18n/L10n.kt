@@ -250,6 +250,14 @@ object L10n {
         else -> "Calculada con su edad ($edad) y la hora en que se despertó hoy: $hora."
     }
 
+    /** "Sueño nocturno de Lara" */
+    fun suenoNocturnoDe(nombre: String): String = if (nombre.isBlank()) t("Sueño nocturno") else when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "$nombre's night sleep"
+        IdiomaNubi.ITALIANO -> "Sonno notturno di $nombre"
+        IdiomaNubi.FRANCES -> "Nuit de $nombre"
+        else -> "Sueño nocturno de $nombre"
+    }
+
     /** "en 1 h 15 min" */
     fun enDuracion(duracion: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES -> "in $duracion"

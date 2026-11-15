@@ -222,7 +222,11 @@ data class PrediccionDia(
     /** Sueño total previsto para el día completo (siestas + noche), en segundos. */
     val suenoTotalPrevisto: Double = 0.0,
     val rangoSano: ClosedRange<Double> = 11.0..15.0,
-    val nochesAprendidas: Int = 0
+    val nochesAprendidas: Int = 0,
+    /** true: las ventanas anteriores se pasaron sin nada anotado y se enseña
+     *  la siguiente del plan (igual que iOS). Nunca se dice "se ha pasado". */
+    val estimada: Boolean = false,
+    val nombreBebe: String = ""
 ) {
     fun yaEnVentana(ahora: Instant): Boolean = !ahora.isBefore(desde) && !ahora.isAfter(hasta)
     fun pasada(ahora: Instant): Boolean = ahora.isAfter(hasta)
@@ -405,7 +409,16 @@ object MotorSueno {
     ): PrediccionDia? {
         if (registros.any { it.tipo.esSueno && it.fin == null }) return null
         val r = resultadoDelDia(bebe, registros, ahora, ahora, despertarManual)
-        val proxima = r.ventanas.firstOrNull { !it.realizada } ?: return null
+        val pendientes = r.ventanas.filter { !it.realizada }
+        var proxima = pendientes.firstOrNull() ?: return null
+        // Opción B (igual que iOS): si la ventana de siesta se pasó hace más
+        // de 30 min sin nada anotado, se salta a la siguiente ventana del
+        // plan que aún no ha terminado (la noche si ya no quedan siestas).
+        var estimada = false
+        if (!proxima.esNocturna && proxima.perdida(ahora)) {
+            proxima = pendientes.firstOrNull { !it.rangoInicioHasta.isBefore(ahora) } ?: pendientes.last()
+            estimada = true
+        }
         val g = guiaAjustada(bebe.edadEnMeses(ahora))
         return PrediccionDia(
             tipo = if (proxima.esNocturna) TipoPrediccion.NOCHE else TipoPrediccion.SIESTA,
@@ -420,7 +433,9 @@ object MotorSueno {
             diagnostico = r.diagnostico,
             suenoTotalPrevisto = r.suenoTotal,
             rangoSano = g.suenoTotalHoras,
-            nochesAprendidas = r.noches
+            nochesAprendidas = r.noches,
+            estimada = estimada,
+            nombreBebe = bebe.nombre
         )
     }
 
