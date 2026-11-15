@@ -1219,17 +1219,9 @@ fun PantallaHoy(
             }
         }
 
-        // Regalar Nubi: mismo sitio que en iOS (VistaInicio.swift), al final
-        // del scroll de Hoy. "Regala Nubi" solo sale cuando la cuenta cumple
-        // 7 días (perfiles.creado_en) o si ya tiene premium; antes, solo la
-        // de Instagram.
-        val datosHoy by Repositorio.local.datos.collectAsState()
-        val cuentaCon7Dias = datosHoy.perfil?.creadoEn
-            ?.let { !Instant.now().isBefore(it.plus(Duration.ofDays(7))) } == true
-        val ocultarRegalarDebug by Premium.ocultarRegalarEnPruebas.collectAsState()
-        val forzarOcultarRegalar = BuildConfig.DEBUG && ocultarRegalarDebug
-        Spacer(Modifier.height(12.dp))
-        TarjetaDinamicaRegalarInstagram(mostrarRegalar = !forzarOcultarRegalar && (premium || cuentaCon7Dias))
+        // "Regala Nubi" y "Aprende a usar Nubi" (Instagram) ya no van aquí:
+        // con la tarjeta de predicción, Hoy no cabía sin scroll. Están en
+        // Ajustes. Igual que iOS.
         // Sin Spacer final: igual que iOS, el relleno del Scaffold (la barra
         // de pestañas de abajo) ya da el margen inferior que hace falta, y
         // quitar este Spacer de 24dp era el ahorro de altura más grande de
@@ -3391,34 +3383,6 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Spacer(Modifier.height(10.dp))
 
-                // Esconde "Regala Nubi" en Hoy, como si la cuenta aún no
-                // tuviera 7 días ni premium (Premium.ocultarRegalarEnPruebas).
-                val ocultarRegalar by Premium.ocultarRegalarEnPruebas.collectAsState()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
-                        .background(colores.lienzoAlto)
-                        .clickable { Premium.alternarOcultarRegalar() }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            "[Debug] Ocultar \"Regala Nubi\" en Hoy",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            "Como si la cuenta no tuviera 7 días ni premium",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                    }
-                    Switch(checked = ocultarRegalar, onCheckedChange = { Premium.alternarOcultarRegalar() })
-                }
-                Spacer(Modifier.height(10.dp))
-
                 // Pinta el paywall como si hubiera prueba gratis aunque esta
                 // cuenta de Google ya la gastara (Premium.simularPruebaEnPruebas).
                 val simularPrueba by Premium.simularPruebaEnPruebas.collectAsState()
@@ -3526,6 +3490,36 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                     Text(L10n.t("Regalar Nubi"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
                         L10n.t("Regala 1, 3 o 12 meses de Nubi"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaSuave
+                    )
+                }
+                Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // "Aprende a usar Nubi" (Instagram): antes era una tarjeta al final
+            // de Hoy, que con ella ya no cabía sin scroll. Igual que iOS.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { abrirUrl(contexto, "https://www.instagram.com/nubibaby.app?rpxt=MThpcjViYzY3Y3J3") }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.logo_instagram),
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(L10n.t("Aprende a usar Nubi"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        L10n.t("Síguenos en Instagram"),
                         style = MaterialTheme.typography.bodySmall,
                         color = colores.tintaSuave
                     )

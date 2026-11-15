@@ -38,15 +38,6 @@ object Premium {
     }
 
     /**
-     * Otro interruptor SOLO de depuración: esconde la tarjeta "Regala Nubi"
-     * de Hoy como si la cuenta aún no tuviera 7 días ni premium, para poder
-     * ver cómo queda sin tener que esperar ni quitarse el premium. En
-     * release se ignora (ver PantallaHoy).
-     */
-    private val _ocultarRegalarEnPruebas = MutableStateFlow(false)
-    val ocultarRegalarEnPruebas: StateFlow<Boolean> = _ocultarRegalarEnPruebas.asStateFlow()
-
-    /**
      * Otro interruptor SOLO de depuración: hace que el paywall se pinte como
      * si los planes tuvieran prueba gratis ("Empezar 7 días gratis", línea
      * de tiempo…) aunque esta cuenta de Google ya la haya gastado y Play no
@@ -58,10 +49,6 @@ object Premium {
 
     fun alternarSimularPrueba() {
         if (BuildConfig.DEBUG) _simularPruebaEnPruebas.value = !_simularPruebaEnPruebas.value
-    }
-
-    fun alternarOcultarRegalar() {
-        if (BuildConfig.DEBUG) _ocultarRegalarEnPruebas.value = !_ocultarRegalarEnPruebas.value
     }
 
     /**
