@@ -229,6 +229,30 @@ object L10n {
         else -> "Nubi está conociendo a $nombre"
     }
 
+    /** "¿Qué hace Lara ahora?" (alta del bebé) */
+    fun queHaceAhora(nombre: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "What is $nombre doing now?"
+        IdiomaNubi.ITALIANO -> "Cosa sta facendo $nombre adesso?"
+        IdiomaNubi.FRANCES -> "Que fait $nombre en ce moment ?"
+        else -> "¿Qué hace $nombre ahora?"
+    }
+
+    /** "Se despertó a las 7:30" */
+    fun despertoALas(hora: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Woke up at $hora"
+        IdiomaNubi.ITALIANO -> "Sveglia alle $hora"
+        IdiomaNubi.FRANCES -> "Réveil à $hora"
+        else -> "Se despertó a las $hora"
+    }
+
+    /** "Duerme desde las 20:30" */
+    fun duermeDesde(hora: String): String = when (idiomaEfectivo) {
+        IdiomaNubi.INGLES -> "Asleep since $hora"
+        IdiomaNubi.ITALIANO -> "Dorme dalle $hora"
+        IdiomaNubi.FRANCES -> "Dort depuis $hora"
+        else -> "Duerme desde las $hora"
+    }
+
     fun yaDurmiendo(nombre: String): String = when (idiomaEfectivo) {
         IdiomaNubi.INGLES -> "Is $nombre already asleep?"
         IdiomaNubi.ITALIANO -> "$nombre sta già dormendo?"

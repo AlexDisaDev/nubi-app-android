@@ -459,22 +459,29 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     var semanasPrematuro by remember { mutableIntStateOf(0) }
     var mostrarSelectorFecha by remember { mutableStateOf(false) }
 
-    // Hora en que despertó hoy (opcional).
-    var horaDespertar by remember { mutableStateOf<Instant?>(null) }
+    // "¿Qué hace ahora?" (obligatorio): despierto o durmiendo, y la hora en
+    // que se despertó o en que se durmió. Igual que VistaAlta en iOS.
+    var estaDurmiendo by remember { mutableStateOf<Boolean?>(null) }
+    var horaEstado by remember { mutableStateOf<Instant?>(null) }
     var mostrarSelectorHora by remember { mutableStateOf(false) }
 
-    // La hora de despertar es opcional y no entra en esta validación.
-    val datosValidos = nombre.isNotBlank() && nacimiento != null
+    // Antes la hora era opcional y, sin ella, se daba por hecho que el bebé ya
+    // dormía su noche (falso si se registraba por la tarde).
+    val datosValidos = nombre.isNotBlank() && nacimiento != null &&
+        estaDurmiendo != null && horaEstado != null
 
     // En vez de crear el bebé nada más pulsar "Continuar", se enseña antes
     // la pantalla de bienvenida (PantallaBienvenidaAlta): su próxima siesta,
     // o marcar su sueño nocturno. Su propio "Continuar" es el que lo crea.
     var mostrarBienvenida by remember { mutableStateOf(false) }
 
-    /** La hora de despertar elegida, en el día de hoy. */
-    fun despertarDeHoy(): Instant? = horaDespertar?.let { hora ->
+    /** La hora elegida, hoy; si cae más tarde que ahora (p. ej. son las 3:00
+     *  y elige las 7:00, o las 23:00), es de ayer. */
+    fun fechaEstado(): Instant? = horaEstado?.let { hora ->
         val horaLocal = hora.atZone(zonaLocal).toLocalTime()
-        LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
+        var fecha = LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
+        if (fecha.isAfter(Instant.now())) fecha = fecha.minus(Duration.ofDays(1))
+        fecha
     }
 
     fun bebeNuevo(miId: String) = Bebe(
@@ -484,7 +491,7 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
         semanasPrematuro = if (prematuro) semanasPrematuro else 0
     )
 
-    fun crearBebe(horaDormido: Instant? = null) {
+    fun crearBebe(estado: EstadoAlta, empezarNocheAhora: Boolean) {
         val miId = Supabase.client.auth.currentUserOrNull()?.id
             // No debería pasar nunca (esta pantalla solo se ve con sesión
             // iniciada), pero mejor no guardar un bebé que luego nunca
@@ -492,51 +499,53 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
             ?: return
         val nuevoBebe = bebeNuevo(miId)
         Repositorio.guardarBebe(nuevoBebe)
-        // Sin hora de despertar: la pantalla de bienvenida preguntó a qué
-        // hora se durmió, y se empieza ya su sueño nocturno (en curso).
-        if (horaDespertar == null && horaDormido != null) {
-            Repositorio.guardarRegistro(
-                Registro(
-                    bebeId = nuevoBebe.id,
-                    tipo = TipoRegistro.NOCHE,
-                    inicio = minOf(horaDormido, Instant.now())
-                )
-            )
-        }
-        // Si el usuario indicó la hora en que se despertó hoy, se guarda
-        // aparte de los registros (Repositorio.registrarDespertarManual,
-        // igual que el despertarManual de iOS): así Nubi ya puede estimar
-        // las siestas de hoy desde el primer día, antes de que haya ningún
-        // registro real.
-        horaDespertar?.let { hora ->
-            val horaLocal = hora.atZone(zonaLocal).toLocalTime()
-            val instanteHoy = LocalDate.now(zonaLocal).atTime(horaLocal).atZone(zonaLocal).toInstant()
-            Repositorio.registrarDespertarManual(instanteHoy)
-            // Y la noche de la que se despertó, como un sueño nocturno real
-            // de 00:00 a esa hora (igual que iOS): sin esto el reloj de Día
-            // no pintaba la banda morada, no se sumaban esas horas de sueño
-            // y Hoy decía que no había ningún sueño registrado. Solo si la
-            // hora ya ha pasado (no se anota un sueño en el futuro).
-            val medianoche = LocalDate.now(zonaLocal).atStartOfDay(zonaLocal).toInstant()
-            if (!instanteHoy.isAfter(Instant.now()) && Duration.between(medianoche, instanteHoy).seconds >= 60) {
-                Repositorio.guardarRegistro(
-                    Registro(
-                        bebeId = nuevoBebe.id,
-                        tipo = TipoRegistro.NOCHE,
-                        inicio = medianoche,
-                        fin = instanteHoy
-                    )
-                )
+        fun empezar(tipo: TipoRegistro, inicio: Instant) = Repositorio.guardarRegistro(
+            Registro(bebeId = nuevoBebe.id, tipo = tipo, inicio = minOf(inicio, Instant.now()))
+        )
+        when (estado) {
+            is EstadoAlta.Siesta -> empezar(TipoRegistro.SIESTA, estado.inicio)
+            is EstadoAlta.Noche -> empezar(TipoRegistro.NOCHE, estado.inicio)
+            is EstadoAlta.Despierto -> {
+                val hora = estado.hora
+                // Solo si se despertó hoy: un despertar de ayer no sirve para
+                // calcular las siestas de hoy. Se guarda aparte de los
+                // registros (Repositorio.registrarDespertarManual, igual que
+                // el despertarManual de iOS).
+                val medianoche = LocalDate.now(zonaLocal).atStartOfDay(zonaLocal).toInstant()
+                if (!hora.isBefore(medianoche)) {
+                    Repositorio.registrarDespertarManual(hora)
+                    // Y la noche de la que se despertó, como un sueño nocturno
+                    // real de 00:00 a esa hora (igual que iOS): sin esto el
+                    // reloj de Día no pintaba la banda morada y Hoy decía que
+                    // no había ningún sueño registrado.
+                    if (!hora.isAfter(Instant.now()) && Duration.between(medianoche, hora).seconds >= 60) {
+                        Repositorio.guardarRegistro(
+                            Registro(
+                                bebeId = nuevoBebe.id,
+                                tipo = TipoRegistro.NOCHE,
+                                inicio = medianoche,
+                                fin = hora
+                            )
+                        )
+                    }
+                }
+                if (empezarNocheAhora) empezar(TipoRegistro.NOCHE, Instant.now())
             }
         }
         alGuardar()
     }
 
-    if (mostrarBienvenida) {
+    val estadoAlta: EstadoAlta? = run {
+        val durmiendo = estaDurmiendo ?: return@run null
+        val fecha = fechaEstado() ?: return@run null
+        if (durmiendo) EstadoAlta.durmiendo(fecha, bebeNuevo("").edadEnMeses()) else EstadoAlta.Despierto(fecha)
+    }
+
+    if (mostrarBienvenida && estadoAlta != null) {
         PantallaBienvenidaAlta(
             bebe = bebeNuevo(Supabase.client.auth.currentUserOrNull()?.id ?: ""),
-            despertar = despertarDeHoy()
-        ) { horaDormido -> crearBebe(horaDormido) }
+            estado = estadoAlta
+        ) { empezarNoche -> crearBebe(estadoAlta, empezarNoche) }
         return
     }
 
@@ -556,14 +565,40 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
         // (no al fondo de la pantalla): así cae en la zona que se alcanza
         // cómodamente con el pulgar. El hueco libre queda abajo. Igual que
         // VistaAlta en iOS.
-        Column {
+        //
+        // weight(fill = false): el contenido solo ocupa lo que necesita, pero
+        // si no cabe (pantalla pequeña o letra grande) se encoge y hace
+        // scroll, y "Continuar" nunca sale de la zona segura.
+        Column(
+            Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
             ContenidoAlta(
                 nombre = nombre,
                 onNombreCambiar = { nombre = it },
                 nacimiento = nacimiento,
                 onAbrirSelectorFecha = { mostrarSelectorFecha = true },
-                horaDespertar = horaDespertar,
-                onAbrirSelectorHora = { mostrarSelectorHora = true },
+                estaDurmiendo = estaDurmiendo,
+                onEstadoCambiar = { durmiendo ->
+                    // La hora significa otra cosa: se vuelve a pedir.
+                    if (estaDurmiendo != durmiendo) horaEstado = null
+                    estaDurmiendo = durmiendo
+                },
+                textoHora = run {
+                    val fecha = fechaEstado()
+                    when {
+                        estaDurmiendo == null -> L10n.t("Elige una opción")
+                        fecha == null ->
+                            if (estaDurmiendo == true) L10n.t("¿Desde qué hora duerme?") else L10n.t("¿A qué hora se despertó?")
+                        else -> {
+                            val h = formatoHora.format(fecha)
+                            if (estaDurmiendo == true) L10n.duermeDesde(h) else L10n.despertoALas(h)
+                        }
+                    }
+                },
+                horaElegida = horaEstado != null,
+                onAbrirSelectorHora = { if (estaDurmiendo != null) mostrarSelectorHora = true },
                 prematuro = prematuro,
                 onPrematuroCambiar = { prematuro = it },
                 semanasPrematuro = semanasPrematuro,
@@ -581,8 +616,6 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
         ) {
             Text(L10n.t("Continuar"))
         }
-
-        Spacer(Modifier.weight(1f))
     }
 
     if (mostrarSelectorFecha) {
@@ -605,18 +638,21 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     }
 
     if (mostrarSelectorHora) {
-        val horaBase = (horaDespertar ?: Instant.now()).atZone(zonaLocal).toLocalTime()
+        val horaBase = (horaEstado ?: Instant.now()).atZone(zonaLocal).toLocalTime()
         val estado = rememberTimePickerState(initialHour = horaBase.hour, initialMinute = horaBase.minute, is24Hour = true)
         AlertDialog(
             onDismissRequest = { mostrarSelectorHora = false },
             confirmButton = {
                 TextButton(onClick = {
-                    horaDespertar = LocalDate.now(zonaLocal).atTime(estado.hour, estado.minute)
+                    horaEstado = LocalDate.now(zonaLocal).atTime(estado.hour, estado.minute)
                         .atZone(zonaLocal).toInstant()
                     mostrarSelectorHora = false
                 }) { Text(L10n.t("Aceptar")) }
             },
             dismissButton = { TextButton(onClick = { mostrarSelectorHora = false }) { Text(L10n.t("Cancelar")) } },
+            title = {
+                Text(if (estaDurmiendo == true) L10n.t("¿Desde qué hora duerme?") else L10n.t("¿A qué hora se despertó?"))
+            },
             text = { TimePicker(state = estado) }
         )
     }
@@ -633,7 +669,10 @@ private fun ContenidoAlta(
     onNombreCambiar: (String) -> Unit,
     nacimiento: Instant?,
     onAbrirSelectorFecha: () -> Unit,
-    horaDespertar: Instant?,
+    estaDurmiendo: Boolean?,
+    onEstadoCambiar: (Boolean) -> Unit,
+    textoHora: String,
+    horaElegida: Boolean,
     onAbrirSelectorHora: () -> Unit,
     prematuro: Boolean,
     onPrematuroCambiar: (Boolean) -> Unit,
@@ -763,56 +802,89 @@ private fun ContenidoAlta(
             }
         }
 
-        // Hora en que se despertó hoy (opcional): tarjeta propia con el sol.
+        // ¿Qué hace ahora? (obligatorio). Siempre la misma altura: la fila de
+        // la hora está desde el principio (desactivada hasta elegir una
+        // opción), así nada se mueve al tocar. Igual que iOS.
         Card(
             shape = RoundedCornerShape(NubiGeometria.radio),
             colors = CardDefaults.cardColors(containerColor = colores.superficie),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BadgeIcono(
-                        IconoNubi.SOL,
-                        colorFondo = colores.mantequilla,
-                        colorIcono = colores.tinta,
-                        tamano = 52.dp,
-                        tamanoIcono = 24.dp
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            L10n.t("Hora en que se despertó hoy").uppercase(L10n.localeJava),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colores.tintaSuave
-                        )
-                        Text(
-                            L10n.t("Así podremos calcular sus siestas"),
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                            color = colores.tintaSuave
-                        )
-                        ChipTexto(L10n.t("Opcional"))
-                    }
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    L10n.queHaceAhora(nombre.trim().ifBlank { L10n.t("tu bebé") }).uppercase(L10n.localeJava),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colores.tintaSuave,
+                    maxLines = 1
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OpcionEstadoAlta(
+                        elegida = estaDurmiendo == false,
+                        icono = IconoNubi.SOL,
+                        titulo = L10n.t("Ya se despertó"),
+                        modifier = Modifier.weight(1f)
+                    ) { onEstadoCambiar(false) }
+                    OpcionEstadoAlta(
+                        elegida = estaDurmiendo == true,
+                        icono = IconoNubi.LUNA,
+                        titulo = L10n.t("Está durmiendo"),
+                        modifier = Modifier.weight(1f)
+                    ) { onEstadoCambiar(true) }
                 }
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(50))
                         .background(colores.lienzoAlto)
-                        .clickable(onClick = onAbrirSelectorHora)
+                        .clickable(enabled = estaDurmiendo != null, onClick = onAbrirSelectorHora)
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 18.dp)
+                    Icono(IconoNubi.RELOJ, tint = if (estaDurmiendo == null) colores.tintaTenue else colores.indigo, tamano = 18.dp)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        horaDespertar?.let { formatoHora.format(it) } ?: L10n.t("Seleccionar hora"),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 19.sp),
-                        color = if (horaDespertar == null) colores.tintaTenue else colores.tinta
+                        textoHora,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 17.sp,
+                            fontWeight = if (horaElegida) FontWeight.SemiBold else FontWeight.Normal
+                        ),
+                        color = if (horaElegida) colores.tinta else colores.tintaTenue,
+                        maxLines = 1
                     )
                 }
             }
         }
+    }
+}
+
+/** Una de las dos opciones de "¿Qué hace ahora?" (Ya se despertó / Está
+ *  durmiendo), en cápsula; la elegida en lila, como en iOS. */
+@Composable
+private fun OpcionEstadoAlta(
+    elegida: Boolean,
+    icono: IconoNubi,
+    titulo: String,
+    modifier: Modifier = Modifier,
+    alTocar: () -> Unit
+) {
+    val colores = NubiTheme.colores
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (elegida) colores.lila else colores.lienzoAlto)
+            .clickable(onClick = alTocar)
+            .padding(horizontal = 10.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icono(icono, tint = if (elegida) colores.tinta else colores.indigo, tamano = 18.dp)
+        Spacer(Modifier.width(8.dp))
+        Text(
+            titulo,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+            color = if (elegida) colores.tinta else colores.tintaSuave,
+            maxLines = 1
+        )
     }
 }
 

@@ -65,40 +65,68 @@ import java.time.format.DateTimeFormatter
 private val formatoHoraBienvenida: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault())
 
+/** Qué estaba haciendo el bebé al darlo de alta (pregunta obligatoria
+ *  "¿Qué hace ahora?" de PantallaNuevoBebe). Igual que EstadoAlta en iOS. */
+sealed class EstadoAlta {
+    /** Ya se despertó, a esta hora (hoy, o ayer si era más tarde que ahora). */
+    data class Despierto(val hora: Instant) : EstadoAlta()
+    /** Está durmiendo una siesta desde esta hora. */
+    data class Siesta(val inicio: Instant) : EstadoAlta()
+    /** Está durmiendo su sueño nocturno desde esta hora. */
+    data class Noche(val inicio: Instant) : EstadoAlta()
+
+    companion object {
+        /** "Está durmiendo desde las X": ¿siesta o noche? Noche si empezó de
+         *  madrugada (antes de las 6:00), si fue ayer, o si empezó a menos de
+         *  una hora de la hora de dormir más temprana para su edad
+         *  (MotorSueno.guiaAjustada); si no, siesta. */
+        fun durmiendo(inicio: Instant, meses: Double, ahora: Instant = Instant.now()): EstadoAlta {
+            val zona = ZoneId.systemDefault()
+            val local = inicio.atZone(zona)
+            if (local.toLocalDate() != ahora.atZone(zona).toLocalDate()) return Noche(inicio)
+            val minutos = local.hour * 60 + local.minute
+            val g = MotorSueno.guiaAjustada(meses)
+            return if (minutos < 6 * 60 || minutos >= g.bedtimeMin - 60) Noche(inicio) else Siesta(inicio)
+        }
+    }
+}
+
 /**
  * Pantalla que sale justo después del alta del bebé (en lugar del antiguo
- * aviso de bienvenida). Igual que VistaBienvenidaAlta en iOS. Dos versiones:
+ * aviso de bienvenida), según lo que contestaron en "¿Qué hace ahora?".
+ * Igual que VistaBienvenidaAlta en iOS:
  *
- *  · Con hora de despertar: enseña ya su próxima siesta, sin candado — el
- *    "momento mágico" de Nubi. En Hoy, sin premium, esa tarjeta sale luego
- *    difuminada (TarjetaPrediccionBloqueada).
- *  · Sin hora de despertar: da por hecho que duerme y pregunta a qué hora se
- *    durmió, para empezar ya su sueño nocturno; Nubi calculará su primera
- *    siesta cuando despierte.
+ *  · Ya se despertó: su próxima siesta, o que le toca una ahora, o su sueño
+ *    nocturno, con la tabla de siestas por edad (mismo motor que Hoy). Si ya
+ *    pasó su hora de dormir (o lleva despierto desde ayer), se ofrece
+ *    empezar el sueño nocturno.
+ *  · Durmiendo una siesta: "Que descanse"; Nubi calculará la siguiente.
+ *  · Durmiendo la noche: "Buenas noches"; Nubi calculará su primera siesta.
  *
- * Un solo botón, "Continuar": da de alta al bebé (PantallaNuevoBebe) y entra
- * en Hoy. Recibe la hora en que se durmió (solo en la versión sin despertar).
+ * Nunca un mensaje negativo. Los botones van fuera del scroll, dentro de la
+ * zona segura. alContinuar recibe true si hay que empezar ya el sueño
+ * nocturno.
  */
 @Composable
 fun PantallaBienvenidaAlta(
     bebe: Bebe,
-    despertar: Instant?,
-    alContinuar: (horaDormido: Instant?) -> Unit
+    estado: EstadoAlta,
+    alContinuar: (empezarNocheAhora: Boolean) -> Unit
 ) {
     val colores = NubiTheme.colores
     val ahora = remember { Instant.now() }
     val zona = ZoneId.systemDefault()
-    val horaInicial = remember { LocalTime.now(zona) }
-    var hora by remember { mutableIntStateOf(horaInicial.hour) }
-    var minuto by remember { mutableIntStateOf(horaInicial.minute) }
-    var mostrarSelector by remember { mutableStateOf(false) }
-
-    // La hora elegida, hoy; si cae más tarde que ahora (p. ej. son las 00:30
-    // y elige las 23:00), es de ayer.
-    fun fechaDormido(): Instant {
-        var fecha = LocalDate.now(zona).atTime(hora, minuto).atZone(zona).toInstant()
-        if (fecha.isAfter(Instant.now())) fecha = fecha.minus(Duration.ofDays(1))
-        return fecha
+    val prediccion = remember(bebe, estado) {
+        (estado as? EstadoAlta.Despierto)?.hora
+            ?.takeIf { it.atZone(zona).toLocalDate() == ahora.atZone(zona).toLocalDate() }
+            ?.let { prediccionInicial(bebe, it, ahora) }
+    }
+    val esHoraDeDormir = when (estado) {
+        is EstadoAlta.Despierto ->
+            estado.hora.atZone(zona).toLocalDate() != ahora.atZone(zona).toLocalDate() ||
+                (prediccion != null && prediccion.tipo == TipoPrediccion.NOCHE &&
+                    (prediccion.yaEnVentana(ahora) || prediccion.pasada(ahora)))
+        else -> false
     }
 
     Column(
@@ -139,51 +167,74 @@ fun PantallaBienvenidaAlta(
                         color = colores.tintaSuave,
                         textAlign = TextAlign.Center
                     )
-                    if (despertar == null) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            L10n.yaDurmiendo(bebe.nombre),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                            color = colores.tinta,
-                            textAlign = TextAlign.Center
-                        )
-                    }
 
                     Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
 
-                    if (despertar != null) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            ContenidoPrediccion(bebe, despertar, ahora)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        when (estado) {
+                            is EstadoAlta.Despierto -> ContenidoDespierto(bebe, estado.hora, prediccion, esHoraDeDormir, ahora)
+                            is EstadoAlta.Siesta -> {
+                                TituloBienvenida(L10n.t("Que descanse 💤"))
+                                TarjetaDormido(estado.inicio, L10n.t("Cuando se despierte, Nubi calculará la siguiente"))
+                            }
+                            is EstadoAlta.Noche -> {
+                                TituloBienvenida(L10n.t("Buenas noches 🌙"))
+                                TarjetaDormido(estado.inicio, L10n.t("Mañana, al despertar, Nubi calculará su primera siesta"))
+                            }
                         }
-                    } else {
-                        TarjetaDormido(hora, minuto) { mostrarSelector = true }
                     }
 
                     Spacer(Modifier.weight(1f).heightIn(min = 14.dp))
 
-                    TarjetaAprendiendo(bebe.nombre, conDespertar = despertar != null)
+                    TarjetaAprendiendo(
+                        bebe.nombre,
+                        when (estado) {
+                            is EstadoAlta.Despierto -> L10n.t("Cuanto más registres, más se ajustará")
+                            is EstadoAlta.Siesta -> L10n.t("Cuando se despierte, lo anotas en un toque")
+                            is EstadoAlta.Noche -> L10n.t("Si se despierta por la noche, lo anotas en un toque")
+                        }
+                    )
                 }
             }
         }
 
-        if (mostrarSelector) {
-            SelectorHoraDormido(hora, minuto, onCerrar = { mostrarSelector = false }) { h, m ->
-                hora = h
-                minuto = m
+        if (esHoraDeDormir) {
+            Button(
+                onClick = { alContinuar(true) },
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                Text(L10n.t("Empezar sueño nocturno"))
+            }
+            TextButton(
+                onClick = { alContinuar(false) },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            ) {
+                Text(L10n.t("Ahora no"), color = colores.tintaSuave)
+            }
+        } else {
+            Button(
+                onClick = { alContinuar(false) },
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                Text(L10n.t("Continuar"))
             }
         }
-
-        Button(
-            onClick = { alContinuar(if (despertar == null) fechaDormido() else null) },
-            shape = RoundedCornerShape(NubiGeometria.radioChico),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        ) {
-            Text(L10n.t("Continuar"))
-        }
     }
+}
+
+@Composable
+private fun TituloBienvenida(texto: String) {
+    Text(
+        texto,
+        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+        color = NubiTheme.colores.tinta,
+        textAlign = TextAlign.Center
+    )
 }
 
 /** Mismo cálculo que hará Hoy en cuanto se guarde el bebé: la noche de 00:00
@@ -204,16 +255,37 @@ private fun duracionCorta(minutos: Long): String = when {
 }
 
 @Composable
-private fun ContenidoPrediccion(bebe: Bebe, despertar: Instant, ahora: Instant) {
+private fun ContenidoDespierto(
+    bebe: Bebe,
+    despertar: Instant,
+    p: PrediccionDia?,
+    esHoraDeDormir: Boolean,
+    ahora: Instant
+) {
     val colores = NubiTheme.colores
-    val p = remember(bebe, despertar) { prediccionInicial(bebe, despertar, ahora) }
-    val esNoche = p?.tipo == TipoPrediccion.NOCHE
 
-    Text(
-        if (esNoche) L10n.t("Su próximo sueño nocturno") else L10n.t("Su próxima siesta"),
-        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-        color = colores.tinta,
-        textAlign = TextAlign.Center
+    if (esHoraDeDormir) {
+        TituloBienvenida(L10n.t("Es buena hora para dormir"))
+        TarjetaBienvenida {
+            BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 64.dp, tamanoIcono = 30.dp)
+            Text(
+                L10n.t("Cuando llegue el momento, empieza su sueño nocturno y Nubi lo irá midiendo"),
+                style = MaterialTheme.typography.bodyLarge,
+                color = colores.tintaSuave,
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
+    val esNoche = p?.tipo == TipoPrediccion.NOCHE
+    TituloBienvenida(
+        when {
+            p == null -> L10n.t("Su próxima siesta")
+            esNoche -> L10n.t("Su próximo sueño nocturno")
+            p.yaEnVentana(ahora) || p.pasada(ahora) -> L10n.t("Le toca una siesta ahora")
+            else -> L10n.t("Su próxima siesta")
+        }
     )
 
     TarjetaBienvenida {
@@ -250,19 +322,32 @@ private fun ContenidoPrediccion(bebe: Bebe, despertar: Instant, ahora: Instant) 
         }
     }
 
-    Text(
-        L10n.calculadaConEdad(L10n.textoEdadCorta(bebe.edadEnDias()), formatoHoraBienvenida.format(despertar)),
-        style = MaterialTheme.typography.bodyMedium,
-        color = colores.tintaSuave,
-        textAlign = TextAlign.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.padding(horizontal = 12.dp)
-    )
+    ) {
+        Text(
+            L10n.calculadaConEdad(L10n.textoEdadCorta(bebe.edadEnDias()), formatoHoraBienvenida.format(despertar)),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colores.tintaSuave,
+            textAlign = TextAlign.Center
+        )
+        if (bebe.edadEnMeses() < 3) {
+            Text(
+                L10n.t("A esta edad su ritmo aún es irregular, Nubi irá aprendiendo"),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colores.tintaSuave,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
-/** Una sola tarjeta protagonista: la hora en que se durmió en grande (al
- *  tocarla se cambia) y qué pasará mañana. */
+/** Una sola tarjeta protagonista: la hora en que se durmió en grande y qué
+ *  hará Nubi cuando despierte. */
 @Composable
-private fun TarjetaDormido(hora: Int, minuto: Int, onCambiarHora: () -> Unit) {
+private fun TarjetaDormido(inicio: Instant, texto: String) {
     val colores = NubiTheme.colores
     TarjetaBienvenida {
         BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 52.dp, tamanoIcono = 24.dp)
@@ -271,23 +356,13 @@ private fun TarjetaDormido(hora: Int, minuto: Int, onCambiarHora: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
             color = colores.tintaSuave
         )
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(onClick = onCambiarHora)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "%02d:%02d".format(hora, minuto),
-                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-                color = colores.tinta
-            )
-            Spacer(Modifier.width(10.dp))
-            BadgeIcono(IconoNubi.LAPIZ, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 32.dp, tamanoIcono = 15.dp)
-        }
         Text(
-            L10n.t("Mañana, al despertar, Nubi calculará su primera siesta"),
+            formatoHoraBienvenida.format(inicio),
+            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            color = colores.tinta
+        )
+        Text(
+            texto,
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
@@ -295,25 +370,8 @@ private fun TarjetaDormido(hora: Int, minuto: Int, onCambiarHora: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SelectorHoraDormido(hora: Int, minuto: Int, onCerrar: () -> Unit, onElegir: (Int, Int) -> Unit) {
-    val estado = rememberTimePickerState(initialHour = hora, initialMinute = minuto, is24Hour = true)
-    AlertDialog(
-        onDismissRequest = onCerrar,
-        confirmButton = {
-            TextButton(onClick = {
-                onElegir(estado.hour, estado.minute)
-                onCerrar()
-            }) { Text(L10n.t("Aceptar")) }
-        },
-        dismissButton = { TextButton(onClick = onCerrar) { Text(L10n.t("Cancelar")) } },
-        text = { TimePicker(state = estado) }
-    )
-}
-
-@Composable
-private fun TarjetaAprendiendo(nombre: String, conDespertar: Boolean) {
+private fun TarjetaAprendiendo(nombre: String, texto: String) {
     val colores = NubiTheme.colores
     Column(
         modifier = Modifier
@@ -345,8 +403,7 @@ private fun TarjetaAprendiendo(nombre: String, conDespertar: Boolean) {
             }
         }
         Text(
-            if (conDespertar) L10n.t("Cuanto más registres, más se ajustará")
-            else L10n.t("Si se despierta por la noche, lo anotas en un toque"),
+            texto,
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )
