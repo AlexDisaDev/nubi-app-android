@@ -119,10 +119,10 @@ object L10n {
 
     /** Cuerpo del aviso de "toca comer" — copia literal de iOS (Traducciones.swift). */
     fun yaEsHoraDeComer(nombreBebe: String): String = when (idiomaEfectivo) {
-        IdiomaNubi.INGLES -> "It's time for $nombreBebe to eat."
-        IdiomaNubi.ITALIANO -> "È ora che $nombreBebe mangi."
-        IdiomaNubi.FRANCES -> "C'est l'heure de nourrir $nombreBebe."
-        else -> "Ya es la hora de comer de $nombreBebe."
+        IdiomaNubi.INGLES -> "It's time for $nombreBebe to eat"
+        IdiomaNubi.ITALIANO -> "È ora che $nombreBebe mangi"
+        IdiomaNubi.FRANCES -> "C'est l'heure de nourrir $nombreBebe"
+        else -> "Ya es la hora de comer de $nombreBebe"
     }
 
     // -----------------------------------------------------------------
@@ -244,10 +244,10 @@ object L10n {
     }
 
     fun calculadaConEdad(edad: String, hora: String): String = when (idiomaEfectivo) {
-        IdiomaNubi.INGLES -> "Worked out from their age ($edad) and the time they woke up today: $hora."
-        IdiomaNubi.ITALIANO -> "Calcolata in base alla sua età ($edad) e all'ora in cui si è svegliato oggi: $hora."
-        IdiomaNubi.FRANCES -> "Calculée selon son âge ($edad) et l'heure de son réveil aujourd'hui : $hora."
-        else -> "Calculada con su edad ($edad) y la hora en que se despertó hoy: $hora."
+        IdiomaNubi.INGLES -> "Worked out from their age ($edad) and the time they woke up today: $hora"
+        IdiomaNubi.ITALIANO -> "Calcolata in base alla sua età ($edad) e all'ora in cui si è svegliato oggi: $hora"
+        IdiomaNubi.FRANCES -> "Calculée selon son âge ($edad) et l'heure de son réveil aujourd'hui : $hora"
+        else -> "Calculada con su edad ($edad) y la hora en que se despertó hoy: $hora"
     }
 
     /** "Sueño nocturno de Lara" */
@@ -268,10 +268,10 @@ object L10n {
 
     /** Tarjeta difuminada de Hoy mientras duerme la primera noche. */
     fun calcularaCuandoDespierte(nombre: String): String = when (idiomaEfectivo) {
-        IdiomaNubi.INGLES -> "Nubi will work out their next nap when $nombre wakes up."
-        IdiomaNubi.ITALIANO -> "Nubi calcolerà il suo prossimo sonnellino quando $nombre si sveglierà."
-        IdiomaNubi.FRANCES -> "Nubi calculera sa prochaine sieste quand $nombre se réveillera."
-        else -> "Nubi calculará su próxima siesta cuando $nombre despierte."
+        IdiomaNubi.INGLES -> "Nubi will work out their next nap when $nombre wakes up"
+        IdiomaNubi.ITALIANO -> "Nubi calcolerà il suo prossimo sonnellino quando $nombre si sveglierà"
+        IdiomaNubi.FRANCES -> "Nubi calculera sa prochaine sieste quand $nombre se réveillera"
+        else -> "Nubi calculará su próxima siesta cuando $nombre despierte"
     }
 
     /** Letra pequeña de abajo cuando hay prueba gratis. */
@@ -429,10 +429,10 @@ object L10n {
     }
 
     fun sueleDormir(a: String, b: String): String = when (idiomaEfectivo) {
-        IdiomaNubi.INGLES -> "At this age babies usually sleep between $a and $b h a day."
-        IdiomaNubi.ITALIANO -> "A questa età di solito dorme tra $a e $b h al giorno."
-        IdiomaNubi.FRANCES -> "À cet âge, un bébé dort généralement entre $a et $b h par jour."
-        else -> "A su edad se suele dormir entre $a y $b h al día."
+        IdiomaNubi.INGLES -> "At this age babies usually sleep between $a and $b h a day"
+        IdiomaNubi.ITALIANO -> "A questa età di solito dorme tra $a e $b h al giorno"
+        IdiomaNubi.FRANCES -> "À cet âge, un bébé dort généralement entre $a et $b h par jour"
+        else -> "A su edad se suele dormir entre $a y $b h al día"
     }
 
     /** "5 d de vida"/"3 sem de vida"/"2 m de vida" — edad abreviada. */

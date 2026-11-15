@@ -242,7 +242,7 @@ private fun ContenidoPrediccion(bebe: Bebe, despertar: Instant, ahora: Instant) 
             )
         } else {
             Text(
-                L10n.t("Nubi la calculará en cuanto tenga un poco más de datos."),
+                L10n.t("Nubi la calculará en cuanto tenga un poco más de datos"),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colores.tintaSuave,
                 textAlign = TextAlign.Center
@@ -287,7 +287,7 @@ private fun TarjetaDormido(hora: Int, minuto: Int, onCambiarHora: () -> Unit) {
             BadgeIcono(IconoNubi.LAPIZ, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 32.dp, tamanoIcono = 15.dp)
         }
         Text(
-            L10n.t("Mañana, al despertar, Nubi calculará su primera siesta."),
+            L10n.t("Mañana, al despertar, Nubi calculará su primera siesta"),
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
@@ -345,8 +345,8 @@ private fun TarjetaAprendiendo(nombre: String, conDespertar: Boolean) {
             }
         }
         Text(
-            if (conDespertar) L10n.t("Cuanto más registres, más se ajustará.")
-            else L10n.t("Si se despierta por la noche, lo anotas en un toque."),
+            if (conDespertar) L10n.t("Cuanto más registres, más se ajustará")
+            else L10n.t("Si se despierta por la noche, lo anotas en un toque"),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )

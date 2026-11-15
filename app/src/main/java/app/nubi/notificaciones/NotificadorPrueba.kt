@@ -51,7 +51,7 @@ object NotificadorPrueba {
     private fun titulo() = L10n.t("Te quedan 3 días de prueba")
 
     private fun texto() = L10n.t(
-        "Sigue anticipándote a cada siesta de tu bebé sin cortes: no pierdas lo que has avanzado con Nubi Premium."
+        "Sigue anticipándote a cada siesta de tu bebé sin cortes: no pierdas lo que has avanzado con Nubi Premium"
     )
 
     /** Para el botón "[Debug] Probar aviso de prueba" en Ajustes: dispara

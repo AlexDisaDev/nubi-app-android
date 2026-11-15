@@ -150,7 +150,7 @@ fun PantallaAlimentacion(bebe: Bebe, comidas: List<ComidaComplementaria>) {
                     Text(L10n.t("Aún no hay comidas"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        L10n.t("Registra la primera papilla, fruta o cereal de tu bebé."),
+                        L10n.t("Registra la primera papilla, fruta o cereal de tu bebé"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaSuave,
                         textAlign = TextAlign.Center

@@ -170,7 +170,7 @@ fun BloqueCanjearCodigo(
                         // se traducen para que el mensaje signifique algo.
                         when {
                             e.message?.contains("codigo_ya_usado") == true ->
-                                L10n.t("Ese código ya se había usado.")
+                                L10n.t("Ese código ya se había usado")
                             e.message?.contains("codigo_invalido") == true ->
                                 L10n.t("No encontramos ese código. Revisa que esté bien escrito.")
                             else -> L10n.t("No se pudo canjear ahora mismo. Inténtalo en un momento.")
@@ -660,7 +660,7 @@ private fun ContenidoAlta(
                 color = colores.tinta
             )
             Text(
-                L10n.t("Con su edad, Nubi personaliza las estimaciones de sueño."),
+                L10n.t("Con su edad, Nubi personaliza las estimaciones de sueño"),
                 style = MaterialTheme.typography.bodySmall.copy(fontSize = 15.sp),
                 color = colores.tintaSuave
             )
@@ -1097,7 +1097,7 @@ fun PantallaHoy(
                     }
                 } else {
                     Text(
-                        L10n.t("Sin sueño en curso."),
+                        L10n.t("Sin sueño en curso"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colores.tintaTenue
                     )
@@ -1540,8 +1540,8 @@ private fun TarjetaPrediccionBloqueada(
     // Lo difuminado NO es la hora real, sino un relleno con su forma:
     // Modifier.blur no hace nada antes de Android 12, y ahí se leería.
     val relleno = if (esNoche) "••:••" else "••:•• – ••:••"
-    val titular = titularFijo ?: if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir.")
-    else L10n.t("Nubi ya ha calculado su próxima siesta.")
+    val titular = titularFijo ?: if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir")
+    else L10n.t("Nubi ya ha calculado su próxima siesta")
     val llamada = textoPruebaDisponible()?.let { "${L10n.t("Desbloquéala con")} $it" }
         ?: L10n.t("Desbloquéala con Nubi Premium")
 
@@ -2093,7 +2093,7 @@ fun PantallaDia(
 
         if (listaCompleta.isEmpty()) {
             Text(
-                L10n.t("Todavía no hay nada apuntado."),
+                L10n.t("Todavía no hay nada apuntado"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colores.tintaTenue
             )
@@ -2493,7 +2493,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
             // Premium (cuenta sin premium) conserva su estilo discreto.
             Text(
                 if (premium) L10n.t("¿Se te olvidó? Toca y elige la hora")
-                else L10n.t("Apuntar a otra hora es parte de Nubi Premium."),
+                else L10n.t("Apuntar a otra hora es parte de Nubi Premium"),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (premium) colores.tinta else colores.tintaTenue,
                 fontSize = if (premium) 13.sp else TextUnit.Unspecified,
@@ -2845,7 +2845,7 @@ fun PantallaEnObras(nombre: String) {
             Text(nombre, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text(
-                L10n.t("Pendiente de portar desde iOS."),
+                L10n.t("Pendiente de portar desde iOS"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = NubiTheme.colores.tintaTenue
             )
@@ -3029,7 +3029,7 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
 
         // Mismo pie que VistaAjustes.swift, al final de toda la pantalla.
         Text(
-            L10n.t("Nubi no sustituye el criterio de un profesional sanitario."),
+            L10n.t("Nubi no sustituye el criterio de un profesional sanitario"),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue,
             textAlign = TextAlign.Center,
@@ -3886,7 +3886,7 @@ private fun HojaSuenoSeguro(alCerrar: () -> Unit) {
             Text(
                 L10n.t("Las recomendaciones generales de sueño seguro para lactantes incluyen acostar al bebé boca arriba, sobre una superficie firme y plana, sin almohadas, mantas sueltas ni peluches en la cuna, y compartir habitación pero no cama durante los primeros meses.\n\n") +
                     L10n.t("Evita el sobrecalentamiento y el humo del tabaco en el entorno del bebé.\n\n") +
-                    L10n.t("Consulta siempre las guías de tu pediatra o de la sociedad de pediatría de tu país, que son la referencia válida para tu caso."),
+                    L10n.t("Consulta siempre las guías de tu pediatra o de la sociedad de pediatría de tu país, que son la referencia válida para tu caso"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colores.tintaSuave
             )

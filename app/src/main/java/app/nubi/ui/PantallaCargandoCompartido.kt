@@ -160,7 +160,7 @@ fun PantallaCargandoCompartido(alTerminar: () -> Unit) {
             if (tardando && !fallo) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    L10n.t("Está tardando más de lo normal."),
+                    L10n.t("Está tardando más de lo normal"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaTenue,
                     textAlign = TextAlign.Center

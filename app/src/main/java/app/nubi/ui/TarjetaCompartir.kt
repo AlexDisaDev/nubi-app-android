@@ -81,7 +81,7 @@ fun TarjetaCompartir(
 
     val subtitulo = when {
         soyInvitado -> "${L10n.t("Estás viendo y anotando los datos compartidos de")} $nombreBebe."
-        else -> L10n.t("Crea un enlace con la marca Nubi y compártelo por WhatsApp, Mail o donde quieras.")
+        else -> L10n.t("Crea un enlace con la marca Nubi y compártelo por WhatsApp, Mail o donde quieras")
     }
 
     val contenido: @Composable () -> Unit = {

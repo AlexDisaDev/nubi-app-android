@@ -201,7 +201,7 @@ fun PantallaSonidos() {
                     buildString {
                         append(L10n.t("Blanco: enmascara ruidos bruscos (portazos, perros, hermanos mayores).\n\n"))
                         append(L10n.t("Rosa: más suave y con menos agudos, ideal para quedarse dormido sin sobresaltos.\n\n"))
-                        append(L10n.t("Marrón: aún más grave y envolvente, para bebés más sensibles al sonido."))
+                        append(L10n.t("Marrón: aún más grave y envolvente, para bebés más sensibles al sonido"))
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = colores.tintaSuave

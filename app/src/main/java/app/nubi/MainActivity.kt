@@ -357,9 +357,9 @@ fun ContenidoApp() {
                                     "invitacion_caducada" in mensaje ->
                                         errorInvitacion = L10n.t("Esta invitación ya ha caducado. Pide un enlace nuevo.")
                                     "no_puedes_aceptar_tu_propia_invitacion" in mensaje ->
-                                        errorInvitacion = L10n.t("No puedes aceptar tu propia invitación.")
+                                        errorInvitacion = L10n.t("No puedes aceptar tu propia invitación")
                                     "invitacion_invalida" in mensaje ->
-                                        errorInvitacion = L10n.t("Este enlace de invitación ya no es válido.")
+                                        errorInvitacion = L10n.t("Este enlace de invitación ya no es válido")
                                     else ->
                                         // Error inesperado (red, servidor, etc.): aquí
                                         // sí interesa el detalle técnico para depurar.
@@ -391,7 +391,7 @@ fun ContenidoApp() {
             // el text de un AlertDialog) en vez de un título corto + cuerpo
             // en letra pequeña: así se lee grande y es lo único que dice el
             // aviso, sin la mención a Black Friday/consejos de antes.
-            title = { Text(L10n.t("Quiero recibir ofertas, descuentos y promociones especiales por email.")) },
+            title = { Text(L10n.t("Quiero recibir ofertas, descuentos y promociones especiales por email")) },
             confirmButton = {
                 TextButton(onClick = { Repositorio.actualizarNewsletter(true) }) {
                     Text(L10n.t("Sí, quiero recibirla"))
@@ -516,14 +516,14 @@ fun PantallaLogin() {
         Spacer(Modifier.height(24.dp))
 
         Text(
-            L10n.t("Empieza a entender mejor el día de tu bebé."),
+            L10n.t("Empieza a entender mejor el día de tu bebé"),
             style = MaterialTheme.typography.headlineMedium,
             color = NubiTheme.colores.tinta,
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(10.dp))
         Text(
-            L10n.t("Sueño, siestas, tomas y pañales en un solo lugar."),
+            L10n.t("Sueño, siestas, tomas y pañales en un solo lugar"),
             style = MaterialTheme.typography.bodyMedium,
             color = NubiTheme.colores.tintaSuave,
             textAlign = TextAlign.Center
@@ -544,7 +544,7 @@ fun PantallaLogin() {
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        L10n.t("Inicia sesión para unirte y empezar a ver sus datos."),
+                        L10n.t("Inicia sesión para unirte y empezar a ver sus datos"),
                         style = MaterialTheme.typography.bodySmall,
                         color = NubiTheme.colores.tintaSuave
                     )
@@ -626,7 +626,6 @@ fun PantallaLogin() {
                     TextLinkStyles(style = SpanStyle(color = colorEnlace, textDecoration = TextDecoration.Underline))
                 )
             ) { append(L10n.t("Política de privacidad")) }
-            withStyle(SpanStyle(color = colorTenue)) { append(".") }
         }
         Text(
             textoLegal,

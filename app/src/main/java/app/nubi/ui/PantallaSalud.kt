@@ -334,7 +334,7 @@ private fun BloqueVacunas(
                     color = colores.tinta
                 )
                 Text(
-                    L10n.t("Para no mostrar un calendario que no corresponda a tu país, aquí puedes anotar manualmente las vacunas que le pongan."),
+                    L10n.t("Para no mostrar un calendario que no corresponda a tu país, aquí puedes anotar manualmente las vacunas que le pongan"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaSuave
                 )
@@ -459,7 +459,7 @@ private fun BloquePropio(
                     color = colores.tinta
                 )
                 Text(
-                    L10n.t("Crea una edad (“5 meses”, “antes del viaje”) y añade dentro las vacunas que le hayan puesto y no estén en el calendario de arriba."),
+                    L10n.t("Crea una edad (“5 meses”, “antes del viaje”) y añade dentro las vacunas que le hayan puesto y no estén en el calendario de arriba"),
                     style = MaterialTheme.typography.bodySmall,
                     color = colores.tintaSuave
                 )
@@ -636,7 +636,7 @@ private fun BloqueCitas(
             EstadoVacio(
                 icono = IconoNubi.CALENDARIO,
                 titulo = L10n.t("Ninguna cita apuntada"),
-                texto = L10n.t("Anota la próxima revisión para no perderla de vista."),
+                texto = L10n.t("Anota la próxima revisión para no perderla de vista"),
                 color = colores.menta
             )
         }
@@ -722,7 +722,7 @@ private fun BloqueEnfermedades(
             EstadoVacio(
                 icono = IconoNubi.BOTIQUIN,
                 titulo = L10n.t("Ninguna enfermedad registrada"),
-                texto = L10n.t("Anota resfriados, gripes, alergias o cualquier proceso de salud que quieras recordar."),
+                texto = L10n.t("Anota resfriados, gripes, alergias o cualquier proceso de salud que quieras recordar"),
                 color = colores.coral
             )
         }

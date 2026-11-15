@@ -219,7 +219,7 @@ fun PantallaCrece(bebe: Bebe, medidas: List<Medida>) {
                 EstadoVacio(
                     icono = magnitud.icono,
                     titulo = L10n.aunNoHayMedida(magnitud.titulo),
-                    texto = L10n.t("Apunta lo que te digan en la revisión y verás cómo evoluciona entre visita y visita."),
+                    texto = L10n.t("Apunta lo que te digan en la revisión y verás cómo evoluciona entre visita y visita"),
                     color = colorDeMagnitud(magnitud, colores)
                 )
             }

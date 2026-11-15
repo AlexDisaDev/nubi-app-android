@@ -68,25 +68,25 @@ object CalendarioVacunal {
 
     private data class V(val cod: String, val nombre: String, val detalle: String)
 
-    private val vrs = V("vrs", "Anticuerpo frente al VRS", "Nirsevimab, en su primera temporada de virus respiratorio sincitial.")
-    private val hbNacer = V("hb", "Hepatitis B al nacer", "Solo si la madre es portadora o no se le hizo el cribado.")
-    private val hexa = V("hexa", "Hexavalente", "Difteria, tétanos, tosferina, polio, Hib y hepatitis B.")
-    private val vnc = V("vnc", "Neumococo", "Vacuna conjugada.")
-    private val vnc20 = V("vnc", "Neumococo (VNC20)", "Vacuna conjugada de 20 serotipos.")
+    private val vrs = V("vrs", "Anticuerpo frente al VRS", "Nirsevimab, en su primera temporada de virus respiratorio sincitial")
+    private val hbNacer = V("hb", "Hepatitis B al nacer", "Solo si la madre es portadora o no se le hizo el cribado")
+    private val hexa = V("hexa", "Hexavalente", "Difteria, tétanos, tosferina, polio, Hib y hepatitis B")
+    private val vnc = V("vnc", "Neumococo", "Vacuna conjugada")
+    private val vnc20 = V("vnc", "Neumococo (VNC20)", "Vacuna conjugada de 20 serotipos")
     private val menb = V("menb", "Meningococo B", "")
     private val menc = V("menc", "Meningococo C", "")
     private val menacwy = V("menacwy", "Meningococo ACWY", "")
-    private val rota = V("rota", "Rotavirus", "Se administra por boca.")
-    private val tv = V("tv", "Triple vírica", "Sarampión, rubéola y parotiditis.")
+    private val rota = V("rota", "Rotavirus", "Se administra por boca")
+    private val tv = V("tv", "Triple vírica", "Sarampión, rubéola y parotiditis")
     private val varicela = V("var", "Varicela", "")
-    private val tetra = V("srpv", "Tetravírica", "Triple vírica y varicela en una sola vacuna.")
-    private val dtpaVpi = V("dtpavpi", "Refuerzo DTPa-VPI", "Difteria, tétanos, tosferina y polio.")
+    private val tetra = V("srpv", "Tetravírica", "Triple vírica y varicela en una sola vacuna")
+    private val dtpaVpi = V("dtpavpi", "Refuerzo DTPa-VPI", "Difteria, tétanos, tosferina y polio")
     private val dtpa = V("dtpa", "Refuerzo difteria-tétanos-tosferina", "")
     private val vpi = V("vpi", "Polio", "")
-    private val tdpa = V("tdpa", "dTpa", "Refuerzo de difteria, tétanos y tosferina.")
+    private val tdpa = V("tdpa", "dTpa", "Refuerzo de difteria, tétanos y tosferina")
     private val td = V("td", "Tétanos y difteria", "")
-    private val vph = V("vph", "Virus del papiloma humano", "Una dosis, en niñas y niños.")
-    private val gripe = V("gripe", "Gripe", "Campaña estacional.")
+    private val vph = V("vph", "Virus del papiloma humano", "Una dosis, en niñas y niños")
+    private val gripe = V("gripe", "Gripe", "Campaña estacional")
     private val hepA = V("hepa", "Hepatitis A", "")
 
     /** Añade el número de dosis al nombre sin cambiar el identificador. */
@@ -118,9 +118,9 @@ object CalendarioVacunal {
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
-        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses."))),
+        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses"))),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 3))),
-        gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menb, 3), nota(menc, "Segunda dosis de meningococo C."))),
+        gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menb, 3), nota(menc, "Segunda dosis de meningococo C"))),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
         gr("g42", "3 – 4 años", 42.0, listOf(d(tv, 2), d(varicela, 2))),
         gr("g72", "6 años", 72.0, listOf(dtpaVpi)),
@@ -133,18 +133,18 @@ object CalendarioVacunal {
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
-        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses."))),
+        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses"))),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 3))),
         gr(
             "g12", "12 meses", 12.0, listOf(
                 d(tv, 1),
                 d(menb, 3),
-                nota(menacwy, "Desde el 1 de enero de 2026 sustituye a la dosis de MenC.")
+                nota(menacwy, "Desde el 1 de enero de 2026 sustituye a la dosis de MenC")
             )
         ),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
-        gr("g36", "3 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas."))),
-        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben dTpa de baja carga."))),
+        gr("g36", "3 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas"))),
+        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben dTpa de baja carga"))),
         gr("g144", "12 años", 144.0, listOf(menacwy, vph)),
         gr("g168", "14 años", 168.0, listOf(tdpa))
     )
@@ -155,23 +155,23 @@ object CalendarioVacunal {
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc20, 1), d(menb, 1),
-                nota(rota, "Dos dosis por boca, a los 2 y 4 meses.")
+                nota(rota, "Dos dosis por boca, a los 2 y 4 meses")
             )
         ),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc20, 2), d(menb, 2), d(rota, 2), d(menacwy, 1))),
-        gr("g6", "6 meses", 6.0, listOf(d(vnc20, 3), nota(gripe, "Una dosis por temporada, de 6 a 59 meses."))),
+        gr("g6", "6 meses", 6.0, listOf(d(vnc20, 3), nota(gripe, "Una dosis por temporada, de 6 a 59 meses"))),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc20, 4))),
         gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menacwy, 2))),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1), d(menb, 3))),
         gr(
             "g24", "2 – 3 años", 30.0, listOf(
-                nota(tv, "Segunda dosis, durante 2026 a los 2 y 3 años."),
-                nota(varicela, "Segunda dosis, durante 2026 a los 2 y 3 años.")
+                nota(tv, "Segunda dosis, durante 2026 a los 2 y 3 años"),
+                nota(varicela, "Segunda dosis, durante 2026 a los 2 y 3 años")
             )
         ),
-        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben Tdpa sin polio."))),
+        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben Tdpa sin polio"))),
         gr("g144", "12 años", 144.0, listOf(menacwy, vph)),
-        gr("g168", "14 años", 168.0, listOf(nota(tdpa, "A quienes no hayan recibido Tdpa a partir de los 10 años.")))
+        gr("g168", "14 años", 168.0, listOf(nota(tdpa, "A quienes no hayan recibido Tdpa a partir de los 10 años")))
     )
 
     // MARK: País Vasco
@@ -179,11 +179,11 @@ object CalendarioVacunal {
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc, 1), d(menb, 1),
-                nota(rota, "Pauta entre los 2 y los 6 meses.")
+                nota(rota, "Pauta entre los 2 y los 6 meses")
             )
         ),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), d(menacwy, 1))),
-        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses."))),
+        gr("g6", "6 meses", 6.0, listOf(nota(gripe, "Una dosis por temporada, de 6 a 59 meses"))),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 3))),
         gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menb, 3), d(menacwy, 2))),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
@@ -195,13 +195,13 @@ object CalendarioVacunal {
 
     // MARK: Catalunya
     private val cataluna: List<GrupoVacunal> get() = listOf(
-        gr("g0", "Al nacer", 0.0, listOf(nota(vrs, "A todos los menores de 12 meses en su primera temporada."))),
+        gr("g0", "Al nacer", 0.0, listOf(nota(vrs, "A todos los menores de 12 meses en su primera temporada"))),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc, 1), d(menb, 1), d(rota, 1))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), menc)),
         gr(
             "g6", "6 meses", 6.0, listOf(
-                nota(rota, "Tercera dosis, según la vacuna utilizada."),
-                nota(gripe, "Una dosis por temporada, de 6 a 59 meses.")
+                nota(rota, "Tercera dosis, según la vacuna utilizada"),
+                nota(gripe, "Una dosis por temporada, de 6 a 59 meses")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 3))),
@@ -212,8 +212,8 @@ object CalendarioVacunal {
         gr(
             "g132", "11 – 12 años", 138.0, listOf(
                 tdpa, d(menacwy, 2), vph,
-                nota(varicela, "Solo a quienes no estén inmunizados."),
-                nota(hepA, "Solo a quienes no estén inmunizados.")
+                nota(varicela, "Solo a quienes no estén inmunizados"),
+                nota(hepA, "Solo a quienes no estén inmunizados")
             )
         )
     )
@@ -224,20 +224,20 @@ object CalendarioVacunal {
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc20, 1), d(menb, 1),
-                nota(rota, "Dos dosis, a los 2 y 4 meses, en nacidos desde agosto de 2023.")
+                nota(rota, "Dos dosis, a los 2 y 4 meses, en nacidos desde agosto de 2023")
             )
         ),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc20, 2), d(menb, 2), d(rota, 2), d(menacwy, 1))),
-        gr("g6", "6 meses", 6.0, listOf(d(vnc20, 3), nota(gripe, "Una dosis por temporada, de 6 a 59 meses."))),
+        gr("g6", "6 meses", 6.0, listOf(d(vnc20, 3), nota(gripe, "Una dosis por temporada, de 6 a 59 meses"))),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc20, 4))),
         gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menb, 3), d(menacwy, 2))),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
-        gr("g36", "3 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas."))),
-        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 2, 4, 6 y 18 meses reciben dTpa."))),
+        gr("g36", "3 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas"))),
+        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 2, 4, 6 y 18 meses reciben dTpa"))),
         gr(
             "g144", "12 años", 144.0, listOf(
                 menacwy, vph,
-                nota(varicela, "A quienes no la hayan pasado ni tengan las dos dosis.")
+                nota(varicela, "A quienes no la hayan pasado ni tengan las dos dosis")
             )
         ),
         gr("g168", "14 años", 168.0, listOf(td))
@@ -251,14 +251,14 @@ object CalendarioVacunal {
         gr(
             "g6", "6 meses", 6.0, listOf(
                 d(vnc20, 3),
-                nota(rota, "Tercera dosis, según la vacuna utilizada."),
-                nota(gripe, "Una dosis por temporada, de 6 a 71 meses.")
+                nota(rota, "Tercera dosis, según la vacuna utilizada"),
+                nota(gripe, "Una dosis por temporada, de 6 a 71 meses")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc20, 4))),
         gr("g12", "12 meses", 12.0, listOf(d(tv, 1), d(menacwy, 2))),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
-        gr("g24", "2 – 4 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas."))),
+        gr("g24", "2 – 4 años", 36.0, listOf(nota(tetra, "Segunda dosis de triple vírica y varicela juntas"))),
         gr("g60", "5 – 6 años", 66.0, listOf(dtpaVpi)),
         gr("g144", "12 años", 144.0, listOf(vph, menacwy)),
         gr("g168", "14 años", 168.0, listOf(td))
@@ -268,12 +268,12 @@ object CalendarioVacunal {
     private val castillaYLeon: List<GrupoVacunal> get() = listOf(
         gr("g0", "Al nacer", 0.0, listOf(vrs, hbNacer)),
         gr("g2", "2 meses", 2.0, listOf(d(hexa, 1), d(vnc20, 1), d(menb, 1), d(rota, 1))),
-        gr("g3", "3 meses", 3.0, listOf(nota(rota, "Segunda dosis, según la vacuna utilizada."))),
+        gr("g3", "3 meses", 3.0, listOf(nota(rota, "Segunda dosis, según la vacuna utilizada"))),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc20, 2), d(menb, 2), d(rota, 3), d(menacwy, 1))),
         gr(
             "g6", "6 meses", 6.0, listOf(
                 d(vnc20, 3),
-                nota(gripe, "Anual en campaña: de 6 a 23 meses inyectable, de 2 a 11 años intranasal.")
+                nota(gripe, "Anual en campaña: de 6 a 23 meses inyectable, de 2 a 11 años intranasal")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc20, 4))),
@@ -284,8 +284,8 @@ object CalendarioVacunal {
         gr(
             "g144", "12 años", 144.0, listOf(
                 menacwy,
-                nota(vph, "VPH9, una dosis, en niñas y niños."),
-                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados.")
+                nota(vph, "VPH9, una dosis, en niñas y niños"),
+                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados")
             )
         ),
         gr("g168", "14 años", 168.0, listOf(td))
@@ -299,7 +299,7 @@ object CalendarioVacunal {
         gr(
             "g6", "6 meses", 6.0, listOf(
                 d(vnc, 3), d(rota, 3),
-                nota(gripe, "Anual, desde los 5 meses hasta los 5 años.")
+                nota(gripe, "Anual, desde los 5 meses hasta los 5 años")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 4))),
@@ -310,7 +310,7 @@ object CalendarioVacunal {
         gr(
             "g144", "12 años", 144.0, listOf(
                 menacwy, vph,
-                nota(varicela, "Solo a quienes no estén inmunizados.")
+                nota(varicela, "Solo a quienes no estén inmunizados")
             )
         ),
         gr("g168", "14 años", 168.0, listOf(td))
@@ -321,7 +321,7 @@ object CalendarioVacunal {
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc, 1),
-                nota(menb, "Meningococo B, en nacidos desde el 1 de noviembre de 2022."),
+                nota(menb, "Meningococo B, en nacidos desde el 1 de noviembre de 2022"),
                 d(rota, 1)
             )
         ),
@@ -329,8 +329,8 @@ object CalendarioVacunal {
         gr(
             "g6", "6 meses", 6.0, listOf(
                 d(vnc, 3),
-                nota(rota, "Tercera dosis, según la vacuna utilizada."),
-                nota(gripe, "Una dosis por temporada, de 6 a 59 meses.")
+                nota(rota, "Tercera dosis, según la vacuna utilizada"),
+                nota(gripe, "Una dosis por temporada, de 6 a 59 meses")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 4))),
@@ -340,8 +340,8 @@ object CalendarioVacunal {
         gr("g72", "6 años", 72.0, listOf(dtpaVpi)),
         gr(
             "g120", "10 años", 120.0, listOf(
-                nota(vph, "Una dosis, en niñas y niños."),
-                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados.")
+                nota(vph, "Una dosis, en niñas y niños"),
+                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados")
             )
         ),
         gr("g156", "13 años", 156.0, listOf(tdpa, menacwy))
@@ -353,31 +353,31 @@ object CalendarioVacunal {
         gr(
             "g2", "2 meses", 2.0, listOf(
                 d(hexa, 1), d(vnc, 1), d(menb, 1),
-                nota(rota, "En nacidos desde el 1 de agosto de 2024.")
+                nota(rota, "En nacidos desde el 1 de agosto de 2024")
             )
         ),
         gr("g4", "4 meses", 4.0, listOf(d(hexa, 2), d(vnc, 2), d(menb, 2), d(rota, 2), d(menacwy, 1))),
         gr(
             "g6", "6 meses", 6.0, listOf(
                 d(vnc, 3),
-                nota(rota, "Tercera dosis, según la vacuna utilizada."),
-                nota(gripe, "Una dosis por campaña, de 6 a 59 meses.")
+                nota(rota, "Tercera dosis, según la vacuna utilizada"),
+                nota(gripe, "Una dosis por campaña, de 6 a 59 meses")
             )
         ),
         gr("g11", "11 meses", 11.0, listOf(d(hexa, 3), d(vnc, 4))),
         gr(
             "g12", "12 meses", 12.0, listOf(
                 d(tv, 1), d(menacwy, 2),
-                nota(menb, "Tercera dosis, en nacidos desde el 1 de enero de 2023.")
+                nota(menb, "Tercera dosis, en nacidos desde el 1 de enero de 2023")
             )
         ),
         gr("g15", "15 meses", 15.0, listOf(d(varicela, 1))),
         gr("g36", "3 años", 36.0, listOf(d(tv, 2), d(varicela, 2))),
-        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben dTpa sin polio."))),
+        gr("g72", "6 años", 72.0, listOf(nota(dtpaVpi, "Los vacunados con pauta 3+1 reciben dTpa sin polio"))),
         gr(
             "g144", "12 años", 144.0, listOf(
                 menacwy, vph,
-                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados.")
+                nota(varicela, "Solo a quienes no la hayan pasado ni estén vacunados")
             )
         ),
         gr("g168", "14 años", 168.0, listOf(td))

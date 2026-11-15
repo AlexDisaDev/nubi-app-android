@@ -113,7 +113,7 @@ fun PantallaDiario(bebe: Bebe, entradas: List<EntradaDiario>) {
                 EstadoVacioDiario(
                     icono = IconoNubi.LIBRETA,
                     titulo = if (soloHitos) L10n.t("Ningún hito todavía") else L10n.t("El cuaderno está en blanco"),
-                    texto = if (soloHitos) L10n.t("Marca una entrada como hito cuando pase algo por primera vez.")
+                    texto = if (soloHitos) L10n.t("Marca una entrada como hito cuando pase algo por primera vez")
                     else L10n.t("La primera sonrisa, la noche que durmió del tirón, lo que dijo el pediatra. Dentro de un año no te acordarás si no lo escribes."),
                     color = colores.mantequilla
                 )
