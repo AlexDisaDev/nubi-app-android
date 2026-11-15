@@ -1537,55 +1537,55 @@ private fun TarjetaPrediccionBloqueada(
 ) {
     val colores = NubiTheme.colores
     val esNoche = prediccion?.tipo == TipoPrediccion.NOCHE
-    val colorCategoria = if (esNoche) colores.lila else colores.indigo
-    // Lo difuminado NO es la hora real, sino un relleno con la misma forma:
-    // Modifier.blur no hace nada antes de Android 12, y ahí se leería la
-    // predicción tal cual.
-    val relleno = if (esNoche) "${L10n.t("Sueño nocturno")} · ••:••"
-    else "${L10n.t("Próxima siesta")} · ••:•• – ••:••"
+    // Lo difuminado NO es la hora real, sino un relleno con su forma:
+    // Modifier.blur no hace nada antes de Android 12, y ahí se leería.
+    val relleno = if (esNoche) "••:••" else "••:•• – ••:••"
     val titular = titularFijo ?: if (esNoche) L10n.t("Nubi ya ha calculado su hora de dormir.")
     else L10n.t("Nubi ya ha calculado su próxima siesta.")
     val llamada = textoPruebaDisponible()?.let { "${L10n.t("Desbloquéala con")} $it" }
         ?: L10n.t("Desbloquéala con Nubi Premium")
 
+    // Una sola fila, de la misma altura que la tarjeta de predicción real:
+    // candado, el texto y, a la derecha, la hora difuminada. Antes eran tres
+    // filas y hacían que Hoy no cupiera sin scroll. Igual que iOS.
     Card(
         shape = RoundedCornerShape(NubiGeometria.radioChico),
         colors = CardDefaults.cardColors(containerColor = colores.superficie),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(
-                    modifier = Modifier.weight(1f).blur(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    BadgeIcono(
-                        if (esNoche) IconoNubi.LUNA else IconoNubi.RELOJ,
-                        colorFondo = colorCategoria,
-                        colorIcono = colores.tinta,
-                        tamano = 36.dp,
-                        tamanoIcono = 17.dp
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(relleno, style = estiloTituloFilaHoy, maxLines = 1)
-                        Text(
-                            L10n.t("Ajustado a su ritmo real"),
-                            style = estiloSubtituloFilaHoy,
-                            color = colores.tintaTenue,
-                            maxLines = 1
-                        )
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 32.dp, tamanoIcono = 15.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BadgeIcono(IconoNubi.CANDADO, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 36.dp, tamanoIcono = 17.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    titular,
+                    style = estiloTituloFilaHoy.copy(fontSize = 15.sp, lineHeight = 18.sp),
+                    color = colores.tinta,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    llamada,
+                    style = estiloSubtituloFilaHoy.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
+                    color = colores.indigo,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Spacer(Modifier.height(10.dp))
-            Text(titular, style = estiloTituloFilaHoy.copy(fontSize = 16.sp), color = colores.tinta)
+            Spacer(Modifier.width(6.dp))
             Text(
-                llamada,
-                style = estiloSubtituloFilaHoy.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-                color = colores.indigo
+                relleno,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = colores.tinta,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(colores.indigo.copy(alpha = 0.15f))
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .blur(3.dp)
             )
         }
     }
