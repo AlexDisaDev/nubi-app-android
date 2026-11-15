@@ -46,6 +46,20 @@ object Premium {
     private val _ocultarRegalarEnPruebas = MutableStateFlow(false)
     val ocultarRegalarEnPruebas: StateFlow<Boolean> = _ocultarRegalarEnPruebas.asStateFlow()
 
+    /**
+     * Otro interruptor SOLO de depuración: hace que el paywall se pinte como
+     * si los planes tuvieran prueba gratis ("Empezar 7 días gratis", línea
+     * de tiempo…) aunque esta cuenta de Google ya la haya gastado y Play no
+     * la ofrezca. Solo cambia lo que se ve; la compra sigue siendo la real.
+     * Equivale a Premium.simularPrueba de iOS. En release se ignora.
+     */
+    private val _simularPruebaEnPruebas = MutableStateFlow(false)
+    val simularPruebaEnPruebas: StateFlow<Boolean> = _simularPruebaEnPruebas.asStateFlow()
+
+    fun alternarSimularPrueba() {
+        if (BuildConfig.DEBUG) _simularPruebaEnPruebas.value = !_simularPruebaEnPruebas.value
+    }
+
     fun alternarOcultarRegalar() {
         if (BuildConfig.DEBUG) _ocultarRegalarEnPruebas.value = !_ocultarRegalarEnPruebas.value
     }

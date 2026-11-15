@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.nubi.R
 import app.nubi.data.Compras
+import app.nubi.BuildConfig
 import app.nubi.data.EventoNombre
 import app.nubi.data.EventosFunnel
 import app.nubi.data.Premium
@@ -188,7 +189,9 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = NubiGeometria.margen * e)
-                .padding(top = 8.dp * e, bottom = 12.dp * e),
+                // Arriba, a la altura de la X (que va a NubiGeometria.margen
+                // del borde): antes empezaba casi pegado arriba del todo.
+                .padding(top = NubiGeometria.margen + 4.dp, bottom = 12.dp * e),
             verticalArrangement = Arrangement.spacedBy(16.dp * e)
         ) {
             CabeceraPaywall(e)
@@ -773,7 +776,15 @@ private fun textoPruebaDe(detalles: ProductDetails, planId: String): String? {
     val fases = detalles.subscriptionOfferDetails
         ?.firstOrNull { it.basePlanId == planId }
         ?.pricingPhases?.pricingPhaseList.orEmpty()
-    if (fases.size <= 1 || fases.first().priceAmountMicros != 0L) return null
+    if (fases.size <= 1 || fases.first().priceAmountMicros != 0L) {
+        // Solo en depuración ("[Debug] Simular prueba gratis" en Ajustes):
+        // para poder ver el paywall con prueba aunque esta cuenta de Google
+        // ya la haya gastado. En release BuildConfig.DEBUG es false.
+        if (BuildConfig.DEBUG && Premium.simularPruebaEnPruebas.value) {
+            return "${duracionTexto("P7D")} ${L10n.t("gratis")}"
+        }
+        return null
+    }
     return "${duracionTexto(fases.first().billingPeriod)} ${L10n.t("gratis")}"
 }
 

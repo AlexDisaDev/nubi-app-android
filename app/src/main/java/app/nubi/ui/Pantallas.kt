@@ -3419,6 +3419,34 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Spacer(Modifier.height(10.dp))
 
+                // Pinta el paywall como si hubiera prueba gratis aunque esta
+                // cuenta de Google ya la gastara (Premium.simularPruebaEnPruebas).
+                val simularPrueba by Premium.simularPruebaEnPruebas.collectAsState()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { Premium.alternarSimularPrueba() }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "[Debug] Simular prueba gratis en el paywall",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Muestra \"Empezar 7 días gratis\" aunque la cuenta ya la usara",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                    Switch(checked = simularPrueba, onCheckedChange = { Premium.alternarSimularPrueba() })
+                }
+                Spacer(Modifier.height(10.dp))
+
                 // Abre el paywall ("7 días de prueba gratis") aunque la cuenta
                 // ya tenga premium: la fila "Hazte Premium" de arriba solo sale
                 // sin premium, y con una compra de prueba de Play activa (o con
