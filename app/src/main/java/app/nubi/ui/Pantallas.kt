@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -1055,15 +1056,19 @@ fun PantallaHoy(
                     )
                     Spacer(Modifier.height(12.dp))
                     if (suenoEnCurso.tipo == TipoRegistro.NOCHE) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        // Los dos botones con la misma altura: la del más alto
+                        // ("Despertar nocturno" va en dos líneas).
+                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                             BotonAccion(
                                 // "Despertar nocturno" (y sus traducciones) son siempre dos
                                 // palabras separadas por un único espacio — se parte ahí para
-                                // que quepa en dos líneas en el botón, igual que antes.
+                                // que quepa en dos líneas en el botón. Con maxLineas = 2: con
+                                // el máximo de 1 de antes se cortaba en "Nigh…".
                                 texto = L10n.t("Despertar nocturno").replaceFirst(" ", "\n"),
                                 icono = IconoNubi.LUNA,
                                 color = colores.coral,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                maxLineas = 2
                             ) {
                                 Repositorio.guardarRegistro(
                                     Registro(bebeId = bebe.id, tipo = TipoRegistro.DESPERTAR, inicio = Instant.now())
@@ -1074,7 +1079,8 @@ fun PantallaHoy(
                                 texto = L10n.t("Buenos días"),
                                 icono = IconoNubi.SOL,
                                 color = colores.melocoton,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                maxLineas = 2
                             ) {
                                 Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
                             }
@@ -1813,6 +1819,7 @@ private fun BotonAccion(
     icono: IconoNubi,
     color: Color,
     modifier: Modifier = Modifier,
+    maxLineas: Int = 1,
     onClick: () -> Unit
 ) {
     Button(
@@ -1829,9 +1836,9 @@ private fun BotonAccion(
         Spacer(Modifier.width(8.dp))
         Text(
             texto,
-            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp),
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = 16.sp, lineHeight = 18.sp),
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = maxLineas,
             overflow = TextOverflow.Ellipsis
         )
     }
