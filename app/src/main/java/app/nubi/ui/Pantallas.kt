@@ -3419,6 +3419,34 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Spacer(Modifier.height(10.dp))
 
+                // Abre el paywall ("7 días de prueba gratis") aunque la cuenta
+                // ya tenga premium: la fila "Hazte Premium" de arriba solo sale
+                // sin premium, y con una compra de prueba de Play activa (o con
+                // "Simular Premium") desaparecía.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { mostrarPaywall = true }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "[Debug] Ver paywall (7 días gratis)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Se abre aunque esta cuenta ya tenga premium",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+
                 // Mismo sitio y mismo propósito que el botón "[Debug] Probar
                 // aviso de prueba" en VistaAjustes.swift: dispara el aviso de
                 // "te quedan 3 días" ya mismo, con el copy real, para poder
