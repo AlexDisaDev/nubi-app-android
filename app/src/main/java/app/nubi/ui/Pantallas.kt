@@ -544,8 +544,10 @@ fun PantallaNuevoBebe(alGuardar: () -> Unit) {
     if (mostrarBienvenida && estadoAlta != null) {
         PantallaBienvenidaAlta(
             bebe = bebeNuevo(Supabase.client.auth.currentUserOrNull()?.id ?: ""),
-            estado = estadoAlta
-        ) { empezarNoche -> crearBebe(estadoAlta, empezarNoche) }
+            estado = estadoAlta,
+            alContinuar = { empezarNoche -> crearBebe(estadoAlta, empezarNoche) },
+            alVolver = { mostrarBienvenida = false }
+        )
         return
     }
 

@@ -1,5 +1,6 @@
 package app.nubi.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -40,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -111,8 +114,12 @@ sealed class EstadoAlta {
 fun PantallaBienvenidaAlta(
     bebe: Bebe,
     estado: EstadoAlta,
-    alContinuar: (empezarNocheAhora: Boolean) -> Unit
+    alContinuar: (empezarNocheAhora: Boolean) -> Unit,
+    /** Flecha de arriba a la izquierda (y el botón atrás del sistema):
+     *  vuelve al alta con todo lo escrito, p. ej. para corregir la hora. */
+    alVolver: () -> Unit
 ) {
+    BackHandler(onBack = alVolver)
     val colores = NubiTheme.colores
     val ahora = remember { Instant.now() }
     val zona = ZoneId.systemDefault()
@@ -138,6 +145,31 @@ fun PantallaBienvenidaAlta(
             .padding(horizontal = NubiGeometria.margen)
             .padding(bottom = 12.dp)
     ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .offset(x = (-4).dp)
+                .size(44.dp)
+                .clip(CircleShape)
+                .clickable(onClickLabel = L10n.t("Volver"), onClick = alVolver),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(colores.superficie),
+                contentAlignment = Alignment.Center
+            ) {
+                Icono(
+                    IconoNubi.CHEVRON,
+                    tint = colores.indigo,
+                    tamano = 16.dp,
+                    modifier = Modifier.graphicsLayer(scaleX = -1f)
+                )
+            }
+        }
+
         // El contenido ocupa como mínimo toda la altura disponible y reparte
         // el hueco que sobra entre los bloques: en pantallas grandes respira,
         // en las pequeñas se junta, y solo si de verdad no cabe hay scroll.
@@ -152,7 +184,7 @@ fun PantallaBienvenidaAlta(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = altoDisponible)
-                        .padding(top = 20.dp, bottom = 12.dp),
+                        .padding(bottom = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
