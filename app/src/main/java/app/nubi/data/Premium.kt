@@ -34,7 +34,25 @@ object Premium {
     val disponibleEnPruebas: Boolean = BuildConfig.DEBUG
 
     fun alternarPruebas() {
-        if (BuildConfig.DEBUG) _forzadoEnPruebas.value = !_forzadoEnPruebas.value
+        if (!BuildConfig.DEBUG) return
+        _forzadoEnPruebas.value = !_forzadoEnPruebas.value
+        // No tiene sentido simular con y sin premium a la vez.
+        if (_forzadoEnPruebas.value) _simularSinPremiumEnPruebas.value = false
+    }
+
+    /**
+     * Interruptor SOLO de depuración, el gemelo de Premium.simularSinPremium
+     * de iOS: hace que la app se vea como la ve quien no ha pagado, aunque
+     * esta cuenta tenga premium de verdad (compra, código o compartido).
+     * Tiene prioridad sobre todo lo demás en [activo]. En release se ignora.
+     */
+    private val _simularSinPremiumEnPruebas = MutableStateFlow(false)
+    val simularSinPremiumEnPruebas: StateFlow<Boolean> = _simularSinPremiumEnPruebas.asStateFlow()
+
+    fun alternarSimularSinPremium() {
+        if (!BuildConfig.DEBUG) return
+        _simularSinPremiumEnPruebas.value = !_simularSinPremiumEnPruebas.value
+        if (_simularSinPremiumEnPruebas.value) _forzadoEnPruebas.value = false
     }
 
     /**
@@ -62,7 +80,9 @@ object Premium {
      * iOS, pero mirando el pago real en vez de solo "soy participante".
      */
     fun activo(perfil: Perfil?, premiumCompartido: Boolean = false): Boolean =
-        (BuildConfig.DEBUG && _forzadoEnPruebas.value) ||
-            perfil?.tieneAccesoPagado() == true ||
-            premiumCompartido
+        !(BuildConfig.DEBUG && _simularSinPremiumEnPruebas.value) && (
+            (BuildConfig.DEBUG && _forzadoEnPruebas.value) ||
+                perfil?.tieneAccesoPagado() == true ||
+                premiumCompartido
+            )
 }

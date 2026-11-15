@@ -118,7 +118,13 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val datos by Repositorio.local.datos.collectAsState()
     var destino by remember { mutableStateOf<Destino>(Destino.Abajo(Pestana.HOY)) }
     var enAjustes by remember { mutableStateOf(false) }
-    val premium = Premium.activo(perfil, datos.premiumCompartido)
+    // Se leen aquí para que, al tocar los interruptores de debug de
+    // Ajustes, toda la app se recomponga con el premium simulado.
+    val forzadoPremium by Premium.forzadoEnPruebas.collectAsState()
+    val simularSinPremium by Premium.simularSinPremiumEnPruebas.collectAsState()
+    val premium = remember(perfil, datos.premiumCompartido, forzadoPremium, simularSinPremium) {
+        Premium.activo(perfil, datos.premiumCompartido)
+    }
     val colores = NubiTheme.colores
 
     // Navegar nunca se bloquea: a TODAS las pestañas y secciones se entra

@@ -3317,7 +3317,11 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     // Perfil.puedeUsarApp() en Modelos.kt) — decía una cosa mientras el
     // resto de la app, correctamente, se regía por otra.
     val datos by Repositorio.local.datos.collectAsState()
-    val premiumActivo = Premium.activo(perfil, datos.premiumCompartido)
+    val forzadoPremium by Premium.forzadoEnPruebas.collectAsState()
+    val simularSinPremium by Premium.simularSinPremiumEnPruebas.collectAsState()
+    val premiumActivo = remember(perfil, datos.premiumCompartido, forzadoPremium, simularSinPremium) {
+        Premium.activo(perfil, datos.premiumCompartido)
+    }
     var mostrarPaywall by remember { mutableStateOf(false) }
 
     val titulo: String
@@ -3504,6 +3508,34 @@ private fun TarjetaDebug() {
                     )
                 }
                 Switch(checked = forzado, onCheckedChange = { Premium.alternarPruebas() })
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // Gemelo de "[Debug] Simular SIN Premium" de iOS: la app como la
+            // ve quien no ha pagado, aunque esta cuenta tenga premium.
+            val sinPremium by Premium.simularSinPremiumEnPruebas.collectAsState()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                    .background(colores.lienzoAlto)
+                    .clickable { Premium.alternarSimularSinPremium() }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "[Debug] Simular SIN Premium",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Solo en esta build — enseña la app como la ve quien no ha pagado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
+                }
+                Switch(checked = sinPremium, onCheckedChange = { Premium.alternarSimularSinPremium() })
             }
             Spacer(Modifier.height(10.dp))
 
