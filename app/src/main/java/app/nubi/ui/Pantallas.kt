@@ -92,6 +92,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.nubi.BuildConfig
 import app.nubi.R
 import app.nubi.data.Bebe
 import app.nubi.data.FotosNubi
@@ -1219,8 +1220,10 @@ fun PantallaHoy(
         val datosHoy by Repositorio.local.datos.collectAsState()
         val cuentaCon7Dias = datosHoy.perfil?.creadoEn
             ?.let { !Instant.now().isBefore(it.plus(Duration.ofDays(7))) } == true
+        val ocultarRegalarDebug by Premium.ocultarRegalarEnPruebas.collectAsState()
+        val forzarOcultarRegalar = BuildConfig.DEBUG && ocultarRegalarDebug
         Spacer(Modifier.height(12.dp))
-        TarjetaDinamicaRegalarInstagram(mostrarRegalar = premium || cuentaCon7Dias)
+        TarjetaDinamicaRegalarInstagram(mostrarRegalar = !forzarOcultarRegalar && (premium || cuentaCon7Dias))
         // Sin Spacer final: igual que iOS, el relleno del Scaffold (la barra
         // de pestañas de abajo) ya da el margen inferior que hace falta, y
         // quitar este Spacer de 24dp era el ahorro de altura más grande de
@@ -3381,6 +3384,34 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
                 Spacer(Modifier.height(10.dp))
 
+                // Esconde "Regala Nubi" en Hoy, como si la cuenta aún no
+                // tuviera 7 días ni premium (Premium.ocultarRegalarEnPruebas).
+                val ocultarRegalar by Premium.ocultarRegalarEnPruebas.collectAsState()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(NubiGeometria.radioChico))
+                        .background(colores.lienzoAlto)
+                        .clickable { Premium.alternarOcultarRegalar() }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "[Debug] Ocultar \"Regala Nubi\" en Hoy",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Como si la cuenta no tuviera 7 días ni premium",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colores.tintaTenue
+                        )
+                    }
+                    Switch(checked = ocultarRegalar, onCheckedChange = { Premium.alternarOcultarRegalar() })
+                }
+                Spacer(Modifier.height(10.dp))
+
                 // Mismo sitio y mismo propósito que el botón "[Debug] Probar
                 // aviso de prueba" en VistaAjustes.swift: dispara el aviso de
                 // "te quedan 3 días" ya mismo, con el copy real, para poder
@@ -3419,12 +3450,13 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BadgeIcono(
-                    IconoNubi.CORAZON,
-                    colorFondo = colores.rosa,
-                    colorIcono = colores.tinta,
-                    tamano = 32.dp,
-                    tamanoIcono = 15.dp
+                // La misma imagen del regalo que la tarjeta "Regala Nubi" de
+                // Hoy, en vez del corazón genérico.
+                Image(
+                    painter = painterResource(R.drawable.regalo_nubi),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(32.dp)
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {

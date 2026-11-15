@@ -38,6 +38,19 @@ object Premium {
     }
 
     /**
+     * Otro interruptor SOLO de depuración: esconde la tarjeta "Regala Nubi"
+     * de Hoy como si la cuenta aún no tuviera 7 días ni premium, para poder
+     * ver cómo queda sin tener que esperar ni quitarse el premium. En
+     * release se ignora (ver PantallaHoy).
+     */
+    private val _ocultarRegalarEnPruebas = MutableStateFlow(false)
+    val ocultarRegalarEnPruebas: StateFlow<Boolean> = _ocultarRegalarEnPruebas.asStateFlow()
+
+    fun alternarOcultarRegalar() {
+        if (BuildConfig.DEBUG) _ocultarRegalarEnPruebas.value = !_ocultarRegalarEnPruebas.value
+    }
+
+    /**
      * La única pregunta que debe hacerse la UI para decidir si algo premium
      * se desbloquea.
      *
