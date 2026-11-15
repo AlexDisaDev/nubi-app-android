@@ -144,7 +144,11 @@ private fun escalaPara(alturaDisponible: Dp): Float = when {
  *     tu iPhone": es donde se cancela de verdad en cada sitio.
  */
 @Composable
-fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
+fun ContenidoPaywall(
+    onCerrar: (() -> Unit)? = null,
+    /** false si quien lo aloja pinta ya la X fija arriba (HojaPremiumBloqueado). */
+    mostrarCerrar: Boolean = true
+) {
     val colores = NubiTheme.colores
 
     // Una vez por composición: marca el paso más arriba del embudo.
@@ -205,7 +209,7 @@ fun ContenidoPaywall(onCerrar: (() -> Unit)? = null) {
             )
         }
 
-        if (onCerrar != null) {
+        if (onCerrar != null && mostrarCerrar) {
             BotonCerrarPaywall(onCerrar, Modifier.align(Alignment.TopEnd))
         }
     }
@@ -491,11 +495,14 @@ private fun SeparadorPie(color: Color, e: Float) {
 
 /** La X de cerrar de arriba a la derecha, igual que `botonCerrar`. */
 @Composable
-private fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifier) {
+fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifier) {
     val colores = NubiTheme.colores
     Box(
         modifier = modifier
-            .padding(NubiGeometria.margen)
+            // Igual que botonCerrar en Paywall.swift: margen a los lados y
+            // 6 arriba.
+            .padding(horizontal = NubiGeometria.margen)
+            .padding(top = 6.dp)
             .size(32.dp)
             .clip(CircleShape)
             .background(colores.superficie)

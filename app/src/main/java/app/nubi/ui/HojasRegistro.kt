@@ -1,5 +1,8 @@
 package app.nubi.ui
 
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -1552,15 +1555,38 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
         dragHandle = null,
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(
+        // Igual que Paywall.swift: la X fija arriba a la derecha y el
+        // contenido centrado en vertical, repartiendo el aire sobrante arriba
+        // y abajo en vez de dejarlo todo pegado arriba. Si no cabe, scroll.
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 // La hoja ocupa toda la pantalla: sin esto la cabecera y la X
                 // quedaban debajo de la barra de estado.
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                // El hueco que deja arriba la hoja de iOS.
+                .padding(top = 10.dp)
         ) {
-            ContenidoPaywall(onCerrar = onCerrar)
+            val alto = maxHeight
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = alto)
+                        // Que el titular no quede debajo de la X (32 dp + 6
+                        // arriba; ContenidoPaywall ya deja ~24 dp propios).
+                        .padding(top = 16.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    ContenidoPaywall(onCerrar = onCerrar, mostrarCerrar = false)
+                }
+            }
+            BotonCerrarPaywall(onCerrar, Modifier.align(Alignment.TopEnd))
         }
     }
 }
