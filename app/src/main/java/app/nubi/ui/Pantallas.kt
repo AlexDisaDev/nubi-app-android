@@ -1001,11 +1001,11 @@ fun PantallaHoy(
             Spacer(Modifier.width(10.dp))
             Box(modifier = Modifier.clickable { alAbrirAjustes() }) {
                 BadgeIcono(
-                    IconoNubi.CONTROLES,
-                    colorFondo = colores.lienzoAlto,
-                    colorIcono = colores.tintaSuave,
+                    IconoNubi.ENGRANAJE,
+                    colorFondo = colores.lila.copy(alpha = 0.35f),
+                    colorIcono = colores.tinta,
                     tamano = 38.dp,
-                    tamanoIcono = 17.dp
+                    tamanoIcono = 20.dp
                 )
             }
         }

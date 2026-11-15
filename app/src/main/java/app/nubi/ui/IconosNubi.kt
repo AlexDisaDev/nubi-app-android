@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -50,7 +51,7 @@ enum class IconoNubi {
     CONTENTO, MOLESTO,
     CANDADO,
     CAMARA, GALERIA, PULGAR_ARRIBA, PULGAR_ABAJO, PLAY, PAUSA,
-    PANAL, MUNDO, REGALO
+    PANAL, MUNDO, REGALO, ENGRANAJE
 }
 
 @Composable
@@ -78,6 +79,7 @@ fun Icono(
             IconoNubi.GOTA -> dibujarGota(tint)
             IconoNubi.BOMBILLA -> dibujarBombilla(tint)
             IconoNubi.CONTROLES -> dibujarControles(tint)
+            IconoNubi.ENGRANAJE -> dibujarEngranaje(tint)
             IconoNubi.CHEVRON -> dibujarChevron(tint)
             IconoNubi.MEDICINA -> dibujarMedicina(tint)
             IconoNubi.BANO -> dibujarBano(tint)
@@ -481,6 +483,46 @@ private fun DrawScope.dibujarControles(color: Color) {
         )
         drawCircle(color, radius = w * 0.09f, center = Offset(w * fx, h * nudos[i]))
     }
+}
+
+/** Engranaje sólido de 8 dientes con agujero central — botón de Ajustes.
+ *  Misma geometría que FormaEngranaje en Ilustraciones.swift (iOS). */
+private fun DrawScope.dibujarEngranaje(color: Color) {
+    val c = Offset(size.width / 2f, size.height / 2f)
+    val r = size.minDimension / 2f * (22f / 24f)   // mismo margen que iOS (22 en lienzo de 24)
+    val cuerpo = r * 0.74f
+    val agujero = r * 0.42f
+    val anchoBase = r * 0.22f
+    val anchoPunta = r * 0.18f
+    val dientes = 8
+    fun punto(ang: Float, radio: Float, lateral: Float) = Offset(
+        c.x + cos(ang) * radio - sin(ang) * lateral,
+        c.y + sin(ang) * radio + cos(ang) * lateral
+    )
+    val radioBase = sqrt(cuerpo * cuerpo - anchoBase * anchoBase)
+    val medioAngBase = kotlin.math.atan2(anchoBase, radioBase)
+    val paso = (2 * PI / dientes).toFloat()
+    val caja = Rect(c.x - cuerpo, c.y - cuerpo, c.x + cuerpo, c.y + cuerpo)
+    val camino = Path().apply {
+        fillType = PathFillType.EvenOdd
+        for (i in 0 until dientes) {
+            val ang = (-PI / 2).toFloat() + i * paso
+            val izq = punto(ang, radioBase, -anchoBase)
+            if (i == 0) moveTo(izq.x, izq.y) else lineTo(izq.x, izq.y)
+            punto(ang, r, -anchoPunta).let { lineTo(it.x, it.y) }
+            punto(ang, r, anchoPunta).let { lineTo(it.x, it.y) }
+            punto(ang, radioBase, anchoBase).let { lineTo(it.x, it.y) }
+            arcTo(
+                caja,
+                Math.toDegrees((ang + medioAngBase).toDouble()).toFloat(),
+                Math.toDegrees((paso - 2 * medioAngBase).toDouble()).toFloat(),
+                false
+            )
+        }
+        close()
+        addOval(Rect(c.x - agujero, c.y - agujero, c.x + agujero, c.y + agujero))
+    }
+    drawPath(camino, color)
 }
 
 /** Bote de medicina: tapón sólido arriba, cuerpo con una cruz — se lee
