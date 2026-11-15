@@ -6,12 +6,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -89,6 +91,7 @@ fun PantallaBienvenidaAlta(
     val horaInicial = remember { LocalTime.now(zona) }
     var hora by remember { mutableIntStateOf(horaInicial.hour) }
     var minuto by remember { mutableIntStateOf(horaInicial.minute) }
+    var mostrarSelector by remember { mutableStateOf(false) }
 
     // La hora elegida, hoy; si cae más tarde que ahora (p. ej. son las 00:30
     // y elige las 23:00), es de ayer.
@@ -107,35 +110,70 @@ fun PantallaBienvenidaAlta(
             .padding(horizontal = NubiGeometria.margen)
             .padding(bottom = 12.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp, bottom = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            // Más apretada cuando hay que elegir la hora de dormir, para que
-            // quepa entera sin scroll.
-            verticalArrangement = Arrangement.spacedBy(if (despertar == null) 12.dp else 16.dp)
-        ) {
-            Image(
-                painter = painterResource(R.drawable.nubi_logo_mark),
-                contentDescription = null,
-                modifier = Modifier.size(if (despertar == null) 84.dp else 120.dp)
-            )
-            Text(
-                L10n.nubiConociendo(bebe.nombre),
-                style = MaterialTheme.typography.bodyLarge,
-                color = colores.tintaSuave,
-                textAlign = TextAlign.Center
-            )
+        // El contenido ocupa como mínimo toda la altura disponible y reparte
+        // el hueco que sobra entre los bloques: en pantallas grandes respira,
+        // en las pequeñas se junta, y solo si de verdad no cabe hay scroll.
+        BoxWithConstraints(Modifier.weight(1f)) {
+            val altoDisponible = maxHeight
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = altoDisponible)
+                        .padding(top = 20.dp, bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.nubi_logo_mark),
+                        contentDescription = null,
+                        modifier = Modifier.size(110.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        L10n.nubiConociendo(bebe.nombre),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colores.tintaSuave,
+                        textAlign = TextAlign.Center
+                    )
+                    if (despertar == null) {
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            L10n.yaDurmiendo(bebe.nombre),
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colores.tinta,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
-            if (despertar != null) {
-                ContenidoPrediccion(bebe, despertar, ahora)
-            } else {
-                ContenidoDormido(bebe, hora, minuto, { hora = it }, { minuto = it })
+                    Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
+
+                    if (despertar != null) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            ContenidoPrediccion(bebe, despertar, ahora)
+                        }
+                    } else {
+                        TarjetaDormido(hora, minuto) { mostrarSelector = true }
+                    }
+
+                    Spacer(Modifier.weight(1f).heightIn(min = 14.dp))
+
+                    TarjetaAprendiendo(bebe.nombre, conDespertar = despertar != null)
+                }
             }
+        }
 
-            TarjetaAprendiendo(bebe.nombre, conDespertar = despertar != null)
+        if (mostrarSelector) {
+            SelectorHoraDormido(hora, minuto, onCerrar = { mostrarSelector = false }) { h, m ->
+                hora = h
+                minuto = m
+            }
         }
 
         Button(
@@ -221,86 +259,38 @@ private fun ContenidoPrediccion(bebe: Bebe, despertar: Instant, ahora: Instant) 
     )
 }
 
+/** Una sola tarjeta protagonista: la hora en que se durmió en grande (al
+ *  tocarla se cambia) y qué pasará mañana. */
 @Composable
-private fun ContenidoDormido(
-    bebe: Bebe,
-    hora: Int,
-    minuto: Int,
-    onHora: (Int) -> Unit,
-    onMinuto: (Int) -> Unit
-) {
+private fun TarjetaDormido(hora: Int, minuto: Int, onCambiarHora: () -> Unit) {
     val colores = NubiTheme.colores
-    Text(
-        L10n.yaDurmiendo(bebe.nombre),
-        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-        color = colores.tinta,
-        textAlign = TextAlign.Center
-    )
-
-    TarjetaBienvenida(compacta = true) {
-        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 40.dp, tamanoIcono = 20.dp)
+    TarjetaBienvenida {
+        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 52.dp, tamanoIcono = 24.dp)
         Text(
-            L10n.t("Marca su sueño nocturno"),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = colores.tinta
+            L10n.t("Se durmió a las"),
+            style = MaterialTheme.typography.bodyLarge,
+            color = colores.tintaSuave
         )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(onClick = onCambiarHora)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "%02d:%02d".format(hora, minuto),
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+                color = colores.tinta
+            )
+            Spacer(Modifier.width(10.dp))
+            BadgeIcono(IconoNubi.LAPIZ, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 32.dp, tamanoIcono = 15.dp)
+        }
         Text(
-            L10n.t("y mañana, al despertar, Nubi calculará su primera siesta."),
+            L10n.t("Mañana, al despertar, Nubi calculará su primera siesta."),
             style = MaterialTheme.typography.bodyMedium,
             color = colores.tintaSuave,
             textAlign = TextAlign.Center
-        )
-    }
-
-    // Una sola fila: la pregunta y, a la derecha, la hora en una cápsula que
-    // al tocarla abre el selector — la rueda en línea ocupaba media pantalla
-    // y obligaba a hacer scroll.
-    var mostrarSelector by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(NubiGeometria.radio))
-            .background(colores.superficie)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            L10n.t("¿A qué hora se durmió tu bebé?"),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = colores.tinta,
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            "%02d:%02d".format(hora, minuto),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = colores.tinta,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(colores.lila.copy(alpha = 0.25f))
-                .clickable { mostrarSelector = true }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-    }
-    if (mostrarSelector) {
-        SelectorHoraDormido(hora, minuto, onCerrar = { mostrarSelector = false }) { h, m ->
-            onHora(h)
-            onMinuto(m)
-        }
-    }
-
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Box(
-            Modifier.size(24.dp).clip(CircleShape).background(colores.lila.copy(alpha = 0.3f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("i", style = MaterialTheme.typography.labelLarge, color = colores.tinta)
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            L10n.t("Si se despierta por la noche, podrás registrar cada despertar en un toque."),
-            style = MaterialTheme.typography.bodySmall,
-            color = colores.tintaSuave
         )
     }
 }
@@ -356,7 +346,7 @@ private fun TarjetaAprendiendo(nombre: String, conDespertar: Boolean) {
         }
         Text(
             if (conDespertar) L10n.t("Cuanto más registres, más se ajustará.")
-            else L10n.t("Esta noche empieza a conocer sus sueños."),
+            else L10n.t("Si se despierta por la noche, lo anotas en un toque."),
             style = MaterialTheme.typography.bodySmall,
             color = colores.tintaTenue
         )
