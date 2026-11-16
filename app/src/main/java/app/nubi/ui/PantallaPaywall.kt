@@ -421,6 +421,28 @@ private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float
  * de compra. Igual que `letraPequeña` en Paywall.swift.
  */
 @Composable
+/** Plan elegido en el paywall: lo comparten las tarjetas
+ *  (SelectorPlanesPremium) y la letra pequeña de abajo (LetraPequenaPaywall),
+ *  para que las condiciones digan el precio del plan marcado — igual que
+ *  `condiciones` en Paywall.swift, que lee `seleccionado`. */
+private val planPaywall = mutableStateOf(Compras.PLAN_ANUAL)
+
+/** "39,99 € al año", "17,99 € cada 3 meses", "6,99 € al mes" — igual que
+ *  precioConPeriodo en Paywall.swift. */
+private fun precioConPeriodoDe(detalles: ProductDetails, planId: String): String? {
+    val faseFinal = detalles.subscriptionOfferDetails
+        ?.firstOrNull { it.basePlanId == planId }
+        ?.pricingPhases?.pricingPhaseList?.lastOrNull() ?: return null
+    val periodo = when (faseFinal.billingPeriod) {
+        "P1Y" -> L10n.t("al año")
+        "P3M" -> L10n.t("cada 3 meses")
+        "P1M" -> L10n.t("al mes")
+        else -> return "${faseFinal.formattedPrice}${sufijoPeriodo(faseFinal.billingPeriod)}"
+    }
+    return "${faseFinal.formattedPrice} $periodo"
+}
+
+@Composable
 private fun LetraPequenaPaywall(
     escala: Float,
     canjeando: Boolean,
@@ -430,8 +452,9 @@ private fun LetraPequenaPaywall(
     val colores = NubiTheme.colores
     val enlaces = LocalUriHandler.current
     val detalles = Compras.detalles
-    val prueba = detalles?.let { textoPruebaDe(it, Compras.PLAN_ANUAL) }
-    val precio = detalles?.let { precioFinalDe(it, Compras.PLAN_ANUAL) }
+    val plan by planPaywall
+    val prueba = detalles?.let { textoPruebaDe(it, plan) }
+    val precio = detalles?.let { precioConPeriodoDe(it, plan) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -573,7 +596,9 @@ fun SelectorPlanesPremium(e: Float = 1f) {
     // El anual preseleccionado: es el de más valor y el que trae insignia
     // de ahorro — igual que en iOS, donde `seleccionado` arranca con un
     // producto en vez de vacío.
-    var seleccionado by remember { mutableStateOf(Compras.PLAN_ANUAL) }
+    var seleccionado by planPaywall
+    // Cada vez que se abre el paywall, vuelve a empezar en el anual.
+    LaunchedEffect(Unit) { planPaywall.value = Compras.PLAN_ANUAL }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -679,7 +704,14 @@ private fun TarjetaPlan(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // weight(1f): el texto de la izquierda cede espacio (puede ir
+                // en dos líneas) y el precio y el "AHORRAS" de la derecha no
+                // se parten nunca — antes "17,99 €/3 meses" saltaba de línea
+                // y la tarjeta trimestral crecía.
+                Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp * e),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     CirculoSeleccion(activo, e)
                     Spacer(Modifier.width(12.dp * e))
                     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
@@ -712,7 +744,9 @@ private fun TarjetaPlan(
                         fontFamily = Cuerpo,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 19.sp * e,
-                        color = colores.tinta
+                        color = colores.tinta,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     if (ahorro != null) {
                         Text(
@@ -721,12 +755,15 @@ private fun TarjetaPlan(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.sp * e,
                             letterSpacing = 1.2.sp,
-                            // Morado oscuro fijo con letra blanca (en amarillo
-                            // casi no se leía), el mismo en modo noche.
+                            maxLines = 1,
+                            softWrap = false,
+                            // Rosa de Nubi con letra blanca, igual que la
+                            // cinta de "MEJOR PRECIO" y que iOS. Fijo (el rosa
+                            // del tema noche) en los dos modos.
                             color = Color.White,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(Color(0xFF6E63A6))
+                                .background(Color(0xFFD99CB5))
                                 .padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
@@ -744,12 +781,12 @@ private fun TarjetaPlan(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 10.sp * e,
                 letterSpacing = 1.1.sp,
-                color = colores.superficie,
+                color = Color.White,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .offset(x = 30.dp * e, y = -10.dp * e)
                     .clip(RoundedCornerShape(50))
-                    .background(colores.indigo)
+                    .background(Color(0xFFD99CB5))
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
