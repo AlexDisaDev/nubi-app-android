@@ -1,5 +1,7 @@
 package app.nubi.data
 
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import app.nubi.BuildConfig
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
@@ -705,6 +707,7 @@ class Sincronizador(private val local: AlmacenLocal) {
     // -----------------------------------------------------------------
 
     private var canalTiempoReal: RealtimeChannel? = null
+    private var trabajoTiempoReal: Job? = null
     private val avisoDeCambioRemoto = Channel<Unit>(Channel.CONFLATED)
 
     /**
@@ -716,12 +719,18 @@ class Sincronizador(private val local: AlmacenLocal) {
      * [ambito] debe vivir mientras dure la sesión — Repositorio le pasa el
      * suyo, que vive toda la vida de la app.
      */
-    fun activarTiempoReal(ambito: CoroutineScope) {
+    fun activarTiempoReal(ambitoPadre: CoroutineScope) {
         if (canalTiempoReal != null) return
         val usuarioId = Supabase.client.auth.currentUserOrNull()?.id ?: return
 
         val canal = Supabase.client.channel("cambios-datos-$usuarioId")
         canalTiempoReal = canal
+        // Todo lo que escucha este canal vive en su propio Job, para que
+        // desactivarTiempoReal() lo pare de verdad (antes, al reactivar, se
+        // quedaban colgados los oyentes de la vez anterior).
+        val trabajo = SupervisorJob(ambitoPadre.coroutineContext[Job])
+        trabajoTiempoReal = trabajo
+        val ambito = CoroutineScope(ambitoPadre.coroutineContext + trabajo)
 
         for (tabla in TABLAS_EN_TIEMPO_REAL) {
             canal.postgresChangeFlow<PostgresAction>(schema = "public") { table = tabla }
@@ -750,9 +759,22 @@ class Sincronizador(private val local: AlmacenLocal) {
      * ya no es la activa.
      */
     suspend fun desactivarTiempoReal() {
-        val canal = canalTiempoReal ?: return
-        canalTiempoReal = null
+        val canal = soltarCanalTiempoReal() ?: return
         runCatching { canal.unsubscribe() }
+    }
+
+    /**
+     * Parte síncrona de desactivarTiempoReal(): marca el canal como cerrado
+     * y para sus oyentes al momento, para que un activarTiempoReal() justo
+     * después (pasar a segundo plano y volver enseguida) no se lo encuentre
+     * "todavía abierto" y no haga nada. Devuelve el canal para darse de baja.
+     */
+    fun soltarCanalTiempoReal(): io.github.jan.supabase.realtime.RealtimeChannel? {
+        val canal = canalTiempoReal ?: return null
+        canalTiempoReal = null
+        trabajoTiempoReal?.cancel()
+        trabajoTiempoReal = null
+        return canal
     }
 
     private companion object {

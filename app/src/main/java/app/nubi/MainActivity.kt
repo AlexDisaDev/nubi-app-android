@@ -134,6 +134,23 @@ class MainActivity : ComponentActivity() {
      * "singleTop" en el manifiesto). Sin esto, el enlace devuelve a la app
      * pero la sesión nunca se completa.
      */
+    // Tiempo real solo con la app en pantalla: antes el socket con Supabase
+    // seguía abierto en segundo plano hasta que Android mataba el proceso.
+    // Al volver se reabre y se sincroniza, así no se pierde nada de lo que
+    // anotara la pareja mientras tanto. Igual que iOS (NubiApp.swift).
+    override fun onStart() {
+        super.onStart()
+        if (Supabase.client.auth.currentUserOrNull() != null) {
+            Repositorio.sincronizarEnSegundoPlano()
+            Repositorio.activarTiempoReal()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Repositorio.desactivarTiempoReal()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Supabase.client.handleDeeplinks(intent)

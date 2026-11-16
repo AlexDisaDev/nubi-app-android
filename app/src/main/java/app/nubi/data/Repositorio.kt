@@ -241,7 +241,8 @@ object Repositorio {
 
     /** Corta la escucha de tiempo real — llamar al cerrar sesión. */
     fun desactivarTiempoReal() {
-        ambito.launch { sincronizador.desactivarTiempoReal() }
+        val canal = sincronizador.soltarCanalTiempoReal() ?: return
+        ambito.launch { runCatching { canal.unsubscribe() } }
     }
 
     /**
