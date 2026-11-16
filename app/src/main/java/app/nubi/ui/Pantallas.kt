@@ -2981,6 +2981,14 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val ambito = rememberCoroutineScope()
     val colores = NubiTheme.colores
     val contexto = LocalContext.current
+    // Mismo cálculo que TarjetaEstadoSuscripcion: decide si la tarjeta
+    // Cuenta enseña "Gestionar suscripción en Google Play".
+    val datosCuenta by Repositorio.local.datos.collectAsState()
+    val forzadoCuenta by Premium.forzadoEnPruebas.collectAsState()
+    val simularSinCuenta by Premium.simularSinPremiumEnPruebas.collectAsState()
+    val premiumCuenta = remember(perfil, datosCuenta.premiumCompartido, forzadoCuenta, simularSinCuenta) {
+        Premium.activo(perfil, datosCuenta.premiumCompartido)
+    }
 
     Column(
         modifier = Modifier
@@ -3085,6 +3093,28 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             Column(Modifier.padding(16.dp)) {
                 Text(L10n.t("Cuenta"), style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(10.dp))
+                // Con premium: enlace a gestionarla donde se cobra de verdad
+                // (igual que "Gestionar suscripción en Apple" en iOS, que
+                // también está en Cuenta).
+                if (premiumCuenta) {
+                    Text(
+                        L10n.t("Gestionar suscripción en Google Play"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = colores.indigo,
+                        modifier = Modifier
+                            .clickable {
+                                abrirUrl(
+                                    contexto,
+                                    "https://play.google.com/store/account/subscriptions?package=com.app.nubi"
+                                )
+                            }
+                            .padding(vertical = 4.dp)
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider(color = colores.separador)
+                    Spacer(Modifier.height(10.dp))
+                }
                 OutlinedButton(
                     onClick = alCerrarSesion,
                     shape = RoundedCornerShape(NubiGeometria.radioChico),
@@ -3406,13 +3436,13 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = colores.separador)
-            Spacer(Modifier.height(12.dp))
-
             // Entrada explícita a Premium desde Ajustes — no depende de
-            // tocar antes algo bloqueado en Hoy/Día.
+            // tocar antes algo bloqueado en Hoy/Día. "Gestionar suscripción
+            // en Google Play" está en la tarjeta Cuenta (igual que iOS).
             if (!premiumActivo) {
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = colores.separador)
+                Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -3440,26 +3470,6 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
                     }
                     Icono(IconoNubi.CHEVRON, tint = colores.tintaTenue, tamano = 14.dp)
                 }
-                Spacer(Modifier.height(10.dp))
-            } else {
-                // Mismo lugar y mismo propósito que el Link "Gestionar
-                // suscripción en Apple" de iOS: con premium activo no hace
-                // falta el CTA de arriba, pero sí un enlace directo a
-                // gestionarla donde se cobra de verdad.
-                Text(
-                    L10n.t("Gestionar suscripción en Google Play"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = colores.indigo,
-                    modifier = Modifier
-                        .clickable {
-                            abrirUrl(
-                                contexto,
-                                "https://play.google.com/store/account/subscriptions?package=com.app.nubi"
-                            )
-                        }
-                        .padding(vertical = 4.dp)
-                )
                 Spacer(Modifier.height(10.dp))
             }
 
