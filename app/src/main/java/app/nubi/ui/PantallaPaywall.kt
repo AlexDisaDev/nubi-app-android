@@ -1085,16 +1085,36 @@ private fun BotonAccion(
                 onComprar()
             },
             enabled = habilitado,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colores.indigo,
-                contentColor = colores.superficie
-            ),
+            colors = if (verificando) {
+                // Mientras se verifica, el botón sigue índigo (no gris de
+                // deshabilitado) con el círculo blanco girando dentro.
+                ButtonDefaults.buttonColors(
+                    containerColor = colores.indigo,
+                    contentColor = colores.superficie,
+                    disabledContainerColor = colores.indigo,
+                    disabledContentColor = colores.superficie
+                )
+            } else {
+                ButtonDefaults.buttonColors(
+                    containerColor = colores.indigo,
+                    contentColor = colores.superficie
+                )
+            },
             shape = RoundedCornerShape(50),
             contentPadding = PaddingValues(vertical = 15.dp * e),
             modifier = Modifier.fillMaxWidth()
         ) {
             if (verificando) {
-                CircularProgressIndicator(modifier = Modifier.height(18.dp * e), color = colores.superficie)
+                // Cuadrado y del alto de una línea de texto, para que gire
+                // centrado dentro del botón sin cambiar su altura (antes solo
+                // tenía alto y se dibujaba deformado, saliéndose del botón).
+                Box(modifier = Modifier.height(22.dp * e), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp * e),
+                        color = colores.superficie,
+                        strokeWidth = 2.dp
+                    )
+                }
             } else {
                 Text(
                     // "Empezar 7 días gratis". La duración sale de las fases de
