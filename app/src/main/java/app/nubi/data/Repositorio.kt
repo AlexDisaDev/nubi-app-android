@@ -256,6 +256,25 @@ object Repositorio {
 
     /** Corta la escucha de tiempo real — llamar al cerrar sesión. */
     /**
+     * Lo que se hace tras ELIMINAR la cuenta en el servidor: cerrar la
+     * sesión (solo local: la cuenta ya no existe) y luego vaciar el móvil.
+     * Va en el ámbito propio del Repositorio y no en el de la pantalla: al
+     * cerrarse la sesión la app cambia a la pantalla de acceso y la de
+     * Ajustes desaparece, lo que cancelaría su corrutina a medias. Y en
+     * este orden (primero la sesión) para que nunca se vea la app con
+     * sesión iniciada y sin bebé, que mandaba a la pantalla de alta.
+     */
+    fun cerrarSesionTrasEliminarCuenta() {
+        desactivarTiempoReal()
+        ambito.launch {
+            runCatching {
+                Supabase.client.auth.signOut(io.github.jan.supabase.auth.SignOutScope.LOCAL)
+            }
+            vaciarDatosDeCuenta()
+        }
+    }
+
+    /**
      * Tras ELIMINAR la cuenta: vacía todo lo guardado en este móvil de esa
      * cuenta (bebé, registros, perfil, cambios pendientes de subir…) y
      * cancela sus avisos. Sin esto, al volver a registrarse se veía un par
