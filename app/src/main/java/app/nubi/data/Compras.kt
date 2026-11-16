@@ -97,6 +97,16 @@ object Compras : PurchasesUpdatedListener {
     private val _ultimaCompraConfirmada = MutableStateFlow(0L)
     val ultimaCompraConfirmada: StateFlow<Long> = _ultimaCompraConfirmada.asStateFlow()
 
+    /**
+     * Momento (millis) en que el usuario cerró la hoja de pago de Play, y
+     * con qué plan. El paywall lo observa para pasar a "solo mensual" si se
+     * canceló el anual o el trimestral.
+     */
+    private val _ultimaCancelacion = MutableStateFlow(0L)
+    val ultimaCancelacion: StateFlow<Long> = _ultimaCancelacion.asStateFlow()
+    @Volatile var ultimoPlanCancelado: String? = null
+        private set
+
     private val _verificando = MutableStateFlow(false)
     /** True mientras se está comprobando una compra contra el servidor
      *  (para que la pantalla de pago pueda mostrar "comprobando..."). */
@@ -318,6 +328,8 @@ object Compras : PurchasesUpdatedListener {
                 EventoNombre.PURCHASE_CANCELLED,
                 SesionPaywall.meta(mapOf("plan_id" to (planSolicitado ?: "")))
             )
+            ultimoPlanCancelado = planSolicitado
+            _ultimaCancelacion.value = System.currentTimeMillis()
         } else {
             _ultimoError.value = resultado.debugMessage.ifBlank { "Error de Play (${resultado.responseCode})" }
             EventosFunnel.registrar(

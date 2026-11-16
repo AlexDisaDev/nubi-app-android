@@ -31,6 +31,8 @@ object EventoNombre {
     const val PURCHASE_FAILED = "purchase_failed"         // error real (metadata motivo)
     const val RESTORE_TAPPED = "restore_tapped"           // pulsa Restaurar
     const val RESTORE_COMPLETED = "restore_completed"     // se recupera una suscripción
+    const val DOWNSELL_SHOWN = "downsell_shown"           // tras cancelar anual/trimestral, se pasa a solo mensual
+    const val DOWNSELL_SHOW_ALL_PLANS = "downsell_show_all_plans" // pulsa "Ver todos los planes"
 
     // Embudo de la pantalla de acceso (PantallaLogin). Android solo tiene
     // botón de Google (no de Apple), así que aquí nunca se registra un
@@ -145,16 +147,22 @@ object OrigenPaywall {
 object SesionPaywall {
     @Volatile var origen: String = "desconocido"
     @Volatile var abiertoEn: Long = System.currentTimeMillis()
+    /** "solo_mensual" mientras el paywall está en ese modo; null si no. */
+    @Volatile var modo: String? = null
 
     fun abrir(origen: String) {
         this.origen = origen
         abiertoEn = System.currentTimeMillis()
+        modo = null
     }
 
-    /** origen + segundos desde que se abrió, más lo que se pase. */
-    fun meta(extra: Map<String, String> = emptyMap()): Map<String, String> =
-        mapOf(
+    /** origen + segundos desde que se abrió (+ modo), más lo que se pase. */
+    fun meta(extra: Map<String, String> = emptyMap()): Map<String, String> {
+        val base = mutableMapOf(
             "origen" to origen,
             "segundos" to ((System.currentTimeMillis() - abiertoEn) / 1000).toString()
-        ) + extra
+        )
+        modo?.let { base["modo"] = it }
+        return base + extra
+    }
 }

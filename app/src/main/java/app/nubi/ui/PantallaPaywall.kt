@@ -79,6 +79,12 @@ import kotlin.math.roundToInt
 import app.nubi.data.OrigenPaywall
 import app.nubi.data.SesionPaywall
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.text.style.TextDecoration
 
 /**
  * El paywall como PANTALLA entera. Desde que Nubi es freemium, la app ya
@@ -456,6 +462,42 @@ private fun ConectorPrueba(e: Float) {
     )
 }
 
+/** Mensaje del modo "solo mensual" (igual que `mensajeMensual` en
+ *  Paywall.swift): insignia lila + texto sobre la superficie de las
+ *  tarjetas. El precio no se repite: ya está en la tarjeta y la letra
+ *  pequeña. */
+@Composable
+private fun MensajeMensual(e: Float) {
+    val colores = NubiTheme.colores
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(NubiGeometria.radio * e))
+            .background(colores.superficie)
+            .padding(horizontal = 16.dp * e, vertical = 12.dp * e),
+        verticalAlignment = Alignment.Top
+    ) {
+        BadgeIcono(IconoNubi.CORAZON, colorFondo = colores.lila, colorIcono = colores.tinta, tamano = 28.dp * e, tamanoIcono = 14.dp * e)
+        Spacer(Modifier.width(12.dp * e))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp * e)) {
+            Text(
+                L10n.t("¿Prefieres empezar mes a mes?"),
+                fontFamily = Cuerpo,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp * e,
+                color = colores.tinta
+            )
+            Text(
+                L10n.t("Sin compromiso de un año. Cancela cuando quieras."),
+                fontFamily = Cuerpo,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp * e,
+                color = colores.tintaSuave
+            )
+        }
+    }
+}
+
 @Composable
 private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float) {
     val colores = NubiTheme.colores
@@ -477,6 +519,13 @@ private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float
  *  para que las condiciones digan el precio del plan marcado — igual que
  *  `condiciones` en Paywall.swift, que lee `seleccionado`. */
 private val planPaywall = mutableStateOf(Compras.PLAN_ANUAL)
+
+/** Modo "solo mensual" (igual que `soloMensual` en Paywall.swift): tras
+ *  cancelar la hoja de pago del anual o del trimestral se dejan solo el
+ *  mensual, ya marcado, y un mensaje. Dura mientras el paywall siga abierto
+ *  y se activa una vez por apertura; "Ver todos los planes" lo deshace. */
+private val soloMensualPaywall = mutableStateOf(false)
+private val downsellUsadoPaywall = mutableStateOf(false)
 
 /** "39,99 € al año", "17,99 € cada 3 meses", "6,99 € al mes" — igual que
  *  precioConPeriodo en Paywall.swift. */
@@ -657,8 +706,32 @@ fun SelectorPlanesPremium(e: Float = 1f) {
     // de ahorro — igual que en iOS, donde `seleccionado` arranca con un
     // producto en vez de vacío.
     var seleccionado by planPaywall
-    // Cada vez que se abre el paywall, vuelve a empezar en el anual.
-    LaunchedEffect(Unit) { planPaywall.value = Compras.PLAN_ANUAL }
+    var soloMensual by soloMensualPaywall
+    // Cada vez que se abre el paywall, vuelve a empezar en el anual y con
+    // los tres planes.
+    LaunchedEffect(Unit) {
+        planPaywall.value = Compras.PLAN_ANUAL
+        soloMensualPaywall.value = false
+        downsellUsadoPaywall.value = false
+    }
+
+    // Si el usuario cierra la hoja de pago de Play con el anual o el
+    // trimestral, se pasa a solo mensual (una vez por apertura).
+    val cancelacion by Compras.ultimaCancelacion.collectAsState()
+    val cancelacionAlAbrir = remember { cancelacion }
+    val hayMensual = detalles.subscriptionOfferDetails?.any { it.basePlanId == Compras.PLAN_MENSUAL } == true
+    LaunchedEffect(cancelacion) {
+        val plan = Compras.ultimoPlanCancelado
+        if (cancelacion != cancelacionAlAbrir && !downsellUsadoPaywall.value &&
+            hayMensual && plan != null && plan != Compras.PLAN_MENSUAL
+        ) {
+            downsellUsadoPaywall.value = true
+            soloMensual = true
+            seleccionado = Compras.PLAN_MENSUAL
+            SesionPaywall.modo = "solo_mensual"
+            EventosFunnel.registrar(EventoNombre.DOWNSELL_SHOWN, SesionPaywall.meta(mapOf("plan_cancelado" to plan)))
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -671,21 +744,53 @@ fun SelectorPlanesPremium(e: Float = 1f) {
             modifier = Modifier.padding(top = 6.dp * e),
             verticalArrangement = Arrangement.spacedBy(8.dp * e)
         ) {
+            AnimatedVisibility(
+                visible = soloMensual,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                MensajeMensual(e)
+            }
             listOf(
                 Compras.PLAN_ANUAL to L10n.t("Anual"),
                 Compras.PLAN_TRIMESTRAL to L10n.t("Trimestral"),
                 Compras.PLAN_MENSUAL to L10n.t("Mensual"),
             ).forEach { (planId, etiqueta) ->
-                TarjetaPlan(
-                    detalles = detalles,
-                    planId = planId,
-                    etiqueta = etiqueta,
-                    activo = seleccionado == planId,
-                    e = e,
-                    onSeleccionar = {
-                        seleccionado = planId
-                        EventosFunnel.registrar(EventoNombre.PLAN_SELECTED, SesionPaywall.meta(mapOf("plan_id" to planId)))
-                    }
+                AnimatedVisibility(
+                    visible = !soloMensual || planId == Compras.PLAN_MENSUAL,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    TarjetaPlan(
+                        detalles = detalles,
+                        planId = planId,
+                        etiqueta = etiqueta,
+                        activo = seleccionado == planId,
+                        e = e,
+                        onSeleccionar = {
+                            seleccionado = planId
+                            EventosFunnel.registrar(EventoNombre.PLAN_SELECTED, SesionPaywall.meta(mapOf("plan_id" to planId)))
+                        }
+                    )
+                }
+            }
+            AnimatedVisibility(visible = soloMensual, enter = fadeIn(), exit = fadeOut()) {
+                Text(
+                    L10n.t("Ver todos los planes"),
+                    fontFamily = Cuerpo,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp * e,
+                    color = colores.tintaSuave,
+                    textDecoration = TextDecoration.Underline,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            soloMensual = false
+                            SesionPaywall.modo = null
+                            EventosFunnel.registrar(EventoNombre.DOWNSELL_SHOW_ALL_PLANS, SesionPaywall.meta())
+                        }
+                        .padding(vertical = 4.dp * e)
                 )
             }
         }
