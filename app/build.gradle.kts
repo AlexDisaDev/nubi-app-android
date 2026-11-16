@@ -24,9 +24,9 @@ android {
         // (la build con el freemium) a pruebas cerradas.
         // COMPROBAR en Play Console → Versiones → el número más alto
         // existente, y subir este por encima si hiciera falta.
-        versionCode = 5
+        versionCode = 12
         // versionName es solo lo que ve el usuario: no tiene que ser único.
-        versionName = "1.4"
+        versionName = "0.1"
     }
 
     buildFeatures {
@@ -66,8 +66,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
-    // LocalLifecycleOwner en Compose (tarjeta "Avisos a la hora exacta" de Ajustes).
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
 
     // Material Components "clásico": aporta los estilos XML (p.ej.
     // Theme.Material3.DayNight.NoActionBar) que usa res/values/themes.xml
