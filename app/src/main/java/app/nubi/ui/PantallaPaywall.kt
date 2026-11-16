@@ -1,5 +1,6 @@
 package app.nubi.ui
 
+import androidx.compose.ui.graphics.luminance
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -364,7 +365,14 @@ private fun HitoPrueba(
             modifier = Modifier
                 .size(11.dp * e)
                 .clip(CircleShape)
-                .background(if (activo) colores.indigo else colores.lila)
+                // Igual que hitoPrueba en Paywall.swift: con el tema noche el
+                // índigo casi no destaca sobre el fondo oscuro, así que el de
+                // "Hoy" va en blanco; con el tema día, en índigo.
+                .background(
+                    if (activo) {
+                        if (colores.lienzo.luminance() < 0.5f) Color.White else colores.indigo
+                    } else colores.lila
+                )
         )
         Text(
             titulo,
