@@ -255,6 +255,33 @@ object Repositorio {
     }
 
     /** Corta la escucha de tiempo real — llamar al cerrar sesión. */
+    /**
+     * Tras ELIMINAR la cuenta: vacía todo lo guardado en este móvil de esa
+     * cuenta (bebé, registros, perfil, cambios pendientes de subir…) y
+     * cancela sus avisos. Sin esto, al volver a registrarse se veía un par
+     * de segundos el bebé borrado hasta que la sincronización lo quitaba.
+     * Igual que Almacen.borrarTodo() tras eliminarCuenta() en iOS.
+     *
+     * Se conserva solo lo que es del móvil y no de la cuenta: tema, idioma,
+     * el id del dispositivo y los eventos del embudo aún sin subir.
+     */
+    suspend fun vaciarDatosDeCuenta() {
+        val antes = local.datos.value
+        antes.medicinas.forEach { AvisosNubi.cancelar(contexto, "medicina_${it.id}") }
+        antes.citas.forEach { AvisosNubi.cancelar(contexto, "cita_${it.id}") }
+        local.modificar { d ->
+            DatosNubi(
+                tema = d.tema,
+                idioma = d.idioma,
+                dispositivoId = d.dispositivoId,
+                eventosFunnel = d.eventosFunnel
+            )
+        }
+        // Con los datos ya vacíos, esto cancela el aviso de sueño y el de
+        // comida; la notificación en curso se quita sola al no haber bebé.
+        reprogramarAvisos(contexto)
+    }
+
     fun desactivarTiempoReal() {
         val canal = sincronizador.soltarCanalTiempoReal() ?: return
         ambito.launch { runCatching { canal.unsubscribe() } }

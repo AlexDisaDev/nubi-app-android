@@ -3198,6 +3198,9 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
                         eliminandoCuenta = true
                         try {
                             Supabase.client.postgrest.rpc("eliminar_mi_cuenta")
+                            // La cuenta ya no existe: se borra también lo
+                            // guardado en el móvil antes de cerrar sesión.
+                            Repositorio.vaciarDatosDeCuenta()
                             alCerrarSesion()
                         } catch (e: Exception) {
                             errorEliminarCuenta = true
