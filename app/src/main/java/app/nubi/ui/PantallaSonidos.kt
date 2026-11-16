@@ -1,5 +1,8 @@
 package app.nubi.ui
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import app.nubi.audio.ServicioRuido
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,44 +75,32 @@ fun PantallaSonidos() {
     val colores = NubiTheme.colores
     var tipoSeleccionado by remember { mutableStateOf(TipoRuido.BLANCO) }
     var temporizador by remember { mutableStateOf(TemporizadorSonido.INFINITO) }
-    var reproduciendo by remember { mutableStateOf(false) }
-    var trabajoTemporizador by remember { mutableStateOf<Job?>(null) }
-    val ambito = rememberCoroutineScope()
+    val contexto = LocalContext.current
+    // El ruido vive en ServicioRuido (servicio en primer plano con su
+    // notificación y botón "Parar"), así sigue sonando con la pantalla
+    // apagada sin que Android lo corte. Esta pantalla solo lo manda y pinta
+    // su estado real (se puede parar desde la notificación o terminar el
+    // temporizador sin pasar por aquí).
+    val reproduciendo by ServicioRuido.sonando.collectAsState()
 
-    fun pararDeTodo() {
-        MotorRuido.detener()
-        trabajoTemporizador?.cancel()
-        trabajoTemporizador = null
-        reproduciendo = false
-    }
+    fun pararDeTodo() = ServicioRuido.detener(contexto)
 
     fun alternarReproduccion() {
         if (reproduciendo) {
             pararDeTodo()
         } else {
-            MotorRuido.reproducir(tipoSeleccionado)
-            reproduciendo = true
-            val duracion = temporizador.milisegundos
-            trabajoTemporizador = if (duracion != null) {
-                ambito.launch {
-                    delay(duracion)
-                    pararDeTodo()
-                }
-            } else null
+            ServicioRuido.iniciar(contexto, tipoSeleccionado, temporizador.milisegundos)
         }
     }
 
     // Si cambia el tipo mientras ya está sonando, se reinicia con el nuevo
     // sin que haga falta parar y volver a darle a Play.
     LaunchedEffect(tipoSeleccionado) {
-        if (reproduciendo) MotorRuido.reproducir(tipoSeleccionado)
+        if (reproduciendo) ServicioRuido.iniciar(contexto, tipoSeleccionado, temporizador.milisegundos)
     }
 
-    // Al salir de esta pantalla (cambiar de pestaña), el sonido se para:
-    // no tendría sentido que siguiera de fondo sin que se vea el botón.
-    DisposableEffect(Unit) {
-        onDispose { MotorRuido.detener() }
-    }
+    // Ya no se para al cambiar de pestaña: igual que en iOS, sigue sonando
+    // y se para desde aquí o desde la notificación.
 
     Column(
         modifier = Modifier
@@ -148,14 +139,7 @@ fun PantallaSonidos() {
                 // Cambiar la duración mientras ya suena reinicia la cuenta,
                 // para que se respete la nueva elección desde ya.
                 if (reproduciendo) {
-                    trabajoTemporizador?.cancel()
-                    val duracion = nuevo.milisegundos
-                    trabajoTemporizador = if (duracion != null) {
-                        ambito.launch {
-                            delay(duracion)
-                            pararDeTodo()
-                        }
-                    } else null
+                    ServicioRuido.iniciar(contexto, tipoSeleccionado, nuevo.milisegundos)
                 }
             }
         )

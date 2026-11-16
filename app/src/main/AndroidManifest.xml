@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Ruido blanco con la pantalla apagada (ServicioRuido). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:name=".NubiApplication"
@@ -47,6 +50,11 @@
                 <data android:scheme="nubi" android:host="unirme" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".audio.ServicioRuido"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <receiver
             android:name=".notificaciones.ReceptorAviso"
