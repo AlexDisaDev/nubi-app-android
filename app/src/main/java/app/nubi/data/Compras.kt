@@ -407,16 +407,25 @@ object Compras : PurchasesUpdatedListener {
                 // fecha que se acaba de guardar arriba (si la hay).
                 Repositorio.reprogramarAvisos()
             } catch (e: Exception) {
-                _ultimoError.value = e.message ?: "No se pudo verificar la compra"
+                // Solo se avisa (y se cuenta como purchase_failed) si la
+                // verificación venía de algo que hizo el usuario: comprar
+                // ahora o pulsar Restaurar. La recuperación silenciosa al
+                // abrir la app (p. ej. sin sesión iniciada todavía) no debe
+                // dejar un error bajo el botón del paywall: se reintenta
+                // sola en el siguiente arranque o al pulsar Restaurar.
+                val delUsuario = planDeEstaCompra != null || porRestaurar
                 restaurando = false
-                EventosFunnel.registrar(
-                    EventoNombre.PURCHASE_FAILED,
-                    SesionPaywall.meta(mapOf(
-                        "plan_id" to (planDeEstaCompra ?: ""),
-                        "motivo" to "verificacion_servidor",
-                        "mensaje_error" to (e.message ?: "")
-                    ))
-                )
+                if (delUsuario) {
+                    _ultimoError.value = e.message ?: "No se pudo verificar la compra"
+                    EventosFunnel.registrar(
+                        EventoNombre.PURCHASE_FAILED,
+                        SesionPaywall.meta(mapOf(
+                            "plan_id" to (planDeEstaCompra ?: ""),
+                            "motivo" to "verificacion_servidor",
+                            "mensaje_error" to (e.message ?: "")
+                        ))
+                    )
+                }
             } finally {
                 _verificando.value = false
             }

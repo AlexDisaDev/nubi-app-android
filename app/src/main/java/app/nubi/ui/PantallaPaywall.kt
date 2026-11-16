@@ -687,7 +687,11 @@ fun SelectorPlanesPremium(e: Float = 1f) {
                 )
             } else {
                 Text(
-                    error ?: "",
+                    // En la versión de la tienda, un mensaje claro y
+                    // traducido; el detalle técnico solo en las de prueba.
+                    if (BuildConfig.DEBUG) error ?: ""
+                    else L10n.t("No se han podido cargar los planes") + ". " +
+                        L10n.t("Comprueba la conexión y vuelve a abrir esta pantalla"),
                     fontFamily = Cuerpo,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.error,
@@ -812,7 +816,9 @@ fun SelectorPlanesPremium(e: Float = 1f) {
 
             error?.let {
                 Text(
-                    it,
+                    // Igual: detalle técnico solo en las builds de prueba.
+                    if (BuildConfig.DEBUG) it
+                    else L10n.t("No se ha podido completar la compra. Inténtalo de nuevo en unos minutos."),
                     color = MaterialTheme.colorScheme.error,
                     fontFamily = Cuerpo,
                     fontWeight = FontWeight.SemiBold,

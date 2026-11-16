@@ -178,6 +178,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "Sin compromiso de un año. Cancela cuando quieras." to mapOf("en" to "No yearly commitment. Cancel anytime.", "it" to "Nessun impegno annuale. Annulla quando vuoi.", "fr" to "Sans engagement d'un an. Annulez quand vous voulez."),
     "Ver todos los planes" to mapOf("en" to "See all plans", "it" to "Vedi tutti i piani", "fr" to "Voir tous les forfaits"),
     "noche anterior" to mapOf("en" to "previous night", "it" to "notte precedente", "fr" to "nuit précédente"),
+    "No se ha podido completar la compra. Inténtalo de nuevo en unos minutos." to mapOf("en" to "The purchase couldn't be completed. Please try again in a few minutes.", "it" to "Non è stato possibile completare l'acquisto. Riprova tra qualche minuto.", "fr" to "L'achat n'a pas pu aboutir. Réessayez dans quelques minutes."),
     "Permitir" to mapOf("en" to "Allow", "it" to "Consenti", "fr" to "Autoriser"),
     "Activar" to mapOf("en" to "Turn on", "it" to "Attiva", "fr" to "Activer"),
     "Buen momento para una siesta" to mapOf("en" to "Good time for a nap", "it" to "Buon momento per un pisolino", "fr" to "Bon moment pour une sieste"),
