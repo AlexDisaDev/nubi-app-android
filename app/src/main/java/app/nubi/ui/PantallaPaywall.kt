@@ -173,6 +173,15 @@ fun ContenidoPaywall(
             onCerrar?.invoke()
         }
     }
+    // Y también en cuanto el servidor confirma una compra hecha desde aquí,
+    // aunque ya hubiera premium al abrir (paywall abierto con "[Debug] Ver
+    // paywall" o con "Simular SIN Premium" encendido): sin esto se quedaba
+    // abierto tras pagar.
+    val compraConfirmada by Compras.ultimaCompraConfirmada.collectAsState()
+    val compraAlAbrir = remember { compraConfirmada }
+    LaunchedEffect(compraConfirmada) {
+        if (compraConfirmada != compraAlAbrir) onCerrar?.invoke()
+    }
 
     // El feed de reseñas se pide aquí, no al arrancar la app: solo hace
     // falta cuando alguien está mirando el paywall.

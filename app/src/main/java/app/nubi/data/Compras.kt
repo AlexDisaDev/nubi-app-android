@@ -86,6 +86,16 @@ object Compras : PurchasesUpdatedListener {
     var detalles: ProductDetails? = null
         private set
 
+    /**
+     * Momento (millis) de la última compra que el servidor ha confirmado en
+     * esta sesión. El paywall lo observa para cerrarse en cuanto se completa
+     * una compra — aunque se hubiera abierto ya con premium (p. ej. desde
+     * "[Debug] Ver paywall"), caso en el que "pasar de no-premium a premium"
+     * nunca ocurre y antes se quedaba abierto.
+     */
+    private val _ultimaCompraConfirmada = MutableStateFlow(0L)
+    val ultimaCompraConfirmada: StateFlow<Long> = _ultimaCompraConfirmada.asStateFlow()
+
     private val _verificando = MutableStateFlow(false)
     /** True mientras se está comprobando una compra contra el servidor
      *  (para que la pantalla de pago pueda mostrar "comprobando..."). */
@@ -314,6 +324,7 @@ object Compras : PurchasesUpdatedListener {
             _verificando.value = true
             try {
                 verificarEnServidor(compra, productoId, planSolicitado)
+                _ultimaCompraConfirmada.value = System.currentTimeMillis()
                 // El servidor ya confirmó la compra contra Google (no es
                 // solo que el cliente lo crea) — aquí es donde de verdad
                 // se sabe que el trial/la compra se activó.
