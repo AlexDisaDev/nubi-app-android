@@ -134,6 +134,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.roundToInt
+import app.nubi.data.OrigenPaywall
 
 // =====================================================================
 // Canjear código — se usa en dos sitios: al entrar por primera vez y
@@ -1212,7 +1213,7 @@ fun PantallaHoy(
             if (premium) {
                 TarjetaPrediccion(prediccion = p, ahora = ahora)
             } else {
-                TarjetaPrediccionBloqueada(p) { mostrarBloqueo = true }
+                TarjetaPrediccionBloqueada(p) { OrigenPaywall.marcar("hoy_prediccion"); mostrarBloqueo = true }
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -1223,7 +1224,7 @@ fun PantallaHoy(
             TarjetaPrediccionBloqueada(
                 null,
                 titularFijo = L10n.calcularaCuandoDespierte(bebe.nombre)
-            ) { mostrarBloqueo = true }
+            ) { OrigenPaywall.marcar("hoy_prediccion"); mostrarBloqueo = true }
             Spacer(Modifier.height(12.dp))
         }
 
@@ -1238,9 +1239,9 @@ fun PantallaHoy(
             onTerminarToma = { Repositorio.terminarToma(bebe.id) },
             bloqueado = !premium,
             oscuro = oscuro,
-            onReloj = { if (premium) mostrarHojaAvisoComida = true else mostrarBloqueo = true },
-            onBiberon = { if (premium) mostrarHojaBiberon = true else mostrarBloqueo = true },
-            onPecho = { if (premium) mostrarHojaPecho = true else mostrarBloqueo = true }
+            onReloj = { if (premium) mostrarHojaAvisoComida = true else { OrigenPaywall.marcar("hoy_aviso_comida"); mostrarBloqueo = true } },
+            onBiberon = { if (premium) mostrarHojaBiberon = true else { OrigenPaywall.marcar("hoy_biberon"); mostrarBloqueo = true } },
+            onPecho = { if (premium) mostrarHojaPecho = true else { OrigenPaywall.marcar("hoy_pecho"); mostrarBloqueo = true } }
         )
         Spacer(Modifier.height(12.dp))
 
@@ -1255,7 +1256,7 @@ fun PantallaHoy(
             icono = IconoNubi.PANAL,
             colorBadge = colores.cielo,
             bloqueado = !premium,
-            onClick = { if (premium) mostrarHojaPanal = true else mostrarBloqueo = true }
+            onClick = { if (premium) mostrarHojaPanal = true else { OrigenPaywall.marcar("hoy_panal"); mostrarBloqueo = true } }
         )
         Spacer(Modifier.height(12.dp))
 
@@ -1323,7 +1324,7 @@ fun PantallaHoy(
         HojaAvisoComida { mostrarHojaAvisoComida = false }
     }
     if (mostrarBloqueo) {
-        HojaPremiumBloqueado { mostrarBloqueo = false }
+        HojaPremiumBloqueado(origen = "hoy") { mostrarBloqueo = false }
     }
 }
 
@@ -2157,7 +2158,7 @@ fun PantallaDia(
                 // justo lo que se vende: se abre el paywall en vez de
                 // cambiar de fecha, en lugar de deshabilitar la flecha
                 // sin más (que no explicaría por qué no hace nada).
-                if (premium) diaSeleccionado = diaSeleccionado.minusDays(1) else mostrarBloqueo = true
+                if (premium) diaSeleccionado = diaSeleccionado.minusDays(1) else { OrigenPaywall.marcar("linea_dias_anteriores"); mostrarBloqueo = true }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(textoFechaDia(diaSeleccionado), style = MaterialTheme.typography.titleMedium)
@@ -2221,7 +2222,7 @@ fun PantallaDia(
                         diaMostrado = diaSeleccionado,
                         ahora = ahoraDia,
                         esUltimo = indice == filas.lastIndex,
-                        onEditar = { if (premium) tomaAEditar = grupo else mostrarBloqueo = true },
+                        onEditar = { if (premium) tomaAEditar = grupo else { OrigenPaywall.marcar("linea_editar"); mostrarBloqueo = true } },
                         // Borra la toma entera: los dos lados.
                         onBorrar = { grupo.forEach { Repositorio.borrarRegistro(it.id) } }
                     )
@@ -2233,7 +2234,7 @@ fun PantallaDia(
                         onEditar = {
                             // Sin premium la lista se ve entera, pero es de solo
                             // lectura: editar cualquier registro abre el paywall.
-                            if (premium) registroEditando = registro else mostrarBloqueo = true
+                            if (premium) registroEditando = registro else { OrigenPaywall.marcar("linea_editar"); mostrarBloqueo = true }
                         },
                         onBorrar = { Repositorio.borrarRegistro(registro.id) }
                     )
@@ -2310,7 +2311,7 @@ fun PantallaDia(
     }
 
     if (mostrarBloqueo) {
-        HojaPremiumBloqueado { mostrarBloqueo = false }
+        HojaPremiumBloqueado(origen = "linea") { mostrarBloqueo = false }
     }
 }
 
@@ -2563,8 +2564,8 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
     var ladoPechoElegido by remember { mutableStateOf<LadoPecho?>(null) }
     var mostrarBloqueo by remember { mutableStateOf(false) }
 
-    fun alTocar(abrir: () -> Unit) {
-        if (bloqueado) mostrarBloqueo = true else abrir()
+    fun alTocar(origen: String, abrir: () -> Unit) {
+        if (bloqueado) { OrigenPaywall.marcar(origen); mostrarBloqueo = true } else abrir()
     }
 
     Card(
@@ -2582,7 +2583,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                         if (tipo == TipoRegistro.PECHO) {
                             Box {
                                 BotonCircular(tipo, bloqueado = bloqueado) {
-                                    alTocar { menuPechoAbierto = true }
+                                    alTocar("linea_pecho") { menuPechoAbierto = true }
                                 }
                                 MenuPecho(
                                     expandido = menuPechoAbierto,
@@ -2595,7 +2596,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
                             }
                         } else {
                             BotonCircular(tipo, bloqueado = bloqueado) {
-                                alTocar { hojaAbierta = tipo }
+                                alTocar("linea_" + tipo.name.lowercase()) { hojaAbierta = tipo }
                             }
                         }
                     }
@@ -2634,7 +2635,7 @@ private fun BotoneraDia(bebeId: String, dia: LocalDate, premium: Boolean) {
     }
 
     if (mostrarBloqueo) {
-        HojaPremiumBloqueado { mostrarBloqueo = false }
+        HojaPremiumBloqueado(origen = "linea") { mostrarBloqueo = false }
     }
 }
 
@@ -3466,7 +3467,7 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     }
 
     if (mostrarPaywall) {
-        HojaPremiumBloqueado { mostrarPaywall = false }
+        HojaPremiumBloqueado(origen = "ajustes_suscripcion") { mostrarPaywall = false }
     }
 }
 
@@ -3655,7 +3656,7 @@ private fun TarjetaDebug() {
     }
 
     if (mostrarPaywall) {
-        HojaPremiumBloqueado { mostrarPaywall = false }
+        HojaPremiumBloqueado(origen = "debug") { mostrarPaywall = false }
     }
 }
 

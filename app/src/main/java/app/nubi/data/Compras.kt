@@ -10,6 +10,7 @@ import com.android.billingclient.api.BillingClient.ProductType
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.GetBillingConfigParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
@@ -130,6 +131,12 @@ object Compras : PurchasesUpdatedListener {
                 if (resultado.responseCode == BillingResponseCode.OK) {
                     consultarProducto()
                     recuperarComprasPendientes()
+                    // País de la cuenta de Play, para los eventos del embudo.
+                    cliente.getBillingConfigAsync(GetBillingConfigParams.newBuilder().build()) { r, config ->
+                        if (r.responseCode == BillingResponseCode.OK) {
+                            config?.countryCode?.takeIf { it.isNotBlank() }?.let { EventosFunnel.paisTienda = it }
+                        }
+                    }
                 } else {
                     // Si falla AQUÍ, consultarProducto() nunca llega a
                     // llamarse y detalles se queda en null sin que el otro
@@ -229,15 +236,15 @@ object Compras : PurchasesUpdatedListener {
         val resultado = cliente.launchBillingFlow(activity, parametros)
         if (resultado.responseCode == BillingResponseCode.OK) {
             // La hoja de compra de Google Play se ha abierto.
-            EventosFunnel.registrar(EventoNombre.PURCHASE_STARTED, mapOf("plan_id" to planId))
+            EventosFunnel.registrar(EventoNombre.PURCHASE_STARTED, SesionPaywall.meta(mapOf("plan_id" to planId)))
         } else {
             EventosFunnel.registrar(
                 EventoNombre.PURCHASE_FAILED,
-                mapOf(
+                SesionPaywall.meta(mapOf(
                     "plan_id" to planId,
                     "motivo" to "error_play_${resultado.responseCode}",
                     "mensaje_error" to resultado.debugMessage
-                )
+                ))
             )
         }
     }
@@ -309,17 +316,17 @@ object Compras : PurchasesUpdatedListener {
             // (empezó el flujo de compra y no llegó a terminarlo).
             EventosFunnel.registrar(
                 EventoNombre.PURCHASE_CANCELLED,
-                mapOf("plan_id" to (planSolicitado ?: ""))
+                SesionPaywall.meta(mapOf("plan_id" to (planSolicitado ?: "")))
             )
         } else {
             _ultimoError.value = resultado.debugMessage.ifBlank { "Error de Play (${resultado.responseCode})" }
             EventosFunnel.registrar(
                 EventoNombre.PURCHASE_FAILED,
-                mapOf(
+                SesionPaywall.meta(mapOf(
                     "plan_id" to (planSolicitado ?: ""),
                     "motivo" to "error_play_${resultado.responseCode}",
                     "mensaje_error" to resultado.debugMessage
-                )
+                ))
             )
         }
     }
@@ -373,7 +380,7 @@ object Compras : PurchasesUpdatedListener {
                 if (planDeEstaCompra != null) {
                     EventosFunnel.registrar(
                         EventoNombre.PURCHASE_COMPLETED,
-                        mapOf("plan_id" to planDeEstaCompra, "producto_id" to productoId)
+                        SesionPaywall.meta(mapOf("plan_id" to planDeEstaCompra, "producto_id" to productoId))
                     )
                     planSolicitado = null
                 } else if (porRestaurar) {
@@ -392,11 +399,11 @@ object Compras : PurchasesUpdatedListener {
                 restaurando = false
                 EventosFunnel.registrar(
                     EventoNombre.PURCHASE_FAILED,
-                    mapOf(
+                    SesionPaywall.meta(mapOf(
                         "plan_id" to (planDeEstaCompra ?: ""),
                         "motivo" to "verificacion_servidor",
                         "mensaje_error" to (e.message ?: "")
-                    )
+                    ))
                 )
             } finally {
                 _verificando.value = false

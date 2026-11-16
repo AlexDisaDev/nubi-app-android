@@ -95,6 +95,66 @@ data class FilaEventoFunnel(
  */
 object EventosFunnel {
     fun registrar(evento: String, metadata: Map<String, String> = emptyMap()) {
-        Repositorio.registrarEventoFunnel(evento, metadata)
+        // Contexto común a todos los eventos; lo que pase quien llama manda.
+        Repositorio.registrarEventoFunnel(evento, contextoComun() + metadata)
     }
+
+    /**
+     * País de la cuenta de Google Play (ISO de 2 letras, "ES", "US"). Lo
+     * rellena Compras al conectar con Play; hasta entonces, la región del
+     * móvil. @Volatile porque se escribe desde el hilo de Billing.
+     */
+    @Volatile var paisTienda: String? = null
+
+    private val versionApp: String = "${app.nubi.BuildConfig.VERSION_NAME} (${app.nubi.BuildConfig.VERSION_CODE})"
+
+    private fun contextoComun(): Map<String, String> {
+        val pais = paisTienda ?: java.util.Locale.getDefault().country.takeIf { it.isNotBlank() }
+        return if (pais != null) mapOf("version_app" to versionApp, "pais" to pais)
+        else mapOf("version_app" to versionApp)
+    }
+}
+
+/**
+ * Botón bloqueado que acaba de abrir el paywall ("hoy_prediccion",
+ * "linea_dias_anteriores"…). Quien abre el paywall lo marca justo antes y
+ * el paywall lo recoge al abrirse; sin marca reciente se usa la pantalla.
+ */
+object OrigenPaywall {
+    @Volatile private var ultimo: String? = null
+    @Volatile private var en: Long = 0
+
+    fun marcar(origen: String) {
+        ultimo = origen
+        en = System.currentTimeMillis()
+    }
+
+    /** La marca si es de hace menos de 5 s (y la borra), o porDefecto. */
+    fun tomar(porDefecto: String): String {
+        val o = ultimo
+        val reciente = o != null && System.currentTimeMillis() - en < 5_000
+        ultimo = null
+        return if (reciente) o!! else porDefecto
+    }
+}
+
+/**
+ * Lo que se sabe del paywall abierto ahora mismo, para añadirlo a sus
+ * eventos: desde dónde se abrió y cuándo. Solo hay uno abierto a la vez.
+ */
+object SesionPaywall {
+    @Volatile var origen: String = "desconocido"
+    @Volatile var abiertoEn: Long = System.currentTimeMillis()
+
+    fun abrir(origen: String) {
+        this.origen = origen
+        abiertoEn = System.currentTimeMillis()
+    }
+
+    /** origen + segundos desde que se abrió, más lo que se pase. */
+    fun meta(extra: Map<String, String> = emptyMap()): Map<String, String> =
+        mapOf(
+            "origen" to origen,
+            "segundos" to ((System.currentTimeMillis() - abiertoEn) / 1000).toString()
+        ) + extra
 }

@@ -297,7 +297,14 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                 else -> when (val d = destino) {
                     // Las tres de arriba son premium siempre; de las cinco
                     // de abajo, solo las que lo digan en el propio enum.
-                    is Destino.Arriba -> ConVistaPrevia(bloqueado = !premium) {
+                    is Destino.Arriba -> ConVistaPrevia(
+                        bloqueado = !premium,
+                        origen = when (d.vista) {
+                            VistaSuperior.BANCO -> "banco_leche"
+                            VistaSuperior.ALIMENTACION -> "alimentacion"
+                            VistaSuperior.SONIDOS -> "sonidos"
+                        }
+                    ) {
                         when (d.vista) {
                             VistaSuperior.BANCO -> datos.bebe?.let {
                                 PantallaBanco(it, datos.extracciones, datos.usosLeche)
@@ -310,7 +317,8 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
                     }
 
                     is Destino.Abajo -> ConVistaPrevia(
-                        bloqueado = d.pestana.premium && !premium
+                        bloqueado = d.pestana.premium && !premium,
+                        origen = d.pestana.name.lowercase()
                     ) {
                         when (d.pestana) {
                             Pestana.HOY -> datos.bebe?.let {
@@ -363,7 +371,7 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
  * dibuja el contenido tal cual, sin capas intermedias de por medio.
  */
 @Composable
-private fun ConVistaPrevia(bloqueado: Boolean, contenido: @Composable () -> Unit) {
+private fun ConVistaPrevia(bloqueado: Boolean, origen: String, contenido: @Composable () -> Unit) {
     if (!bloqueado) {
         contenido()
         return
@@ -408,6 +416,6 @@ private fun ConVistaPrevia(bloqueado: Boolean, contenido: @Composable () -> Unit
     }
 
     if (mostrarPaywall) {
-        HojaPremiumBloqueado { mostrarPaywall = false }
+        HojaPremiumBloqueado(origen = origen) { mostrarPaywall = false }
     }
 }

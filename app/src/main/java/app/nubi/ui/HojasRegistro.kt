@@ -1532,7 +1532,7 @@ fun HojaPechoHora(
 // =====================================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
+fun HojaPremiumBloqueado(origen: String = "desconocido", onCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -1583,7 +1583,7 @@ fun HojaPremiumBloqueado(onCerrar: () -> Unit) {
                         .padding(top = 16.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    ContenidoPaywall(onCerrar = onCerrar, mostrarCerrar = false)
+                    ContenidoPaywall(onCerrar = onCerrar, mostrarCerrar = false, origen = origen)
                 }
             }
             BotonCerrarPaywall(onCerrar, Modifier.align(Alignment.TopEnd))

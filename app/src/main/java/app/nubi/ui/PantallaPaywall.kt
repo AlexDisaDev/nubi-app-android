@@ -76,6 +76,9 @@ import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
 import com.android.billingclient.api.ProductDetails
 import kotlin.math.roundToInt
+import app.nubi.data.OrigenPaywall
+import app.nubi.data.SesionPaywall
+import androidx.compose.runtime.DisposableEffect
 
 /**
  * El paywall como PANTALLA entera. Desde que Nubi es freemium, la app ya
@@ -148,13 +151,51 @@ private fun escalaPara(alturaDisponible: Dp): Float = when {
 fun ContenidoPaywall(
     onCerrar: (() -> Unit)? = null,
     /** false si quien lo aloja pinta ya la X fija arriba (HojaPremiumBloqueado). */
-    mostrarCerrar: Boolean = true
+    mostrarCerrar: Boolean = true,
+    /** Desde dónde se abrió, para el dashboard ("hoy", "linea", "diario"…). */
+    origen: String = "desconocido"
 ) {
     val colores = NubiTheme.colores
 
-    // Una vez por composición: marca el paso más arriba del embudo.
+    // paywall_viewed, una vez por apertura, en cuanto se sabe qué plan
+    // viene preseleccionado (los planes pueden tardar en llegar de Play).
+    // Mira cada medio segundo como mucho 10 s: coste despreciable. Si se
+    // cierra antes de tenerlos, se manda igual al salir ("sin_cargar").
+    var vistaRegistrada by remember { mutableStateOf(false) }
+    // El botón bloqueado que lo abrió, si lo marcó; si no, la pantalla.
+    val origenFinal = remember { OrigenPaywall.tomar(origen) }
     LaunchedEffect(Unit) {
-        EventosFunnel.registrar(EventoNombre.PAYWALL_VIEWED)
+        SesionPaywall.abrir(origenFinal)
+        var intentos = 0
+        while (Compras.detalles == null && intentos < 20) {
+            kotlinx.coroutines.delay(500)
+            intentos++
+        }
+        val detalles = Compras.detalles ?: return@LaunchedEffect
+        val oferta = detalles.subscriptionOfferDetails?.firstOrNull { it.basePlanId == Compras.PLAN_ANUAL }
+        val fases = oferta?.pricingPhases?.pricingPhaseList.orEmpty()
+        val conPrueba = fases.size > 1 && fases.first().priceAmountMicros == 0L
+        val moneda = fases.lastOrNull()?.priceCurrencyCode ?: ""
+        vistaRegistrada = true
+        EventosFunnel.registrar(
+            EventoNombre.PAYWALL_VIEWED,
+            mapOf(
+                "origen" to origenFinal,
+                "plan_preseleccionado" to Compras.PLAN_ANUAL,
+                "con_prueba" to conPrueba.toString(),
+                "moneda" to moneda
+            )
+        )
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!vistaRegistrada) {
+                EventosFunnel.registrar(
+                    EventoNombre.PAYWALL_VIEWED,
+                    mapOf("origen" to origenFinal, "plan_preseleccionado" to "sin_cargar")
+                )
+            }
+        }
     }
 
     // Se cierra solo en cuanto el premium se activa de verdad — tanto si
@@ -500,7 +541,7 @@ private fun LetraPequenaPaywall(
             EnlacePie(L10n.t("Privacidad"), e) { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
             SeparadorPie(colores.tintaTenue, e)
             EnlacePie(L10n.t("Restaurar"), e) {
-                EventosFunnel.registrar(EventoNombre.RESTORE_TAPPED)
+                EventosFunnel.registrar(EventoNombre.RESTORE_TAPPED, SesionPaywall.meta())
                 Compras.restaurar()
             }
             SeparadorPie(colores.tintaTenue, e)
@@ -546,7 +587,7 @@ fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifier) {
             .clip(CircleShape)
             .background(colores.superficie)
             .clickable {
-                EventosFunnel.registrar(EventoNombre.PAYWALL_CLOSED)
+                EventosFunnel.registrar(EventoNombre.PAYWALL_CLOSED, SesionPaywall.meta())
                 onCerrar()
             },
         contentAlignment = Alignment.Center
@@ -643,7 +684,7 @@ fun SelectorPlanesPremium(e: Float = 1f) {
                     e = e,
                     onSeleccionar = {
                         seleccionado = planId
-                        EventosFunnel.registrar(EventoNombre.PLAN_SELECTED, mapOf("plan_id" to planId))
+                        EventosFunnel.registrar(EventoNombre.PLAN_SELECTED, SesionPaywall.meta(mapOf("plan_id" to planId)))
                     }
                 )
             }
@@ -934,7 +975,7 @@ private fun BotonAccion(
                 // (TarjetaPlan.onSeleccionar); aquí va el toque del botón.
                 EventosFunnel.registrar(
                     EventoNombre.PAYWALL_CTA_TAPPED,
-                    mapOf("plan_id" to planId, "con_prueba" to hayPrueba.toString())
+                    SesionPaywall.meta(mapOf("plan_id" to planId, "con_prueba" to hayPrueba.toString()))
                 )
                 onComprar()
             },
