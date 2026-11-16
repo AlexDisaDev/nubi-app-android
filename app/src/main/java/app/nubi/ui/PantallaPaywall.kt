@@ -414,13 +414,6 @@ private fun FilaVentaja(icono: IconoNubi, color: Color, titulo: String, e: Float
     }
 }
 
-/**
- * El pie del paywall: las condiciones centradas y, en UNA sola fila,
- * Términos · Privacidad · Restaurar · Canjear código. Las cuatro son
- * enlaces de texto del mismo tamaño, así que ninguna compite con el botón
- * de compra. Igual que `letraPequeña` en Paywall.swift.
- */
-@Composable
 /** Plan elegido en el paywall: lo comparten las tarjetas
  *  (SelectorPlanesPremium) y la letra pequeña de abajo (LetraPequenaPaywall),
  *  para que las condiciones digan el precio del plan marcado — igual que
@@ -442,6 +435,12 @@ private fun precioConPeriodoDe(detalles: ProductDetails, planId: String): String
     return "${faseFinal.formattedPrice} $periodo"
 }
 
+/**
+ * El pie del paywall: las condiciones centradas y, en UNA sola fila,
+ * Términos · Privacidad · Restaurar · Canjear código. Las cuatro son
+ * enlaces de texto del mismo tamaño, así que ninguna compite con el botón
+ * de compra. Igual que `letraPequeña` en Paywall.swift.
+ */
 @Composable
 private fun LetraPequenaPaywall(
     escala: Float,
