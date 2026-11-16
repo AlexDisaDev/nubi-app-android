@@ -183,17 +183,35 @@ fun PantallaRaiz() {
     }
 }
 
+/**
+ * La única pantalla de carga de la app (igual que en iOS): el logo con el
+ * nombre "NUBI" y el círculo de carga debajo, sobre el fondo de la app.
+ * Antes solo la usaba el arranque de la sesión; el resto de esperas
+ * (primera sincronización, perfil, invitación) enseñaban un círculo suelto
+ * sin logo — y con el fondo transparente se veía la pantalla de inicio del
+ * sistema (solo las nubes) sin nombre ni círculo de carga.
+ */
 @Composable
 private fun PantallaCargandoSesion() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    val colores = NubiTheme.colores
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(colores.lienzo),
+        contentAlignment = Alignment.Center
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Image(
                 painter = painterResource(R.drawable.nubi_logo_splash),
-                contentDescription = null,
-                modifier = Modifier.width(160.dp)
+                contentDescription = "Nubi",
+                modifier = Modifier.width(180.dp)
             )
-            Spacer(Modifier.height(20.dp))
-            CircularProgressIndicator()
+            Spacer(Modifier.height(24.dp))
+            CircularProgressIndicator(
+                color = colores.lila,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(32.dp)
+            )
         }
     }
 }
@@ -268,9 +286,7 @@ fun ContenidoApp() {
         // instante, pero el bebé real todavía puede estar bajando de
         // Supabase — sin este hueco, se ofrecería crear un bebé duplicado.
         datos.bebe == null && !primeraSincronizacionHecha ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            PantallaCargandoSesion()
 
         // Quien llega aquí recién logueado con una invitación pendiente NO
         // debe ver el formulario de alta: antes se enseñaba PantallaNuevoBebe
@@ -283,9 +299,7 @@ fun ContenidoApp() {
         // deja paso a PantallaNuevoBebe de verdad, como con cualquier cuenta
         // nueva sin invitación.
         datos.bebe == null && invitacionPendiente != null ->
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            PantallaCargandoSesion()
 
         // Sin pantalla de bienvenida/código de regalo intermedia: va directo
         // al alta del bebé, igual que iOS (VistaAlta se abre directamente).
@@ -300,9 +314,7 @@ fun ContenidoApp() {
         // antes de mostrar nada: sin él, Premium.activo() no puede saber
         // si la cuenta tiene premium, y un hueco aquí dejaría ver
         // brevemente la app entera desbloqueada en cada arranque.
-        datos.perfil == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        datos.perfil == null -> PantallaCargandoSesion()
 
         else -> Navegacion(
             perfil = datos.perfil,
