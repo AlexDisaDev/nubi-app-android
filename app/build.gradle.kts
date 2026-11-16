@@ -66,6 +66,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    // LocalLifecycleOwner en Compose (tarjeta "Avisos a la hora exacta" de Ajustes).
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
 
     // Material Components "clásico": aporta los estilos XML (p.ej.
     // Theme.Material3.DayNight.NoActionBar) que usa res/values/themes.xml

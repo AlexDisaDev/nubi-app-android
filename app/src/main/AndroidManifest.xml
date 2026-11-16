@@ -10,6 +10,8 @@
     <!-- Ruido blanco con la pantalla apagada (ServicioRuido). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Android 16: notificación de siesta/noche/toma en curso como Live Update. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <application
         android:name=".NubiApplication"
@@ -50,6 +52,10 @@
                 <data android:scheme="nubi" android:host="unirme" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".notificaciones.ReceptorAccionEnCurso"
+            android:exported="false" />
 
         <service
             android:name=".audio.ServicioRuido"

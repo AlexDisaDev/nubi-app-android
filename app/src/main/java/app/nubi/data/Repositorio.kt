@@ -1,5 +1,8 @@
 package app.nubi.data
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import app.nubi.notificaciones.NotificacionEnCurso
 import android.content.Context
 import app.nubi.BuildConfig
 import app.nubi.i18n.L10n
@@ -60,6 +63,18 @@ object Repositorio {
         sincronizador = Sincronizador(local)
 
         AvisosNubi.crearCanal(this.contexto)
+
+        // Notificación fija de siesta / noche / toma en curso (el equivalente
+        // a las Live Activities de iOS): se rehace cada vez que cambia lo que
+        // enseña — también cuando el cambio viene de la pareja por la
+        // sincronización.
+        ambito.launch {
+            local.cargando.first { !it }
+            local.datos
+                .map { NotificacionEnCurso.estadoDe(it) }
+                .distinctUntilChanged()
+                .collect { NotificacionEnCurso.mostrar(this@Repositorio.contexto, it) }
+        }
 
         ambito.launch {
             local.cargar()
