@@ -2950,19 +2950,11 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(NubiGeometria.margen)
     ) {
-        // Mantener pulsado el título vuelve a mostrar los botones de debug
-        // ocultos con "[Debug] Modo presentación" (solo en depuración).
+        // Sin título propio: "Ajustes" ya sale en la barra de arriba (con
+        // "Cerrar"), igual que iOS. Antes salía dos veces. Mantener pulsado
+        // ese título de la barra recupera los botones de debug (Navegacion.kt).
         LaunchedEffect(Unit) { ModoPresentacion.cargar(contexto) }
-        Text(
-            L10n.t("Ajustes"),
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = if (Premium.disponibleEnPruebas) {
-                Modifier.pointerInput(Unit) {
-                    detectTapGestures(onLongPress = { ModoPresentacion.fijar(contexto, false) })
-                }
-            } else Modifier
-        )
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(4.dp))
 
         // El modo día/noche ya no se elige aquí: se alterna directamente
         // con el botón de sol/luna de la cabecera de Hoy.
@@ -3632,7 +3624,7 @@ private fun TarjetaDebug() {
 
 /** Estado del "[Debug] Modo presentación" (ver TarjetaDebug). Se guarda en
  *  SharedPreferences para que siga oculto al reabrir la app. */
-private object ModoPresentacion {
+internal object ModoPresentacion {
     private const val PREFS = "nubi_debug"
     private const val CLAVE = "modo_presentacion"
     val activo = MutableStateFlow(false)

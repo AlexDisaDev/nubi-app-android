@@ -1,5 +1,8 @@
 package app.nubi.ui
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -125,6 +128,7 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
     val premium = remember(perfil, datos.premiumCompartido, forzadoPremium, simularSinPremium) {
         Premium.activo(perfil, datos.premiumCompartido)
     }
+    val contextoNav = LocalContext.current
     val colores = NubiTheme.colores
 
     // Navegar nunca se bloquea: a TODAS las pestañas y secciones se entra
@@ -175,7 +179,19 @@ fun Navegacion(perfil: Perfil?, alCerrarSesion: () -> Unit) {
             ) {
                 if (enAjustes) TopAppBar(
                     windowInsets = WindowInsets(0, 0, 0, 0),
-                    title = { Text(titulo) },
+                    title = {
+                        // Mantener pulsado el título recupera los botones de
+                        // debug ocultos con "[Debug] Modo presentación" (solo
+                        // en depuración) — igual que el título de iOS.
+                        Text(
+                            titulo,
+                            modifier = if (Premium.disponibleEnPruebas) {
+                                Modifier.pointerInput(Unit) {
+                                    detectTapGestures(onLongPress = { ModoPresentacion.fijar(contextoNav, false) })
+                                }
+                            } else Modifier
+                        )
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = colores.lienzo,
                         titleContentColor = colores.tinta
