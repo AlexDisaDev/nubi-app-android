@@ -140,6 +140,7 @@ class MainActivity : ComponentActivity() {
     // anotara la pareja mientras tanto. Igual que iOS (NubiApp.swift).
     override fun onStart() {
         super.onStart()
+        app.nubi.notificaciones.AlarmasExactas.alVolver(this)
         if (Supabase.client.auth.currentUserOrNull() != null) {
             Repositorio.sincronizarEnSegundoPlano()
             Repositorio.activarTiempoReal()

@@ -17,12 +17,20 @@ import java.util.UUID
  * porque eso es más robusto que cualquier comprobación en la app.
  */
 object EventoNombre {
-    const val PAYWALL_MOSTRADO = "paywall_mostrado"
-    const val PLAN_SELECCIONADO = "plan_seleccionado"
-    const val TRIAL_INICIADO = "trial_iniciado"
-    const val TRIAL_CONFIRMADO = "trial_confirmado"
-    const val COMPRA_FALLIDA = "compra_fallida"
-    const val RESTAURAR_COMPRA_PULSADO = "restaurar_compra_pulsado"
+    // Paywall (pedidos por marketing, nov 2026). Sustituyen a los antiguos
+    // paywall_mostrado / plan_seleccionado / trial_iniciado /
+    // trial_confirmado / compra_fallida / restaurar_compra_pulsado, que
+    // siguen en la tabla como histórico pero ya no se registran.
+    const val PAYWALL_VIEWED = "paywall_viewed"           // se muestra el paywall
+    const val PAYWALL_CLOSED = "paywall_closed"           // pulsa la X
+    const val PLAN_SELECTED = "plan_selected"             // elige plan (metadata plan_id)
+    const val PAYWALL_CTA_TAPPED = "paywall_cta_tapped"   // pulsa Suscribirme / Probar gratis
+    const val PURCHASE_STARTED = "purchase_started"       // se abre la hoja de compra de Play
+    const val PURCHASE_COMPLETED = "purchase_completed"   // el servidor confirma la compra con Google
+    const val PURCHASE_CANCELLED = "purchase_cancelled"   // cierra la hoja de compra
+    const val PURCHASE_FAILED = "purchase_failed"         // error real (metadata motivo)
+    const val RESTORE_TAPPED = "restore_tapped"           // pulsa Restaurar
+    const val RESTORE_COMPLETED = "restore_completed"     // se recupera una suscripción
 
     // Embudo de la pantalla de acceso (PantallaLogin). Android solo tiene
     // botón de Google (no de Apple), así que aquí nunca se registra un
@@ -77,7 +85,7 @@ data class FilaEventoFunnel(
 
 /**
  * Punto único para registrar eventos del embudo de conversión desde
- * cualquier pantalla: EventosFunnel.registrar(EventoNombre.PAYWALL_MOSTRADO).
+ * cualquier pantalla: EventosFunnel.registrar(EventoNombre.PAYWALL_VIEWED).
  *
  * Nunca lanza ni bloquea a quien llama: solo encola el evento en local
  * (persistido en disco de inmediato) e intenta subirlo enseguida si hay

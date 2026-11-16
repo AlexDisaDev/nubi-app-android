@@ -1351,10 +1351,47 @@ fun HojaAvisoComida(onCerrar: () -> Unit) {
         if (horas == 0 && minutos == 0) horas = 3
     }
 
+    val contexto = LocalContext.current
+    val estabaActivo = remember { datos.avisoComidaActivo }
+    var preguntarAlarmaExacta by remember { mutableStateOf(false) }
+
     fun guardar() {
         val total = (horas * 60 + minutos).coerceAtLeast(15)
         Repositorio.guardarAvisoComida(activo = activo, intervaloMin = total)
-        onCerrar()
+        // Al activar el aviso (no al editarlo) y solo una vez en la vida de
+        // la app: si Android no deja programar alarmas exactas, se pregunta.
+        if (activo && !estabaActivo && app.nubi.notificaciones.AlarmasExactas.debePreguntar(contexto)) {
+            app.nubi.notificaciones.AlarmasExactas.marcarPreguntado(contexto)
+            preguntarAlarmaExacta = true
+        } else {
+            onCerrar()
+        }
+    }
+
+    if (preguntarAlarmaExacta) {
+        AlertDialog(
+            onDismissRequest = {
+                preguntarAlarmaExacta = false
+                onCerrar()
+            },
+            title = { Text(L10n.t("¿Quieres que el aviso llegue a la hora exacta?")) },
+            text = {
+                Text(L10n.t("Con el móvil en reposo, Android puede retrasarlo unos minutos. Permite a Nubi usar \"Alarmas y recordatorios\" y llegará puntual."))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    preguntarAlarmaExacta = false
+                    app.nubi.notificaciones.AlarmasExactas.abrirAjuste(contexto)
+                    onCerrar()
+                }) { Text(L10n.t("Permitir")) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    preguntarAlarmaExacta = false
+                    onCerrar()
+                }) { Text(L10n.t("Ahora no")) }
+            }
+        )
     }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
@@ -3007,8 +3044,6 @@ fun PantallaAjustes(bebe: Bebe?, perfil: Perfil?, alCerrarSesion: () -> Unit) {
             Spacer(Modifier.height(14.dp))
         }
 
-        TarjetaAlarmasExactas()
-
         TarjetaPreferencias(perfil)
         Spacer(Modifier.height(14.dp))
 
@@ -3433,79 +3468,6 @@ private fun TarjetaEstadoSuscripcion(perfil: Perfil?) {
     if (mostrarPaywall) {
         HojaPremiumBloqueado { mostrarPaywall = false }
     }
-}
-
-/**
- * Solo aparece si hace falta (Android 12+ sin el permiso "Alarmas y
- * recordatorios", que desde Android 14 viene desactivado): sin él, los
- * avisos de siesta, sueño nocturno, comida y medicinas pueden llegar unos
- * minutos tarde con el móvil en reposo (ver AvisosNubi.programar). El botón
- * lleva directamente al ajuste de Nubi; al volver, si ya está activado, la
- * tarjeta desaparece y los avisos se reprograman a la hora exacta.
- */
-@Composable
-private fun TarjetaAlarmasExactas() {
-    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return
-    val colores = NubiTheme.colores
-    val contexto = LocalContext.current
-    val gestor = remember { contexto.getSystemService(android.app.AlarmManager::class.java) }
-    var permitido by remember { mutableStateOf(gestor?.canScheduleExactAlarms() ?: true) }
-
-    val ciclo = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    DisposableEffect(ciclo) {
-        val observador = androidx.lifecycle.LifecycleEventObserver { _, evento ->
-            if (evento == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                val ahora = gestor?.canScheduleExactAlarms() ?: true
-                if (ahora && !permitido) Repositorio.reprogramarAvisos()
-                permitido = ahora
-            }
-        }
-        ciclo.lifecycle.addObserver(observador)
-        onDispose { ciclo.lifecycle.removeObserver(observador) }
-    }
-
-    if (permitido) return
-
-    Card(
-        shape = RoundedCornerShape(NubiGeometria.radioChico),
-        colors = CardDefaults.cardColors(containerColor = colores.superficie),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icono(IconoNubi.RELOJ, tint = colores.indigo, tamano = 20.dp)
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    L10n.t("Avisos a la hora exacta"),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                L10n.t("Android puede retrasar unos minutos los avisos de siesta, sueño y comida. Activa \"Alarmas y recordatorios\" para Nubi y llegarán puntuales."),
-                style = MaterialTheme.typography.bodySmall,
-                color = colores.tintaSuave
-            )
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    runCatching {
-                        contexto.startActivity(
-                            android.content.Intent(
-                                android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                                Uri.parse("package:" + contexto.packageName)
-                            )
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(NubiGeometria.radioChico),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(L10n.t("Activar"))
-            }
-        }
-    }
-    Spacer(Modifier.height(14.dp))
 }
 
 /**

@@ -154,7 +154,7 @@ fun ContenidoPaywall(
 
     // Una vez por composición: marca el paso más arriba del embudo.
     LaunchedEffect(Unit) {
-        EventosFunnel.registrar(EventoNombre.PAYWALL_MOSTRADO)
+        EventosFunnel.registrar(EventoNombre.PAYWALL_VIEWED)
     }
 
     // Se cierra solo en cuanto el premium se activa de verdad — tanto si
@@ -500,8 +500,8 @@ private fun LetraPequenaPaywall(
             EnlacePie(L10n.t("Privacidad"), e) { enlaces.openUri("https://appnubi.netlify.app/privacidad") }
             SeparadorPie(colores.tintaTenue, e)
             EnlacePie(L10n.t("Restaurar"), e) {
-                EventosFunnel.registrar(EventoNombre.RESTAURAR_COMPRA_PULSADO)
-                Compras.refrescar()
+                EventosFunnel.registrar(EventoNombre.RESTORE_TAPPED)
+                Compras.restaurar()
             }
             SeparadorPie(colores.tintaTenue, e)
             EnlacePie(L10n.t("Canjear código"), e, onPulsar = onCanjear)
@@ -545,7 +545,10 @@ fun BotonCerrarPaywall(onCerrar: () -> Unit, modifier: Modifier = Modifier) {
             .size(32.dp)
             .clip(CircleShape)
             .background(colores.superficie)
-            .clickable { onCerrar() },
+            .clickable {
+                EventosFunnel.registrar(EventoNombre.PAYWALL_CLOSED)
+                onCerrar()
+            },
         contentAlignment = Alignment.Center
     ) {
         Icono(IconoNubi.EQUIS, tint = colores.tintaSuave, tamano = 12.dp)
@@ -640,7 +643,7 @@ fun SelectorPlanesPremium(e: Float = 1f) {
                     e = e,
                     onSeleccionar = {
                         seleccionado = planId
-                        EventosFunnel.registrar(EventoNombre.PLAN_SELECCIONADO, mapOf("plan_id" to planId))
+                        EventosFunnel.registrar(EventoNombre.PLAN_SELECTED, mapOf("plan_id" to planId))
                     }
                 )
             }
@@ -927,12 +930,12 @@ private fun BotonAccion(
     ) {
         Button(
             onClick = {
-                // plan_seleccionado ya se registró al tocar la tarjeta
-                // (TarjetaPlan.onSeleccionar) — aquí solo va trial_iniciado,
-                // que es el paso siguiente del embudo, no el mismo.
-                if (hayPrueba) {
-                    EventosFunnel.registrar(EventoNombre.TRIAL_INICIADO, mapOf("plan_id" to planId))
-                }
+                // plan_selected ya se registró al tocar la tarjeta
+                // (TarjetaPlan.onSeleccionar); aquí va el toque del botón.
+                EventosFunnel.registrar(
+                    EventoNombre.PAYWALL_CTA_TAPPED,
+                    mapOf("plan_id" to planId, "con_prueba" to hayPrueba.toString())
+                )
                 onComprar()
             },
             enabled = habilitado,

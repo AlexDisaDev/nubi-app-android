@@ -226,7 +226,44 @@ object Compras : PurchasesUpdatedListener {
             )
             .build()
 
-        cliente.launchBillingFlow(activity, parametros)
+        val resultado = cliente.launchBillingFlow(activity, parametros)
+        if (resultado.responseCode == BillingResponseCode.OK) {
+            // La hoja de compra de Google Play se ha abierto.
+            EventosFunnel.registrar(EventoNombre.PURCHASE_STARTED, mapOf("plan_id" to planId))
+        } else {
+            EventosFunnel.registrar(
+                EventoNombre.PURCHASE_FAILED,
+                mapOf(
+                    "plan_id" to planId,
+                    "motivo" to "error_play_${resultado.responseCode}",
+                    "mensaje_error" to resultado.debugMessage
+                )
+            )
+        }
+    }
+
+    /**
+     * true entre que se pulsa "Restaurar" y que Play responde: si en ese
+     * rato se verifica una compra, cuenta como restore_completed y no como
+     * purchase_completed.
+     */
+    @Volatile private var restaurando = false
+
+    /** Botón "Restaurar" del paywall. */
+    fun restaurar() {
+        if (!iniciado) return
+        restaurando = true
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(ProductType.SUBS)
+            .build()
+        cliente.queryPurchasesAsync(params) { resultado, compras ->
+            val activas = compras.filter { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+            if (resultado.responseCode != BillingResponseCode.OK || activas.isEmpty()) {
+                restaurando = false
+            } else {
+                activas.forEach(::procesar)
+            }
+        }
     }
 
     /**
@@ -271,13 +308,13 @@ object Compras : PurchasesUpdatedListener {
             // que mostrar como tal, pero sí es una caída del embudo real
             // (empezó el flujo de compra y no llegó a terminarlo).
             EventosFunnel.registrar(
-                EventoNombre.COMPRA_FALLIDA,
-                mapOf("plan_id" to (planSolicitado ?: ""), "motivo" to "cancelado_por_usuario")
+                EventoNombre.PURCHASE_CANCELLED,
+                mapOf("plan_id" to (planSolicitado ?: ""))
             )
         } else {
             _ultimoError.value = resultado.debugMessage.ifBlank { "Error de Play (${resultado.responseCode})" }
             EventosFunnel.registrar(
-                EventoNombre.COMPRA_FALLIDA,
+                EventoNombre.PURCHASE_FAILED,
                 mapOf(
                     "plan_id" to (planSolicitado ?: ""),
                     "motivo" to "error_play_${resultado.responseCode}",
@@ -320,6 +357,11 @@ object Compras : PurchasesUpdatedListener {
         // premium_hasta. Hasta que responda, el usuario sigue viéndose
         // como bloqueado (no hay desbloqueo optimista en el cliente).
         val productoId = compra.products.firstOrNull() ?: return
+        // Se fija aquí qué es esta verificación: una compra hecha ahora
+        // (planSolicitado), un Restaurar, o una recuperación silenciosa al
+        // arrancar (no se registra: no es una acción del usuario).
+        val planDeEstaCompra = planSolicitado
+        val porRestaurar = restaurando
         ambito.launch {
             _verificando.value = true
             try {
@@ -328,10 +370,16 @@ object Compras : PurchasesUpdatedListener {
                 // El servidor ya confirmó la compra contra Google (no es
                 // solo que el cliente lo crea) — aquí es donde de verdad
                 // se sabe que el trial/la compra se activó.
-                EventosFunnel.registrar(
-                    EventoNombre.TRIAL_CONFIRMADO,
-                    mapOf("plan_id" to (planSolicitado ?: ""), "producto_id" to productoId)
-                )
+                if (planDeEstaCompra != null) {
+                    EventosFunnel.registrar(
+                        EventoNombre.PURCHASE_COMPLETED,
+                        mapOf("plan_id" to planDeEstaCompra, "producto_id" to productoId)
+                    )
+                    planSolicitado = null
+                } else if (porRestaurar) {
+                    EventosFunnel.registrar(EventoNombre.RESTORE_COMPLETED, mapOf("producto_id" to productoId))
+                }
+                restaurando = false
                 // Trae el perfil actualizado (premium_hasta) desde
                 // Supabase; la pantalla de pago observa Repositorio, así
                 // que en cuanto llegue se quita sola el muro de pago.
@@ -341,10 +389,11 @@ object Compras : PurchasesUpdatedListener {
                 Repositorio.reprogramarAvisos()
             } catch (e: Exception) {
                 _ultimoError.value = e.message ?: "No se pudo verificar la compra"
+                restaurando = false
                 EventosFunnel.registrar(
-                    EventoNombre.COMPRA_FALLIDA,
+                    EventoNombre.PURCHASE_FAILED,
                     mapOf(
-                        "plan_id" to (planSolicitado ?: ""),
+                        "plan_id" to (planDeEstaCompra ?: ""),
                         "motivo" to "verificacion_servidor",
                         "mensaje_error" to (e.message ?: "")
                     )
