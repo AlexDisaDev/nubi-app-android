@@ -2105,9 +2105,20 @@ fun PantallaDia(
 
     // Todo lo que pertenece a este día: los sueños se recortan por si
     // cruzan la medianoche (tramoEnDia), el resto se mira por su inicio.
+    // Un sueño EN CURSO (sin fin) también sale en la lista, como en iOS: en
+    // el día en que empezó y en los siguientes hasta hoy (p. ej. la noche
+    // que empezó ayer y sigue). Antes se quedaba fuera hasta terminarlo, y
+    // la noche que se apunta al dar de alta al bebé no aparecía en Día.
     val suenosDelDia = registros
-        .filter { it.tipo.esSueno && it.fin != null }
-        .mapNotNull { r -> tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { r to it } }
+        .filter { it.tipo.esSueno }
+        .mapNotNull { r ->
+            if (r.fin == null) {
+                val diaInicio = r.inicio.atZone(zonaLocal).toLocalDate()
+                if (!diaInicio.isAfter(diaSeleccionado) && !diaSeleccionado.isAfter(hoy)) r to (0.0 to 0.0) else null
+            } else {
+                tramoEnDia(r, diaSeleccionado, zonaLocal)?.let { r to it }
+            }
+        }
     val eventosDelDia = registros.filter {
         !it.tipo.esSueno && it.inicio.atZone(zonaLocal).toLocalDate() == diaSeleccionado
     }
@@ -2718,9 +2729,13 @@ private fun FilaTimeline(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(nombreTipo(registro.tipo), style = MaterialTheme.typography.bodyLarge)
                 val esDeAyer = registro.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado
+                if (registro.fin == null && registro.tipo.esSueno) {
+                    Spacer(Modifier.width(8.dp))
+                    ChipTexto(L10n.t("en curso"))
+                }
                 if (esDeAyer) {
                     Spacer(Modifier.width(8.dp))
-                    ChipTexto("noche anterior")
+                    ChipTexto(L10n.t("noche anterior"))
                 }
                 registro.duracionSegundos?.let { seg ->
                     Spacer(Modifier.width(8.dp))
@@ -2850,7 +2865,7 @@ private fun FilaTomaPechoCombinada(
                 Text(titulo, style = MaterialTheme.typography.bodyLarge)
                 if (primero.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado) {
                     Spacer(Modifier.width(8.dp))
-                    ChipTexto("noche anterior")
+                    ChipTexto(L10n.t("noche anterior"))
                 }
                 Spacer(Modifier.width(8.dp))
                 ChipTexto(if (enCurso) L10n.t("en curso") else textoDuracion(minutosTotal))

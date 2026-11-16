@@ -177,6 +177,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "¿Prefieres empezar mes a mes?" to mapOf("en" to "Prefer to go month by month?", "it" to "Preferisci iniziare mese per mese?", "fr" to "Vous préférez commencer mois par mois ?"),
     "Sin compromiso de un año. Cancela cuando quieras." to mapOf("en" to "No yearly commitment. Cancel anytime.", "it" to "Nessun impegno annuale. Annulla quando vuoi.", "fr" to "Sans engagement d'un an. Annulez quand vous voulez."),
     "Ver todos los planes" to mapOf("en" to "See all plans", "it" to "Vedi tutti i piani", "fr" to "Voir tous les forfaits"),
+    "noche anterior" to mapOf("en" to "previous night", "it" to "notte precedente", "fr" to "nuit précédente"),
     "Permitir" to mapOf("en" to "Allow", "it" to "Consenti", "fr" to "Autoriser"),
     "Activar" to mapOf("en" to "Turn on", "it" to "Attiva", "fr" to "Activer"),
     "Buen momento para una siesta" to mapOf("en" to "Good time for a nap", "it" to "Buon momento per un pisolino", "fr" to "Bon moment pour une sieste"),
