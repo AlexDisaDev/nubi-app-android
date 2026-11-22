@@ -1,15 +1,18 @@
 # Reglas de ProGuard/R8 para Nubi.
 #
-# IMPORTANTE: ahora mismo `isMinifyEnabled = false` en build.gradle.kts, así
-# que estas reglas NO se están aplicando todavía. Están preparadas para
-# cuando se active R8, que es lo deseable (AAB más pequeño y código
-# ofuscado), pero activarlo exige probar la app compilada en release de
-# verdad: R8 rompe en silencio las librerías que usan reflexión, y el fallo
-# no aparece hasta que el usuario toca la función afectada.
+# R8 está ACTIVADO (isMinifyEnabled = true en build.gradle.kts) desde que
+# Google Play avisó de que la ofuscación estaba al 0 % (umbral: 25 %).
 #
-# Para activarlo: poner isMinifyEnabled = true, compilar en release,
-# instalar el AAB y probar al menos login, sincronización y compra. Si algo
-# falla, el culpable casi siempre es una clase serializable sin regla.
+# R8 rompe en silencio lo que usa reflexión, y el fallo no aparece hasta que
+# se toca la función afectada. Antes de subir cada versión: compilar en
+# release, instalarla y probar al menos login, sincronización, compartir y
+# compra. Si algo falla, el culpable casi siempre es una clase serializable
+# o una librería sin regla.
+#
+# Supabase (supabase-kt 3.6.0) no trae reglas propias en sus AAR, y Ktor
+# carga cosas por ServiceLoader: por eso se conservan enteros más abajo. El
+# resto (la app, Compose, AndroidX, Kotlin…) sí se ofusca, que es lo que
+# mide Google Play.
 
 # --- kotlinx.serialization -------------------------------------------------
 # Los serializadores se generan en tiempo de compilación y se localizan por
@@ -54,3 +57,8 @@
 # --- Coroutines ------------------------------------------------------------
 -keepclassmembers class kotlinx.coroutines.** { volatile <fields>; }
 -dontwarn kotlinx.coroutines.**
+
+# --- Enums de la app -------------------------------------------------------
+# Algunos se guardan por su nombre y se recuperan con valueOf() (TipoRuido en
+# ServicioRuido, Comunidad en PantallaSalud): se conservan sus nombres.
+-keepclassmembers enum app.nubi.** { *; }

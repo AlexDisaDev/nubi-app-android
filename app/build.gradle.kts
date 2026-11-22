@@ -46,7 +46,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 activado: Google Play avisa (con fecha límite feb 2027) si
+            // la ofuscación del código está por debajo del 25 %, y con esto
+            // apagado estaba al 0 %. Las reglas están en proguard-rules.pro.
+            // Antes de subir una versión: compilar en release e instalarla
+            // de verdad (ver la cabecera de proguard-rules.pro).
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
