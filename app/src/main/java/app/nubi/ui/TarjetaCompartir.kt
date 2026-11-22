@@ -37,9 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.nubi.data.Compartir
@@ -47,7 +45,6 @@ import app.nubi.data.Repositorio
 import app.nubi.i18n.L10n
 import app.nubi.ui.theme.NubiGeometria
 import app.nubi.ui.theme.NubiTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -187,15 +184,15 @@ private fun textoPersonas(n: Int, invitado: Boolean): String =
 private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Unit) {
     val colores = NubiTheme.colores
     val contexto = LocalContext.current
-    val clipboard = LocalClipboardManager.current
     val ambito = rememberCoroutineScope()
     val estadoHoja = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var nombre by remember { mutableStateOf("") }
-    var enlace by remember { mutableStateOf<String?>(null) }
+    // El nombre se recuerda de la última invitación: así, normalmente,
+    // invitar es abrir la hoja y pulsar "Compartir enlace".
+    val preferencias = remember { contexto.getSharedPreferences("nubi_compartir", Context.MODE_PRIVATE) }
+    var nombre by remember { mutableStateOf(preferencias.getString("nombre", "") ?: "") }
     var creando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var copiado by remember { mutableStateOf(false) }
     var personasInvitadas by remember { mutableStateOf(0) }
 
     LaunchedEffect(bebeId) {
@@ -224,97 +221,60 @@ private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Un
             )
             Spacer(Modifier.height(16.dp))
 
-            if (enlace == null) {
-                Card(
-                    shape = RoundedCornerShape(NubiGeometria.radioChico),
-                    colors = CardDefaults.cardColors(containerColor = colores.lienzoAlto),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            L10n.t("Tu nombre (opcional)"),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colores.tintaSuave
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        OutlinedTextField(
-                            value = nombre,
-                            onValueChange = { nombre = it },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = {
-                                ambito.launch {
-                                    creando = true
-                                    error = null
-                                    try {
-                                        val token = Compartir.crearInvitacion(bebeId)
-                                        enlace = construirEnlaceInvitacion(token, nombre.trim(), nombreBebe)
-                                    } catch (e: Exception) {
-                                        error = "${L10n.t("No se pudo crear el enlace:")} ${e.message}"
-                                    } finally {
-                                        creando = false
-                                    }
+            // Un solo botón: cada vez que se pulsa crea un enlace nuevo (sirve
+            // para una sola persona y caduca a los 7 días si nadie lo usa) y
+            // abre directamente el menú de compartir del móvil. Los enlaces
+            // anteriores sin usar NO se anulan: si se invita a dos personas
+            // seguidas, el primero tiene que seguir valiendo.
+            Card(
+                shape = RoundedCornerShape(NubiGeometria.radioChico),
+                colors = CardDefaults.cardColors(containerColor = colores.lienzoAlto),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(14.dp)) {
+                    Text(
+                        L10n.t("Tu nombre (opcional)"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colores.tintaSuave
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = nombre,
+                        onValueChange = { nombre = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            ambito.launch {
+                                creando = true
+                                error = null
+                                try {
+                                    val de = nombre.trim()
+                                    preferencias.edit().putString("nombre", de).apply()
+                                    val token = Compartir.crearInvitacion(bebeId)
+                                    val url = construirEnlaceInvitacion(token, de, nombreBebe)
+                                    compartirTexto(contexto, textoCompartir(de, nombreBebe, url))
+                                } catch (e: Exception) {
+                                    error = "${L10n.t("No se pudo crear el enlace:")} ${e.message}"
+                                } finally {
+                                    creando = false
                                 }
-                            },
-                            enabled = !creando,
-                            colors = ButtonDefaultsRosa(),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(if (creando) L10n.t("Creando…") else L10n.t("Crear enlace de invitación"))
-                        }
-                    }
-                }
-            } else {
-                val url = enlace!!
-                Card(
-                    shape = RoundedCornerShape(NubiGeometria.radioChico),
-                    colors = CardDefaults.cardColors(containerColor = colores.lienzoAlto),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(
-                            L10n.t("Tu enlace de invitación"),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = colores.tintaSuave
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(url, style = MaterialTheme.typography.bodySmall, color = colores.tintaSuave, maxLines = 2)
-                        Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(
-                                onClick = { compartirTexto(contexto, textoCompartir(nombre.trim(), nombreBebe, url)) },
-                                colors = ButtonDefaultsRosa(),
-                                modifier = Modifier.weight(1f)
-                            ) { Text(L10n.t("Compartir enlace")) }
-                            TextButton(onClick = {
-                                clipboard.setText(AnnotatedString(url))
-                                copiado = true
-                                ambito.launch { delay(1500); copiado = false }
-                            }) {
-                                Text(if (copiado) "${L10n.t("Copiado")} ✓" else L10n.t("Copiar"))
                             }
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            L10n.t("Al tocarlo, tu pareja verá una página de Nubi con tu nombre. Si tiene la app, se abrirá y podrá unirse. Este enlace sirve una sola vez: en cuanto alguien se une con él, deja de funcionar."),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colores.tintaTenue
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Button(
-                            onClick = { enlace = null },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colores.indigo,
-                                contentColor = colores.tinta
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(L10n.t("Crear otro enlace (para otra persona, o si este ya caducó)"))
-                        }
+                        },
+                        enabled = !creando,
+                        colors = ButtonDefaultsRosa(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (creando) L10n.t("Creando…") else L10n.t("Compartir enlace"))
                     }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        L10n.t("Cada vez que lo pulses se crea un enlace nuevo, para una sola persona. Caduca a los 7 días si nadie lo usa."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colores.tintaTenue
+                    )
                 }
             }
 
@@ -339,7 +299,6 @@ private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Un
                     .clickable {
                         ambito.launch {
                             Compartir.dejarDeCompartir(bebeId)
-                            enlace = null
                             alCerrar()
                         }
                     }
@@ -375,7 +334,7 @@ private fun construirEnlaceInvitacion(token: String, de: String, bebe: String): 
 }
 
 private fun textoCompartir(de: String, bebe: String, url: String): String {
-    val quien = de.ifEmpty { "Alguien especial" }
+    val quien = de.ifEmpty { L10n.t("Alguien especial") }
     return "🌙 $quien ${L10n.t("te invita a Nubi para compartir el sueño y los cuidados de")} $bebe. ${L10n.t("Toca el enlace para unirte:")} $url"
 }
 
