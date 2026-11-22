@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.nubi.R
@@ -210,11 +211,11 @@ fun PantallaBienvenidaAlta(
                             is EstadoAlta.Despierto -> ContenidoDespierto(bebe, estado.hora, prediccion, esHoraDeDormir, ahora)
                             is EstadoAlta.Siesta -> {
                                 TituloBienvenida(L10n.t("Que descanse 💤"))
-                                TarjetaDormido(estado.inicio, L10n.t("Cuando se despierte, Nubi calculará la siguiente"))
+                                TarjetaDormido(estado.inicio, L10n.t("Cuando se despierte, Nubi calculará la siguiente"), esNoche = false)
                             }
                             is EstadoAlta.Noche -> {
                                 TituloBienvenida(L10n.t("Buenas noches 🌙"))
-                                TarjetaDormido(estado.inicio, L10n.t("Mañana, al despertar, Nubi calculará su primera siesta"))
+                                TarjetaDormido(estado.inicio, L10n.t("Mañana, al despertar, Nubi calculará su primera siesta"), esNoche = true)
                             }
                         }
                     }
@@ -321,7 +322,8 @@ private fun ContenidoDespierto(
     )
 
     TarjetaBienvenida {
-        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 64.dp, tamanoIcono = 30.dp)
+        // Siesta: nube en menta (su color en Nubi). Noche: luna en lila.
+        IconoSueno(esNoche = esNoche, tamano = 64.dp, tamanoIcono = 30.dp)
         if (p != null) {
             Text(
                 if (esNoche) formatoHoraBienvenida.format(p.desde)
@@ -376,13 +378,27 @@ private fun ContenidoDespierto(
     }
 }
 
+/** Icono de siesta (nube, menta) o de sueño nocturno (luna, lila). */
+@Composable
+private fun IconoSueno(esNoche: Boolean, tamano: Dp, tamanoIcono: Dp) {
+    val colores = NubiTheme.colores
+    val color = if (esNoche) colores.lila else colores.menta
+    BadgeIcono(
+        if (esNoche) IconoNubi.LUNA else IconoNubi.NUBE,
+        colorFondo = color.copy(alpha = 0.25f),
+        colorIcono = color,
+        tamano = tamano,
+        tamanoIcono = tamanoIcono
+    )
+}
+
 /** Una sola tarjeta protagonista: la hora en que se durmió en grande y qué
  *  hará Nubi cuando despierte. */
 @Composable
-private fun TarjetaDormido(inicio: Instant, texto: String) {
+private fun TarjetaDormido(inicio: Instant, texto: String, esNoche: Boolean) {
     val colores = NubiTheme.colores
     TarjetaBienvenida {
-        BadgeIcono(IconoNubi.LUNA, colorFondo = colores.lila.copy(alpha = 0.25f), colorIcono = colores.lila, tamano = 52.dp, tamanoIcono = 24.dp)
+        IconoSueno(esNoche = esNoche, tamano = 52.dp, tamanoIcono = 24.dp)
         Text(
             L10n.t("Se durmió a las"),
             style = MaterialTheme.typography.bodyLarge,
