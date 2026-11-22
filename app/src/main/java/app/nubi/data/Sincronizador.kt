@@ -552,7 +552,18 @@ class Sincronizador(private val local: AlmacenLocal) {
                         })
                     }
                 }
-                Resultado.NoExiste, Resultado.Descartar -> d.copy(pendientes = sinOp())
+                // La fila ya no existe en el servidor: no se resucita, y se
+                // apunta como "sabida" para no volver a mandarla en cada
+                // pasada. No se borra del móvil por inferencia: si el
+                // historial confirma el borrado, desaparecerá entonces.
+                Resultado.NoExiste -> {
+                    val actualLocal = filaLocal(d, op.tabla, op.id)
+                    val baseTabla = (d.baseServidor[op.tabla] ?: emptyMap()).let { b ->
+                        if (actualLocal != null && op.tabla != Tablas.FOTOS_BEBE) b + (op.id to actualLocal) else b
+                    }
+                    d.copy(pendientes = sinOp(), baseServidor = d.baseServidor + (op.tabla to baseTabla))
+                }
+                Resultado.Descartar -> d.copy(pendientes = sinOp())
                 is Resultado.Bloqueada -> d.copy(
                     pendientes = sinOp(),
                     motor = d.motor.copy(fallidas = (d.motor.fallidas + op.copy(ultimoError = r.motivo)).takeLast(200))
@@ -640,6 +651,25 @@ class Sincronizador(private val local: AlmacenLocal) {
         val enviado = fila(def, modelo)
         val base = d.baseServidor[def.tabla]?.get(op.id)
 
+        // Sin base conocida y sin ser alta de la primera mezcla: puede ser una
+        // fila nueva o un cambio a una que ya existe (cola del motor viejo,
+        // cambio de bebé...). Primero se intenta como cambio; solo si no
+        // existe, y el historial no dice que se borró, se crea.
+        if (base == null && !def.siempreCompleta && !op.soloSiNoExiste && def.tabla != Tablas.BEBES) {
+            val cuerpo = JsonObject(enviado.filterKeys { it !in def.columnasClave && it !in def.nuncaEnCambios })
+            val cambiadas = tabla.update(cuerpo) {
+                select(Columns.list(def.columnasClave))
+                filter { filtrarClave(def, op.id) }
+            }.decodeList<JsonObject>()
+            if (cambiadas.isNotEmpty()) return Resultado.Hecho(enviado, enviado)
+            if (estaBorradaEnHistorial(def.tabla, op.id)) return Resultado.NoExiste
+            tabla.upsert(JsonArray(listOf(enviado))) {
+                onConflict = def.columnasClave.joinToString(",")
+                ignoreDuplicates = true
+            }
+            return Resultado.Hecho(enviado, enviado)
+        }
+
         if (base == null || def.siempreCompleta) {
             var filaEnvio = enviado
             if (def.tabla == Tablas.BEBES) {
@@ -683,6 +713,40 @@ class Sincronizador(private val local: AlmacenLocal) {
         }.decodeList<JsonObject>()
         if (filas.isEmpty()) return Resultado.NoExiste
         return Resultado.Hecho(enviado, JsonObject(base + cambios))
+    }
+
+    private suspend fun estaBorradaEnHistorial(tabla: String, id: String): Boolean = try {
+        Supabase.client.from("historial_cambios").select(Columns.list("id")) {
+            filter {
+                eq("tabla", tabla)
+                eq("fila_id", id)
+                eq("operacion", "DELETE")
+            }
+            limit(1)
+        }.decodeList<JsonObject>().isNotEmpty()
+    } catch (e: PostgrestRestException) {
+        if (e.code in setOf("42P01", "PGRST205", "PGRST200")) false else throw e
+    }
+
+    /**
+     * De las filas que el historial da por borradas, las que SIGUEN
+     * existiendo en el servidor (alguien las volvió a subir después).
+     * Esas no se borran del móvil.
+     */
+    private suspend fun siguenExistiendo(candidatos: List<Borrado>): Set<String> {
+        val vivos = mutableSetOf<String>()
+        for ((tablaNombre, grupo) in candidatos.groupBy { it.tabla }) {
+            val def = defPorTabla[tablaNombre] ?: continue
+            if (def.columnasClave.size != 1) continue
+            for (trozo in grupo.map { it.filaId }.distinct().chunked(100)) {
+                Supabase.client.from(def.tabla).select(Columns.list(def.columnasClave)) {
+                    filter { isIn(def.columnasClave[0], trozo) }
+                }.decodeList<JsonObject>().forEach { o ->
+                    o[def.columnasClave[0]]?.jsonPrimitive?.contentOrNull?.let { vivos += clavePendiente(tablaNombre, uuid(it)) }
+                }
+            }
+        }
+        return vivos
     }
 
     private fun io.github.jan.supabase.postgrest.query.filter.PostgrestFilterBuilder.filtrarClave(
@@ -876,7 +940,13 @@ class Sincronizador(private val local: AlmacenLocal) {
                     return false
                 }
                 // Bebé propio que todavía no está en la nube: se sube todo.
-                esMio && !m.migrado -> subirTodoPorPrimeraVez(bebeId)
+                // (Salvo que la cuenta ya tenga OTRO bebé en el servidor: p. ej.
+                // un móvil nuevo que abrió sin red y creó uno. Entonces se pasa
+                // al de la cuenta; lo de este móvil queda en la copia.)
+                esMio && !m.migrado -> {
+                    val propio = buscarBebePropio(miId)
+                    if (propio != null && propio != bebeId) cambiarABebe(propio) else subirTodoPorPrimeraVez(bebeId)
+                }
                 // Era invitado (u otra cuenta): solo si el servidor confirma
                 // que ya no hay acceso, se deja de ver.
                 !esMio -> if (accesoPerdido(bebeId) && local.datos.value.motor.bebeId == bebeId) {
@@ -916,6 +986,17 @@ class Sincronizador(private val local: AlmacenLocal) {
         }
         pasoHecho()
 
+        // Un borrado del historial solo se aplica si la fila no ha vuelto a
+        // aparecer en esta descarga NI existe ahora en el servidor (la
+        // descarga es incremental: una fila resubida antes no viene).
+        val recibidasAhora = mutableSetOf<String>()
+        for (def in defs) for (o in filas[def.tabla].orEmpty()) {
+            claveDeFila(def, o)?.let { recibidasAhora += clavePendiente(def.tabla, it) }
+        }
+        val vivos = siguenExistiendo(borrados.filter {
+            defPorTabla.containsKey(it.tabla) && clavePendiente(it.tabla, it.filaId) !in recibidasAhora
+        })
+
         if (cambiaDeBebe && local.datos.value.bebe != null) local.respaldar("cambio-bebe")
 
         val duenioDelBebe = filaBebe["usuario_id"]?.jsonPrimitive?.contentOrNull?.let(::uuid)
@@ -937,7 +1018,8 @@ class Sincronizador(private val local: AlmacenLocal) {
 
             // Borrados: solo los de filas que NO han vuelto a aparecer.
             val borradosAplicables = borrados.filter {
-                defPorTabla.containsKey(it.tabla) && clavePendiente(it.tabla, it.filaId) !in recibidas
+                val ck = clavePendiente(it.tabla, it.filaId)
+                defPorTabla.containsKey(it.tabla) && ck !in recibidas && ck !in vivos
             }
             val borradosSet = borradosAplicables.map { clavePendiente(it.tabla, it.filaId) }.toSet()
             // Lo pendiente de una fila ya borrada no la resucita.
@@ -1020,9 +1102,17 @@ class Sincronizador(private val local: AlmacenLocal) {
         for (o in filas) {
             val marca = if (cuenta) marcaDe(o) else null
             val modelo = decodificar(def, o)
-            if (modelo == null) { marcas.vista(marca); continue }
+            // Fila que esta versión no sabe leer (p. ej. un valor nuevo de
+            // la otra plataforma): no se aplica y el cursor no la salta.
+            if (modelo == null) { marcas.omitida(marca); continue }
             val k = def.clave(modelo)
-            if (clavePendiente(def.tabla, k) in pendientes) { marcas.omitida(marca); continue }
+            if (clavePendiente(def.tabla, k) in pendientes) {
+                // No se toca la fila local, pero se apunta cómo está en el
+                // servidor: así al subir solo va lo que de verdad difiere.
+                if (base[k] == null) base[k] = fila(def, modelo)
+                marcas.omitida(marca)
+                continue
+            }
             val actual = porClave[k]
             val b = base[k]
             if (protegerCambiosLocales && b != null) {
@@ -1108,7 +1198,7 @@ class Sincronizador(private val local: AlmacenLocal) {
         local.modificar { d ->
             vaciarBebe(d).copy(
                 pendientes = emptyList(),
-                motor = EstadoMotor(usuarioId = d.motor.usuarioId, fallidas = d.motor.fallidas)
+                motor = EstadoMotor(usuarioId = d.motor.usuarioId, fallidas = (d.motor.fallidas + d.pendientes).takeLast(200))
             )
         }
     }
@@ -1141,6 +1231,13 @@ class Sincronizador(private val local: AlmacenLocal) {
         baseServidor = emptyMap(),
         sellosRemotos = emptyMap()
     )
+
+    private suspend fun buscarBebePropio(miId: String): String? =
+        Supabase.client.from(Tablas.BEBES).select(Columns.list("id")) {
+            filter { eq("usuario_id", miId) }
+            order("creado_en", Order.ASCENDING)
+            limit(1)
+        }.decodeList<JsonObject>().firstOrNull()?.get("id")?.jsonPrimitive?.contentOrNull?.let(::uuid)
 
     /** El bebé de la cuenta; si no tiene, el primero compartido con ella. */
     private suspend fun buscarBebeDeLaCuenta(miId: String): String? {
