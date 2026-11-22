@@ -1010,6 +1010,10 @@ fun PantallaHoy(
     var mostrarHojaPecho by remember { mutableStateOf(false) }
     var mostrarHojaBiberon by remember { mutableStateOf(false) }
     var mostrarHojaPanal by remember { mutableStateOf(false) }
+    // "Buenos días" / "Se ha despertado": abre la hoja para elegir la hora
+    // (y dónde se durmió, si es siesta) en vez de guardar "ahora" sin
+    // preguntar. Igual que iOS (HojaFinSueño). Guarda el título de la hoja.
+    var finSueno by remember { mutableStateOf<Pair<Registro, String>?>(null) }
     var mostrarHojaEtapa by remember { mutableStateOf(false) }
     var mostrarHojaAvisoComida by remember { mutableStateOf(false) }
     // Se abre al tocar algo bloqueado de esta pantalla (predicción, toma,
@@ -1160,7 +1164,7 @@ fun PantallaHoy(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 maxLineas = 2
                             ) {
-                                Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
+                                finSueno = suenoEnCurso to L10n.t("Fin de la noche")
                             }
                         }
                     } else {
@@ -1170,7 +1174,7 @@ fun PantallaHoy(
                             color = colores.melocoton,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Repositorio.guardarRegistro(suenoEnCurso.copy(fin = Instant.now()))
+                            finSueno = suenoEnCurso to L10n.t("Se ha despertado")
                         }
                     }
                 } else {
@@ -1314,6 +1318,9 @@ fun PantallaHoy(
     }
     if (mostrarHojaPanal) {
         HojaPanal(bebeId = bebe.id) { mostrarHojaPanal = false }
+    }
+    finSueno?.let { (registro, titulo) ->
+        HojaFinSueno(registro = registro, titulo = titulo) { finSueno = null }
     }
     if (mostrarHojaEtapa) {
         etapaActual?.let { etapa ->

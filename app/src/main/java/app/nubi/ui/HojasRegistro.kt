@@ -71,6 +71,7 @@ import app.nubi.i18n.L10n
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.abs
@@ -1110,6 +1111,98 @@ fun HojaSiestaDia(bebeId: String, dia: LocalDate, horaInicial: Instant = Instant
             Spacer(Modifier.height(8.dp))
             GrillaLugarSueno(lugar = lugar) { lugar = if (lugar == it) null else it }
 
+        }
+    }
+}
+
+// =====================================================================
+// Fin de un sueño en curso (pestaña Hoy: "Se ha despertado" en la siesta,
+// "Buenos días" en la noche). Igual que HojaFinSueño en iOS: se elige a
+// qué hora se despertó (entre el inicio y ahora) y, si es siesta, dónde
+// se durmió. Guardar va fijo abajo.
+// =====================================================================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HojaFinSueno(registro: Registro, titulo: String, onCerrar: () -> Unit) {
+    val colores = NubiTheme.colores
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val zona = ZoneId.systemDefault()
+    val esSiesta = registro.tipo == TipoRegistro.SIESTA
+    val color = if (esSiesta) colores.menta else colores.lila
+    val horaLocalInicial = remember { Instant.now().atZone(zona).toLocalTime() }
+    var hora by remember { mutableIntStateOf(horaLocalInicial.hour) }
+    var minuto by remember { mutableIntStateOf(horaLocalInicial.minute) }
+    var lugar by remember { mutableStateOf(registro.lugarSueno) }
+
+    // La rueda solo da hora y minuto: es de hoy, salvo que caiga más tarde
+    // que ahora (p. ej. se durmió a las 23:00 y se elige las 23:50 a las
+    // 00:10), que entonces es de ayer.
+    val ahora = Instant.now()
+    var fin = LocalDate.now(zona).atTime(hora, minuto).atZone(zona).toInstant()
+    if (fin.isAfter(ahora)) fin = fin.minus(Duration.ofDays(1))
+    val fueraDeRango = fin.isBefore(registro.inicio)
+    val minutosTotales = Duration.between(registro.inicio, fin).toMinutes().coerceAtLeast(0)
+    val formato = DateTimeFormatter.ofPattern("HH:mm").withZone(zona)
+
+    ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
+        HojaConBotonFijo(
+            boton = {
+                Button(
+                    onClick = {
+                        // Igual que iOS: nunca antes del inicio (+1 min) ni después de ahora.
+                        val finAjustado = minOf(maxOf(fin, registro.inicio.plusSeconds(60)), Instant.now())
+                        Repositorio.guardarRegistro(
+                            registro.copy(fin = finAjustado, lugarSueno = if (esSiesta) lugar else registro.lugarSueno)
+                        )
+                        onCerrar()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = color, contentColor = colores.tinta),
+                    shape = RoundedCornerShape(NubiGeometria.radioChico),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(L10n.t("Guardar")) }
+            }
+        ) {
+            CabeceraHoja(
+                if (esSiesta) IconoNubi.NUBE else IconoNubi.LUNA,
+                color,
+                titulo,
+                L10n.t("¿A qué hora se despertó?")
+            )
+            Spacer(Modifier.height(18.dp))
+            RuedaHoraMinuto(hora = hora, minuto = minuto, onHoraCambiar = { hora = it }, onMinutoCambiar = { minuto = it })
+            Spacer(Modifier.height(14.dp))
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colores.lienzoAlto))
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(L10n.t("Empezó a las"), style = MaterialTheme.typography.bodyMedium, color = colores.tintaSuave)
+                Spacer(Modifier.width(6.dp))
+                Text(formato.format(registro.inicio), style = MaterialTheme.typography.bodyMedium, color = colores.tinta)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    when {
+                        minutosTotales < 60 -> "$minutosTotales min"
+                        minutosTotales % 60 == 0L -> "${minutosTotales / 60} h"
+                        else -> "${minutosTotales / 60} h ${minutosTotales % 60} min"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colores.tinta
+                )
+            }
+            if (fueraDeRango) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "⚠️ " + L10n.t("La hora debe estar entre el inicio y ahora"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colores.coral
+                )
+            }
+
+            if (esSiesta) {
+                Spacer(Modifier.height(18.dp))
+                EtiquetaSeccionHoja(L10n.t("¿Dónde se durmió? · Opcional"))
+                Spacer(Modifier.height(8.dp))
+                GrillaLugarSueno(lugar = lugar) { lugar = if (lugar == it) null else it }
+            }
         }
     }
 }

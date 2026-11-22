@@ -293,22 +293,23 @@ private fun HojaCompartir(bebeId: String, nombreBebe: String, alCerrar: () -> Un
             }
 
             Spacer(Modifier.height(14.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        ambito.launch {
-                            Compartir.dejarDeCompartir(bebeId)
-                            alCerrar()
-                        }
+            // Mismo botón que "Compartir enlace", en rojo.
+            Button(
+                onClick = {
+                    ambito.launch {
+                        Compartir.dejarDeCompartir(bebeId)
+                        alCerrar()
                     }
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colores.coral,
+                    contentColor = colores.tinta
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icono(IconoNubi.PAPELERA, tint = colores.indigo, tamano = 14.dp)
+                Icono(IconoNubi.PAPELERA, tint = colores.tinta, tamano = 14.dp)
                 Spacer(Modifier.width(7.dp))
-                Text(L10n.t("Dejar de compartir"), style = MaterialTheme.typography.bodyMedium, color = colores.indigo)
+                Text(L10n.t("Dejar de compartir"))
             }
             Spacer(Modifier.height(8.dp))
         }
