@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import java.io.File
 import java.time.Instant
 import java.util.UUID
@@ -183,7 +184,26 @@ data class DatosNubi(
      * existente) y se usa para fijar la base de sellos; a partir de la
      * segunda ya se mezcla y se borra de verdad.
      */
-    val sellosRemotosInicializados: Boolean = false
+    val sellosRemotosInicializados: Boolean = false,
+
+    /**
+     * Última versión de cada fila tal y como la tiene SUPABASE (por tabla y
+     * por clave, sin actualizado_en), según el motor de sincronización
+     * nuevo (ver Sincronizador). Sirve para dos cosas:
+     *
+     * - Subir solo las columnas que se han tocado en este móvil (lo que
+     *   difiere de esta copia), y no la fila entera: si dos personas
+     *   cambian a la vez campos distintos de la misma fila, no se pisan.
+     * - Saber si una fila local tiene cambios que todavía no han llegado al
+     *   servidor, para no sustituirla con lo que baje.
+     *
+     * sellosRemotos y sellosRemotosInicializados (arriba) ya no se usan:
+     * se dejan solo para que un nubi.json de antes se siga leyendo.
+     */
+    val baseServidor: Map<String, Map<String, JsonObject>> = emptyMap(),
+
+    /** Estado del motor de sincronización (cursores, bebé, primera mezcla). */
+    val motor: EstadoMotor = EstadoMotor()
 )
 
 /**
@@ -271,10 +291,40 @@ class AlmacenLocal(
      */
     suspend fun marcarPendiente(tabla: String, id: String, borrado: Boolean = false) {
         modificar { d ->
+            val previo = d.pendientes.firstOrNull { it.tabla == tabla && it.id == id }
             d.copy(
                 pendientes = d.pendientes.filterNot { it.tabla == tabla && it.id == id } +
-                    CambioPendiente(tabla, id, borrado)
+                    CambioPendiente(
+                        tabla, id, borrado,
+                        // Un alta de la primera mezcla (ver Sincronizador)
+                        // sigue siendo "solo si no existe" aunque se edite
+                        // antes de subir: nunca pisa una fila del servidor.
+                        soloSiNoExiste = !borrado && previo?.soloSiNoExiste == true
+                    )
             )
+        }
+    }
+
+    /**
+     * Copia de seguridad de todo lo que hay ahora en el móvil, en
+     * filesDir/respaldos. Se hace antes de cualquier operación que quite
+     * datos de la pantalla (cambiar al bebé compartido, perder o dejar el
+     * acceso compartido), para poder recuperarlos a mano si hiciera falta.
+     * Se guardan las 10 más recientes.
+     */
+    suspend fun respaldar(motivo: String) {
+        candado.withLock {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val dir = File(contexto.filesDir, "respaldos").apply { mkdirs() }
+                    val nombre = "nubi-${Instant.now().toEpochMilli()}-$motivo.json"
+                    File(dir, nombre).writeText(json.encodeToString(_datos.value))
+                    dir.listFiles()
+                        ?.sortedByDescending { it.lastModified() }
+                        ?.drop(10)
+                        ?.forEach { it.delete() }
+                }
+            }
         }
     }
 

@@ -369,7 +369,8 @@ fun ContenidoApp() {
                             aceptandoInvitacion = true
                             errorInvitacion = null
                             try {
-                                Compartir.aceptarInvitacion(token)
+                                val bebeId = Compartir.aceptarInvitacion(token)
+                                Repositorio.unirseABebeCompartido(bebeId)
                                 Compartir.descartarInvitacionPendiente()
                                 cargandoCompartido = true
                             } catch (e: Exception) {

@@ -114,7 +114,7 @@ fun TarjetaCompartir(
                 TextButton(onClick = {
                     ambito.launch {
                         Compartir.dejarDeVerCompartido(bebeId)
-                        Repositorio.sincronizarEnSegundoPlano()
+                        Repositorio.salirDeCompartido()
                         version++
                     }
                 }) {

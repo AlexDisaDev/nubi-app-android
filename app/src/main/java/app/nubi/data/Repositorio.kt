@@ -301,6 +301,28 @@ object Repositorio {
         reprogramarAvisos(contexto)
     }
 
+    /**
+     * Tras aceptar una invitación: en la próxima sincronización se pasa al
+     * bebé compartido. Hasta que el servidor lo entregue, se sigue viendo
+     * lo que había (y lo pendiente del bebé anterior sube antes).
+     */
+    suspend fun unirseABebeCompartido(bebeId: String) {
+        sincronizador.cambiarABebe(bebeId)
+    }
+
+    /**
+     * El invitado deja de ver el bebé compartido (ya se le ha quitado el
+     * acceso en Supabase): se guarda una copia y se vacía el móvil, como
+     * al eliminar la cuenta pero conservando la sesión.
+     */
+    suspend fun salirDeCompartido() {
+        val antes = local.datos.value
+        antes.medicinas.forEach { AvisosNubi.cancelar(contexto, "medicina_${it.id}") }
+        antes.citas.forEach { AvisosNubi.cancelar(contexto, "cita_${it.id}") }
+        sincronizador.perderAcceso("dejar-compartido")
+        reprogramarAvisos(contexto)
+    }
+
     fun desactivarTiempoReal() {
         val canal = sincronizador.soltarCanalTiempoReal() ?: return
         ambito.launch { runCatching { canal.unsubscribe() } }
