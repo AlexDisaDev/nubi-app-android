@@ -1602,12 +1602,38 @@ fun HojaMedicinaDia(
     }
 
     ModalBottomSheet(onDismissRequest = onCerrar, sheetState = sheetState, containerColor = colores.lienzo) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = NubiGeometria.margen)
-                .padding(bottom = 28.dp)
+        HojaConBotonFijo(
+            boton = {
+                Button(
+                    onClick = {
+                        // El mismo id para las dos filas (compartido con el
+                        // Registro espejo de abajo): así, al tocar la toma
+                        // desde "Todo lo del día", se encuentra esta fila de
+                        // "medicinas" a partir del id del Registro.
+                        val id = registro?.id ?: medicinaExistente?.id ?: nuevoId()
+                        Repositorio.guardarMedicina(
+                            Medicina(
+                                id = id,
+                                bebeId = bebeId,
+                                fechaToma = fecha,
+                                nombre = nombre,
+                                nota = nota,
+                                horaSiguiente = if (avisar) horaSiguiente else null
+                            )
+                        )
+                        // Además de la tabla "medicinas" (para el aviso de la
+                        // siguiente toma), se guarda un Registro normal: es lo
+                        // único que hace que la toma aparezca en "Todo lo del
+                        // día" de la pestaña Día, igual que el resto de tipos.
+                        val baseRegistro = registro ?: Registro(id = id, bebeId = bebeId, tipo = TipoRegistro.MEDICINA, inicio = fecha)
+                        Repositorio.guardarRegistro(baseRegistro.copy(inicio = fecha, nota = nombre))
+                        onCerrar()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colores.lila, contentColor = colores.tinta),
+                    shape = RoundedCornerShape(NubiGeometria.radioChico),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(L10n.t("Guardar")) }
+            }
         ) {
             if (editando) {
                 BarraEditarRegistro(onCancelar = onCerrar)
@@ -1636,23 +1662,10 @@ fun HojaMedicinaDia(
                     }
                 }
             } else {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    BadgeIcono(
-                        IconoNubi.JERINGA,
-                        colorFondo = Color.White,
-                        colorIcono = Color.Black,
-                        tamano = 54.dp,
-                        tamanoIcono = 24.dp
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(L10n.t("Medicina"), style = MaterialTheme.typography.titleLarge, color = colores.tinta)
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        L10n.t("Anota la toma y programa un aviso"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colores.tintaSuave
-                    )
-                }
+                CabeceraHoja(
+                    IconoNubi.JERINGA, Color.White, L10n.t("Medicina"),
+                    L10n.t("Anota la toma y programa un aviso"), colorIcono = Color.Black
+                )
             }
             Spacer(Modifier.height(18.dp))
 
@@ -1721,37 +1734,6 @@ fun HojaMedicinaDia(
                     )
                 }
             }
-            Spacer(Modifier.height(18.dp))
-
-            Button(
-                onClick = {
-                    // El mismo id para las dos filas (compartido con el
-                    // Registro espejo de abajo): así, al tocar la toma
-                    // desde "Todo lo del día", se encuentra esta fila de
-                    // "medicinas" a partir del id del Registro.
-                    val id = registro?.id ?: medicinaExistente?.id ?: nuevoId()
-                    Repositorio.guardarMedicina(
-                        Medicina(
-                            id = id,
-                            bebeId = bebeId,
-                            fechaToma = fecha,
-                            nombre = nombre,
-                            nota = nota,
-                            horaSiguiente = if (avisar) horaSiguiente else null
-                        )
-                    )
-                    // Además de la tabla "medicinas" (para el aviso de la
-                    // siguiente toma), se guarda un Registro normal: es lo
-                    // único que hace que la toma aparezca en "Todo lo del
-                    // día" de la pestaña Día, igual que el resto de tipos.
-                    val baseRegistro = registro ?: Registro(id = id, bebeId = bebeId, tipo = TipoRegistro.MEDICINA, inicio = fecha)
-                    Repositorio.guardarRegistro(baseRegistro.copy(inicio = fecha, nota = nombre))
-                    onCerrar()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = colores.cielo, contentColor = colores.tinta),
-                shape = RoundedCornerShape(NubiGeometria.radioChico),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(L10n.t("Guardar")) }
         }
     }
 

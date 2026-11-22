@@ -242,6 +242,7 @@ internal val tablaTraducciones: Map<String, Map<String, String>> = mapOf(
     "opcional" to mapOf("en" to "optional", "it" to "opzionale", "fr" to "facultatif"),
     "Elige la hora del registro" to mapOf("en" to "Choose the time for the record", "it" to "Scegli l'ora del registro", "fr" to "Choisissez l'heure de l'enregistrement"),
     "Cantidad" to mapOf("en" to "Amount", "it" to "Quantità", "fr" to "Quantité"),
+    "Pis, caca o las dos" to mapOf("en" to "Pee, poop or both", "it" to "Pipì, cacca o entrambe", "fr" to "Pipi, caca ou les deux"),
     "Duración de la toma" to mapOf("en" to "Feed duration", "it" to "Durata della poppata", "fr" to "Durée de la tétée"),
     "¿Cómo lo llevó?" to mapOf("en" to "How did it go?", "it" to "Come l'ha presa?", "fr" to "Comment ça s'est passé ?"),
     "Corrige la hora sin perder el registro" to mapOf("en" to "Adjust the time without losing the record", "it" to "Correggi l'ora senza perdere il registro", "fr" to "Corrigez l'heure sans perdre l'enregistrement"),
