@@ -317,13 +317,6 @@ fun HojaBiberon(
                 shape = RoundedCornerShape(NubiGeometria.radioChico),
                 modifier = Modifier.fillMaxWidth()
             ) { Text(L10n.t("Guardar")) }
-
-            TextButton(
-                onClick = { guardar(conCantidad = false) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(L10n.t("Guardar sin cantidad"), color = colores.tintaSuave)
-            }
         }
     }
 }
