@@ -144,11 +144,13 @@ class MainActivity : ComponentActivity() {
         if (Supabase.client.auth.currentUserOrNull() != null) {
             Repositorio.sincronizarEnSegundoPlano()
             Repositorio.activarTiempoReal()
+            Repositorio.arrancarRepasoPeriodico()
         }
     }
 
     override fun onStop() {
         super.onStop()
+        Repositorio.pararRepasoPeriodico()
         Repositorio.desactivarTiempoReal()
     }
 
@@ -184,6 +186,7 @@ fun PantallaRaiz() {
             // Para enterarse al instante de lo que suba la pareja (o el
             // propio iPhone) sin esperar a volver a abrir la app.
             Repositorio.activarTiempoReal()
+            Repositorio.arrancarRepasoPeriodico()
         }
     }
 
@@ -337,6 +340,7 @@ fun ContenidoApp() {
         else -> Navegacion(
             perfil = datos.perfil,
             alCerrarSesion = {
+                Repositorio.pararRepasoPeriodico()
                 Repositorio.desactivarTiempoReal()
                 ambito.launch { Supabase.client.auth.signOut() }
             }

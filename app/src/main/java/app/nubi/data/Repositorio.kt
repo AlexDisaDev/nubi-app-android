@@ -15,6 +15,9 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
@@ -231,6 +234,30 @@ object Repositorio {
 
     fun sincronizarEnSegundoPlano() {
         ambito.launch { sincronizador.sincronizar() }
+    }
+
+    private var repaso: Job? = null
+
+    /**
+     * Mientras la app está en pantalla, un repaso cada 30 s (igual que iOS,
+     * MotorSync.arrancarBucle): si el tiempo real se cae sin avisar (cambio
+     * de wifi a datos, mala cobertura...), lo de la pareja llega igual. Sin
+     * cambios, cada repaso son unas pocas consultas que vuelven vacías.
+     */
+    fun arrancarRepasoPeriodico() {
+        if (repaso?.isActive == true) return
+        repaso = ambito.launch {
+            while (isActive) {
+                delay(30_000)
+                sincronizador.sincronizar()
+            }
+        }
+    }
+
+    /** Se para al irse a segundo plano o cerrar sesión. */
+    fun pararRepasoPeriodico() {
+        repaso?.cancel()
+        repaso = null
     }
 
     /**
