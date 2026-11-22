@@ -109,7 +109,13 @@ data class CambioPendiente(
      */
     val soloSiNoExiste: Boolean = false,
     val intentos: Int = 0,
-    val ultimoError: String? = null
+    val ultimoError: String? = null,
+    /**
+     * Copia de la fila (o de la foto) tal como estaba al aparcar este cambio
+     * por cambiar de cuenta (ver EstadoMotor.aparcadas): así se puede subir
+     * aunque el móvil ya no tenga esa fila. null en un cambio normal.
+     */
+    val fila: JsonObject? = null
 )
 
 /**
@@ -138,7 +144,12 @@ data class EstadoMotor(
      * cuenta). No se reintentan, pero no se tiran: quedan aquí para
      * poder diagnosticar.
      */
-    val fallidas: List<CambioPendiente> = emptyList()
+    val fallidas: List<CambioPendiente> = emptyList(),
+    /**
+     * Cambios sin subir de OTRAS cuentas que usaron este móvil, por usuario,
+     * con su copia de la fila. Se suben cuando esa cuenta vuelve a entrar.
+     */
+    val aparcadas: Map<String, List<CambioPendiente>> = emptyMap()
 )
 
 /**
@@ -416,9 +427,18 @@ class Sincronizador(private val local: AlmacenLocal) {
             var pendientes = d.pendientes
             var base = d.baseServidor
             if (m.usuarioId != null && m.usuarioId != miId) {
-                // Otra cuenta en este móvil: lo pendiente era de la anterior.
-                m = EstadoMotor(usuarioId = miId, fallidas = m.fallidas + pendientes)
-                pendientes = emptyList()
+                // Otra cuenta en este móvil: lo pendiente de la anterior se
+                // aparca a su nombre (con copia de cada fila, porque esta
+                // cuenta puede acabar sin esos datos en el móvil) y se sube
+                // cuando vuelva a entrar. Se recupera lo aparcado de esta.
+                val anterior = m.usuarioId
+                val conCopia = pendientes.map { op ->
+                    if (op.borrado || op.fila != null) op else op.copy(fila = filaLocal(d, op.tabla, normalizarClave(op.tabla, op.id)))
+                }.filter { it.borrado || it.fila != null }
+                val aparcadas = m.aparcadas.toMutableMap()
+                if (conCopia.isNotEmpty()) aparcadas[anterior] = aparcadas[anterior].orEmpty() + conCopia
+                pendientes = aparcadas.remove(miId).orEmpty()
+                m = EstadoMotor(usuarioId = miId, fallidas = m.fallidas, aparcadas = aparcadas)
                 base = emptyMap()
             } else if (m.usuarioId == null) {
                 // Primera vez con este motor: lo pendiente de antes es del
@@ -537,7 +557,8 @@ class Sincronizador(private val local: AlmacenLocal) {
                     val sigueIgual = when {
                         enCola == null -> true
                         op.borrado -> enCola.borrado
-                        else -> !enCola.borrado && filaLocal(d, op.tabla, op.id) == r.enviado
+                        else -> !enCola.borrado &&
+                            (if (enCola.fila != null) enCola.fila == r.enviado else filaLocal(d, op.tabla, op.id) == r.enviado)
                     }
                     // Era un alta "solo si no existe" y ya existía: gana el
                     // servidor, y se pone en el móvil su versión.
@@ -621,13 +642,14 @@ class Sincronizador(private val local: AlmacenLocal) {
         val invitado = !esDuenio(d.bebe, miId)
 
         if (op.tabla == Tablas.FOTOS_BEBE) {
-            if (invitado) return Resultado.Descartar
+            // Un cambio aparcado de otra cuenta no depende del bebé que se
+            // vea ahora: lo decide la RLS del servidor.
+            if (invitado && op.fila == null) return Resultado.Descartar
             if (op.borrado) {
                 Supabase.client.from(Tablas.FOTOS_BEBE).delete { filter { eq("bebe_id", op.id) } }
                 return Resultado.Hecho(null, null)
             }
-            val foto = d.fotoPerfilBase64 ?: return Resultado.Descartar
-            val filaFoto = filaFotoLocal(op.id, foto)
+            val filaFoto = op.fila ?: filaFotoLocal(op.id, d.fotoPerfilBase64 ?: return Resultado.Descartar)
             Supabase.client.from(Tablas.FOTOS_BEBE).upsert(JsonArray(listOf(filaFoto))) {
                 onConflict = "bebe_id"
             }
@@ -635,7 +657,7 @@ class Sincronizador(private val local: AlmacenLocal) {
         }
 
         val def = defPorTabla[op.tabla] ?: return Resultado.Descartar
-        if (invitado && def.soloDuenio) return Resultado.Descartar
+        if (invitado && def.soloDuenio && op.fila == null) return Resultado.Descartar
         return enviarFila(def, op, d, miId)
     }
 
@@ -647,8 +669,10 @@ class Sincronizador(private val local: AlmacenLocal) {
             return Resultado.Hecho(null, null)
         }
 
-        val modelo = def.leer(d).firstOrNull { def.clave(it) == op.id } ?: return Resultado.Descartar
-        val enviado = fila(def, modelo)
+        // Cambio aparcado de otra cuenta: se sube su copia tal cual estaba.
+        val enviado = op.fila
+            ?: def.leer(d).firstOrNull { def.clave(it) == op.id }?.let { fila(def, it) }
+            ?: return Resultado.Descartar
         val base = d.baseServidor[def.tabla]?.get(op.id)
 
         // Sin base conocida y sin ser alta de la primera mezcla: puede ser una
@@ -1198,7 +1222,11 @@ class Sincronizador(private val local: AlmacenLocal) {
         local.modificar { d ->
             vaciarBebe(d).copy(
                 pendientes = emptyList(),
-                motor = EstadoMotor(usuarioId = d.motor.usuarioId, fallidas = (d.motor.fallidas + d.pendientes).takeLast(200))
+                motor = EstadoMotor(
+                    usuarioId = d.motor.usuarioId,
+                    fallidas = (d.motor.fallidas + d.pendientes).takeLast(200),
+                    aparcadas = d.motor.aparcadas
+                )
             )
         }
     }
