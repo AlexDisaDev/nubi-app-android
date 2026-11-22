@@ -2156,6 +2156,15 @@ fun PantallaDia(
     // de eventos del día.
     val listaCompleta = (suenosDelDia.map { it.first } + eventosDelDia).sortedBy { it.inicio }
 
+    // Hora en que se despertó ese día (misma regla que iOS y que el sol del
+    // reloj): debajo de la noche que acabó a esa hora se añade la fila
+    // "<nombre> se despertó / a las HH:MM".
+    val despertarDelDia = MotorSueno.despertarDelDia(
+        registros = registros,
+        dia = diaSeleccionado.atTime(12, 0).atZone(zonaLocal).toInstant(),
+        manual = despertarManual
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -2245,10 +2254,12 @@ fun PantallaDia(
                         onBorrar = { grupo.forEach { Repositorio.borrarRegistro(it.id) } }
                     )
                 } else {
+                    val conDespertar = registro.tipo == TipoRegistro.NOCHE &&
+                        registro.fin != null && registro.fin == despertarDelDia
                     FilaTimeline(
                         registro = registro,
                         diaMostrado = diaSeleccionado,
-                        esUltimo = indice == filas.lastIndex,
+                        esUltimo = indice == filas.lastIndex && !conDespertar,
                         onEditar = {
                             // Sin premium la lista se ve entera, pero es de solo
                             // lectura: editar cualquier registro abre el paywall.
@@ -2256,6 +2267,13 @@ fun PantallaDia(
                         },
                         onBorrar = { Repositorio.borrarRegistro(registro.id) }
                     )
+                    if (conDespertar) {
+                        FilaDespertarDia(
+                            hora = registro.fin!!,
+                            nombre = bebe.nombre,
+                            esUltimo = indice == filas.lastIndex
+                        )
+                    }
                 }
 
                 // Entre dos sueños seguidos, cuánto tiempo pasó despierto.
@@ -2733,20 +2751,20 @@ private fun FilaTimeline(
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(nombreTipo(registro.tipo), style = MaterialTheme.typography.bodyLarge)
-                val esDeAyer = registro.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado
-                if (registro.fin == null && registro.tipo.esSueno) {
-                    Spacer(Modifier.width(8.dp))
-                    ChipTexto(L10n.t("en curso"))
-                }
-                if (esDeAyer) {
-                    Spacer(Modifier.width(8.dp))
-                    ChipTexto(L10n.t("noche anterior"))
-                }
-                registro.duracionSegundos?.let { seg ->
-                    Spacer(Modifier.width(8.dp))
-                    ChipTexto(textoDuracion(seg / 60))
+            // El título va solo en su línea y las etiquetas debajo (igual que
+            // iOS): en la misma fila no cabían "Sueño nocturno" + "noche
+            // anterior" + la duración, y la última etiqueta se aplastaba en
+            // una columna estrecha y muy alta que estiraba toda la fila.
+            Text(nombreTipo(registro.tipo), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            val esDeAyer = registro.inicio.atZone(zonaLocal).toLocalDate() != diaMostrado
+            val enCurso = registro.fin == null && registro.tipo.esSueno
+            val duracion = registro.duracionSegundos
+            if (enCurso || esDeAyer || duracion != null) {
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (enCurso) ChipTexto(L10n.t("en curso"))
+                    if (esDeAyer) ChipTexto(L10n.t("noche anterior"))
+                    if (duracion != null) ChipTexto(textoDuracion(duracion / 60))
                 }
             }
             Spacer(Modifier.height(2.dp))
@@ -2914,7 +2932,47 @@ private fun ChipTexto(texto: String) {
             .background(colores.lienzoAlto)
             .padding(horizontal = 10.dp, vertical = 3.dp)
     ) {
-        Text(texto, style = MaterialTheme.typography.labelSmall, color = colores.tintaSuave)
+        Text(texto, style = MaterialTheme.typography.labelSmall, color = colores.tintaSuave, maxLines = 1, softWrap = false)
+    }
+}
+
+/** "<nombre> se despertó / a las HH:MM", con el sol — debajo de la noche
+ *  que acabó a esa hora. Igual que filaDespertar en iOS. */
+@Composable
+private fun FilaDespertarDia(hora: Instant, nombre: String, esUltimo: Boolean) {
+    val colores = NubiTheme.colores
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier.width(40.dp).height(if (esUltimo) 40.dp else 58.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (!esUltimo) {
+                Box(
+                    Modifier
+                        .padding(top = 40.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(colores.separador)
+                )
+            }
+            BadgeIcono(
+                IconoNubi.SOL,
+                colorFondo = colores.mantequilla,
+                colorIcono = colores.tinta,
+                tamano = 40.dp,
+                tamanoIcono = 18.dp
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 12.dp)) {
+            Text(L10n.seDespertó(nombre), style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                L10n.aLasHora(formatoHoraCorta.format(hora)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colores.tintaSuave
+            )
+        }
     }
 }
 
